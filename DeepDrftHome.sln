@@ -1,8 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftWeb", "DeepDrftWeb\DeepDrftWeb\DeepDrftWeb.csproj", "{7E629215-7EF7-465D-B7F2-2CED53C4BFEC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftWeb", "DeepDrftWeb\DeepDrftWeb.csproj", "{7E629215-7EF7-465D-B7F2-2CED53C4BFEC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftWeb.Client", "DeepDrftWeb\DeepDrftWeb.Client\DeepDrftWeb.Client.csproj", "{E76D21B4-308B-487B-B8D6-59D6AE49F1F7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftWeb.Client", "DeepDrftWeb.Client\DeepDrftWeb.Client.csproj", "{E76D21B4-308B-487B-B8D6-59D6AE49F1F7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftModels", "DeepDrftModels\DeepDrftModels.csproj", "{10CE5160-16C3-4CB1-9E2E-52467BA80B4B}"
 EndProject
