@@ -291,3 +291,6 @@ __pycache__/
 *.btm.cs
 *.odx.cs
 *.xsd.cs
+
+# local sqlite file
+**/deepdrft.db*
