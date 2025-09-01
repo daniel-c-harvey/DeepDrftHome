@@ -11,6 +11,8 @@ builder.Services.AddMudServices();
 
 Startup.ConfigureDomainServices(builder);
 
+var hostUrl = builder.Configuration.GetValue<string>("ASPNETCORE_URLS")?.Split(';').First() ?? throw new Exception("ASPNETCORE_URLS undefined");
+DeepDrftWeb.Client.Startup.ConfigureDomainServices(builder.Services, hostUrl);
 
 builder.Services.AddControllers();
 
