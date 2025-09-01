@@ -292,5 +292,8 @@ __pycache__/
 *.odx.cs
 *.xsd.cs
 
-# local sqlite file
+# local sqlite files
 **/deepdrft.db*
+
+# NetBlocks symlink for tool-assisted library code search
+**/NetBlocks
