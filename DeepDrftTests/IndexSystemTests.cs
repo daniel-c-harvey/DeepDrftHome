@@ -38,10 +38,10 @@ public class IndexSystemTests
         }
 
         /// <summary>
-        /// Helper method to create test entry keys - DRY principle
+        /// Helper method to create test entry IDs - DRY principle
         /// </summary>
-        protected static EntryKey CreateTestEntryKey(string key, MediaVaultType type = MediaVaultType.Image)
-            => new(key, type);
+        protected static string CreateTestEntryId(string key)
+            => key;
 
         /// <summary>
         /// Helper method to create test metadata - DRY principle
@@ -69,7 +69,7 @@ public class IndexSystemTests
         public async Task CreateIndexAsync_DirectoryType_CreatesDirectoryIndex()
         {
             // Act
-            var index = await _factory.CreateIndexAsync(IndexType.Directory, TestDirectory);
+            var index = await _factory.CreateDirectoryIndexAsync(TestDirectory);
 
             // Assert
             Assert.That(index, Is.Not.Null, "Index should be created");
@@ -81,7 +81,7 @@ public class IndexSystemTests
         public async Task CreateIndexAsync_VaultType_CreatesVaultIndex()
         {
             // Act
-            var index = await _factory.CreateIndexAsync(IndexType.Vault, TestDirectory);
+            var index = await _factory.CreateVaultIndexAsync(TestDirectory, MediaVaultType.Media);
 
             // Assert
             Assert.That(index, Is.Not.Null, "Index should be created");
@@ -89,23 +89,12 @@ public class IndexSystemTests
             Assert.That(File.Exists(IndexPath), Is.True, "Index file should be created");
         }
 
-        [Test]
-        public void CreateIndexAsync_InvalidType_ThrowsArgumentException()
-        {
-            // Arrange
-            var invalidType = (IndexType)999;
-
-            // Act & Assert
-            Assert.ThrowsAsync<ArgumentException>(async () =>
-                await _factory.CreateIndexAsync(invalidType, TestDirectory),
-                "Should throw for invalid index type");
-        }
 
         [Test]
         public async Task LoadIndexAsync_ExistingDirectoryIndex_LoadsSuccessfully()
         {
             // Arrange - Create an index first
-            await _factory.CreateIndexAsync(IndexType.Directory, TestDirectory);
+            await _factory.CreateDirectoryIndexAsync(TestDirectory);
 
             // Act
             var loadedIndex = await _factory.LoadIndexAsync(IndexType.Directory, TestDirectory);
@@ -119,7 +108,7 @@ public class IndexSystemTests
         public async Task LoadIndexAsync_ExistingVaultIndex_LoadsSuccessfully()
         {
             // Arrange - Create an index first
-            await _factory.CreateIndexAsync(IndexType.Vault, TestDirectory);
+            await _factory.CreateVaultIndexAsync(TestDirectory, MediaVaultType.Media);
 
             // Act
             var loadedIndex = await _factory.LoadIndexAsync(IndexType.Vault, TestDirectory);
@@ -142,11 +131,11 @@ public class IndexSystemTests
         public async Task LoadOrCreateIndexAsync_ExistingIndex_LoadsExisting()
         {
             // Arrange - Create an index with data
-            var originalIndex = await _factory.CreateIndexAsync(IndexType.Directory, TestDirectory);
+            var originalIndex = await _factory.CreateDirectoryIndexAsync(TestDirectory);
             Assert.That(originalIndex, Is.TypeOf<DirectoryIndex>(), "Should create DirectoryIndex");
             
             var directoryIndex = (DirectoryIndex)originalIndex!;
-            var testKey = CreateTestEntryKey("test-entry");
+            var testKey = CreateTestEntryId("test-entry");
             directoryIndex.PutEntry(testKey);
 
             // Save the modified index
@@ -154,30 +143,28 @@ public class IndexSystemTests
             await FileUtils.PutObjectAsync(IndexPath, indexData);
 
             // Act
-            var loadedIndex = await _factory.LoadOrCreateIndexAsync(IndexType.Directory, TestDirectory);
+            var loadedIndex = await _factory.LoadOrCreateDirectoryIndexAsync(TestDirectory);
 
             // Assert
             Assert.That(loadedIndex, Is.Not.Null, "Index should be loaded");
             Assert.That(loadedIndex, Is.TypeOf<DirectoryIndex>(), "Should load DirectoryIndex");
             Assert.That(loadedIndex, Is.InstanceOf<IEntryQueryable>(), "Should implement IEntryQueryable");
             
-            var queryableIndex = (IEntryQueryable)loadedIndex!;
-            Assert.That(queryableIndex.GetEntriesSize(), Is.EqualTo(1), "Should preserve existing entries");
+            Assert.That(loadedIndex.GetEntriesSize(), Is.EqualTo(1), "Should preserve existing entries");
         }
 
         [Test]
         public async Task LoadOrCreateIndexAsync_NonExistentIndex_CreatesNew()
         {
             // Act
-            var index = await _factory.LoadOrCreateIndexAsync(IndexType.Directory, TestDirectory);
+            var index = await _factory.LoadOrCreateDirectoryIndexAsync(TestDirectory);
 
             // Assert
             Assert.That(index, Is.Not.Null, "Index should be created");
             Assert.That(index, Is.TypeOf<DirectoryIndex>(), "Should create DirectoryIndex");
             Assert.That(index, Is.InstanceOf<IEntryQueryable>(), "Should implement IEntryQueryable");
             
-            var queryableIndex = (IEntryQueryable)index!;
-            Assert.That(queryableIndex.GetEntriesSize(), Is.EqualTo(0), "New index should be empty");
+            Assert.That(index.GetEntriesSize(), Is.EqualTo(0), "New index should be empty");
         }
 
         [Test]
@@ -185,7 +172,7 @@ public class IndexSystemTests
         {
             // Arrange
             var directoryIndex = new DirectoryIndex(new DirectoryIndexData("test"));
-            var testKey = CreateTestEntryKey("test-entry");
+            var testKey = CreateTestEntryId("test-entry");
             directoryIndex.PutEntry(testKey);
 
             // Act
@@ -202,7 +189,7 @@ public class IndexSystemTests
         {
             // Arrange
             var vaultIndex = new VaultIndex(new VaultIndexData("test"));
-            var testKey = CreateTestEntryKey("test-entry");
+            var testKey = CreateTestEntryId("test-entry");
             var testMetaData = CreateTestMetaData("test-entry");
             vaultIndex.PutEntry(testKey, testMetaData);
 
@@ -273,7 +260,7 @@ public class IndexSystemTests
         public void PutEntry_NewEntry_AddsSuccessfully()
         {
             // Arrange
-            var testKey = CreateTestEntryKey("new-entry");
+            var testKey = CreateTestEntryId("new-entry");
 
             // Act
             _directoryIndex.PutEntry(testKey);
@@ -288,7 +275,7 @@ public class IndexSystemTests
         public void PutEntry_DuplicateEntry_DoesNotDuplicate()
         {
             // Arrange
-            var testKey = CreateTestEntryKey("duplicate-entry");
+            var testKey = CreateTestEntryId("duplicate-entry");
             _directoryIndex.PutEntry(testKey);
 
             // Act
@@ -304,9 +291,9 @@ public class IndexSystemTests
             // Arrange
             var keys = new[]
             {
-                CreateTestEntryKey("entry1"),
-                CreateTestEntryKey("entry2"),
-                CreateTestEntryKey("entry3")
+                CreateTestEntryId("entry1"),
+                CreateTestEntryId("entry2"),
+                CreateTestEntryId("entry3")
             };
 
             // Act
@@ -327,7 +314,7 @@ public class IndexSystemTests
         public void HasEntry_ExistingEntry_ReturnsTrue()
         {
             // Arrange
-            var testKey = CreateTestEntryKey("existing-entry");
+            var testKey = CreateTestEntryId("existing-entry");
             _directoryIndex.PutEntry(testKey);
 
             // Act & Assert
@@ -338,7 +325,7 @@ public class IndexSystemTests
         public void HasEntry_NonExistentEntry_ReturnsFalse()
         {
             // Arrange
-            var testKey = CreateTestEntryKey("non-existent");
+            var testKey = CreateTestEntryId("non-existent");
 
             // Act & Assert
             Assert.That(_directoryIndex.HasEntry(testKey), Is.False, "Should not find non-existent entry");
@@ -350,9 +337,9 @@ public class IndexSystemTests
             // Arrange
             var keys = new[]
             {
-                CreateTestEntryKey("entry1"),
-                CreateTestEntryKey("entry2"),
-                CreateTestEntryKey("entry3")
+                CreateTestEntryId("entry1"),
+                CreateTestEntryId("entry2"),
+                CreateTestEntryId("entry3")
             };
 
             foreach (var key in keys)
@@ -399,7 +386,7 @@ public class IndexSystemTests
         public void PutEntry_NewEntryWithMetadata_AddsSuccessfully()
         {
             // Arrange
-            var testKey = CreateTestEntryKey("new-entry");
+            var testKey = CreateTestEntryId("new-entry");
             var testMetaData = CreateTestMetaData("new-entry");
 
             // Act
@@ -415,7 +402,7 @@ public class IndexSystemTests
         public void PutEntry_DuplicateEntry_UpdatesMetadata()
         {
             // Arrange
-            var testKey = CreateTestEntryKey("duplicate-entry");
+            var testKey = CreateTestEntryId("duplicate-entry");
             var originalMetaData = CreateTestMetaData("original");
             var updatedMetaData = CreateTestMetaData("updated");
 
@@ -433,7 +420,7 @@ public class IndexSystemTests
         public void GetEntry_ExistingEntry_ReturnsMetadata()
         {
             // Arrange
-            var testKey = CreateTestEntryKey("existing-entry");
+            var testKey = CreateTestEntryId("existing-entry");
             var testMetaData = CreateTestMetaData("existing-entry");
             _vaultIndex.PutEntry(testKey, testMetaData);
 
@@ -448,7 +435,7 @@ public class IndexSystemTests
         public void GetEntry_NonExistentEntry_ReturnsNull()
         {
             // Arrange
-            var testKey = CreateTestEntryKey("non-existent");
+            var testKey = CreateTestEntryId("non-existent");
 
             // Act
             var retrievedMetaData = _vaultIndex.GetEntry(testKey);
@@ -463,9 +450,9 @@ public class IndexSystemTests
             // Arrange
             var entries = new[]
             {
-                (CreateTestEntryKey("entry1"), CreateTestMetaData("entry1", ".png")),
-                (CreateTestEntryKey("entry2"), CreateTestMetaData("entry2", ".jpg")),
-                (CreateTestEntryKey("entry3"), CreateTestMetaData("entry3", ".gif"))
+                (CreateTestEntryId("entry1"), CreateTestMetaData("entry1", ".png")),
+                (CreateTestEntryId("entry2"), CreateTestMetaData("entry2", ".jpg")),
+                (CreateTestEntryId("entry3"), CreateTestMetaData("entry3", ".gif"))
             };
 
             // Act
@@ -484,70 +471,6 @@ public class IndexSystemTests
         }
     }
 
-    /// <summary>
-    /// Tests for IndexFactory - Single Responsibility Principle
-    /// </summary>
-    [TestFixture]
-    public class IndexFactoryTests : IndexTestBase
-    {
-        [Test]
-        public async Task IndexFactory_DirectoryType_BuildsDirectoryIndex()
-        {
-            // Arrange
-            var factory = new IndexFactory(TestDirectory, IndexType.Directory);
-
-            // Act
-            var index = await factory.BuildIndexAsync();
-
-            // Assert
-            Assert.That(index, Is.Not.Null, "Index should be built");
-            Assert.That(index, Is.TypeOf<DirectoryIndex>(), "Should build DirectoryIndex");
-            Assert.That(File.Exists(IndexPath), Is.True, "Index file should be created");
-        }
-
-        [Test]
-        public async Task IndexFactory_VaultType_BuildsVaultIndex()
-        {
-            // Arrange
-            var factory = new IndexFactory(TestDirectory, IndexType.Vault);
-
-            // Act
-            var index = await factory.BuildIndexAsync();
-
-            // Assert
-            Assert.That(index, Is.Not.Null, "Index should be built");
-            Assert.That(index, Is.TypeOf<VaultIndex>(), "Should build VaultIndex");
-            Assert.That(File.Exists(IndexPath), Is.True, "Index file should be created");
-        }
-
-        [Test]
-        public async Task IndexFactory_ExistingIndex_LoadsExistingData()
-        {
-            // Arrange - Create index with data
-            var factory = new IndexFactory(TestDirectory, IndexType.Directory);
-            var originalIndex = await factory.BuildIndexAsync();
-            var directoryIndex = (DirectoryIndex)originalIndex!;
-            var testKey = CreateTestEntryKey("persisted-entry");
-            directoryIndex.PutEntry(testKey);
-
-            // Save the index manually
-            var factoryService = new IndexFactoryService();
-            var indexData = factoryService.CreateIndexData(IndexType.Directory, directoryIndex);
-            await FileUtils.PutObjectAsync(IndexPath, indexData);
-
-            // Act - Create new factory and build
-            var newFactory = new IndexFactory(TestDirectory, IndexType.Directory);
-            var loadedIndex = await newFactory.BuildIndexAsync();
-
-            // Assert
-            Assert.That(loadedIndex, Is.Not.Null, "Index should be loaded");
-            Assert.That(loadedIndex, Is.InstanceOf<IEntryQueryable>(), "Should implement IEntryQueryable");
-            
-            var queryableIndex = (IEntryQueryable)loadedIndex!;
-            Assert.That(queryableIndex.GetEntriesSize(), Is.EqualTo(1), "Should load existing entry");
-            Assert.That(queryableIndex.HasEntry(testKey), Is.True, "Should contain persisted entry");
-        }
-    }
 
     /// <summary>
     /// Integration tests for IndexDirectory classes - Open/Closed Principle
@@ -563,10 +486,10 @@ public class IndexSystemTests
             
             // Arrange
             var database = await FileDatabase.FromAsync(TestDirectory);
-            var testVaultKey = CreateTestEntryKey("test-vault");
+            var testVaultKey = CreateTestEntryId("test-vault");
 
             // Act - This internally uses DirectoryIndexDirectory.AddToIndexAsync
-            await database!.CreateVaultAsync(testVaultKey);
+            await database!.CreateVaultAsync(testVaultKey, MediaVaultType.Image);
 
             // Assert
             Assert.That(database.HasIndexEntry(testVaultKey), Is.True, "Should contain added entry");
@@ -586,11 +509,11 @@ public class IndexSystemTests
             
             // Arrange
             var vault = await ImageVault.FromAsync(TestDirectory);
-            var testKey = CreateTestEntryKey("test-entry");
+            var testKey = CreateTestEntryId("test-entry");
             var testImage = TestData.CreateTestImageBinary(1.0);
 
             // Act - This internally uses VaultIndexDirectory.AddToIndexAsync
-            await vault!.AddEntryAsync(MediaVaultType.Image, testKey, testImage);
+            await vault!.AddEntryAsync(testKey, testImage);
 
             // Assert
             Assert.That(vault.HasIndexEntry(testKey), Is.True, "Should contain added entry");

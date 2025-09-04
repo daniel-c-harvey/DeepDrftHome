@@ -8,38 +8,6 @@ namespace DeepDrftTests;
 [TestFixture]
 public class ModelTests
 {
-    [TestFixture]
-    public class EntryKeyTests
-    {
-        [Test]
-        public void EntryKey_CanBeCreated()
-        {
-            // Arrange
-            var key = "test-key";
-            var type = MediaVaultType.Image;
-
-            // Act
-            var entryKey = new EntryKey(key, type);
-
-            // Assert
-            Assert.That(entryKey.Key, Is.EqualTo(key), "Key should match");
-            Assert.That(entryKey.Type, Is.EqualTo(type), "Type should match");
-        }
-
-        [Test]
-        public void EntryKey_SupportsStructuralEquality()
-        {
-            // Arrange
-            var key1 = new EntryKey("test", MediaVaultType.Image);
-            var key2 = new EntryKey("test", MediaVaultType.Image);
-            var key3 = new EntryKey("different", MediaVaultType.Image);
-
-            // Act & Assert
-            Assert.That(key1, Is.EqualTo(key2), "Structurally equal keys should be equal");
-            Assert.That(key1, Is.Not.EqualTo(key3), "Different keys should not be equal");
-            Assert.That(key1.GetHashCode(), Is.EqualTo(key2.GetHashCode()), "Equal keys should have same hash code");
-        }
-    }
 
     [TestFixture]
     public class MediaModelTests

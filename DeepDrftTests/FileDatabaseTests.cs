@@ -64,12 +64,12 @@ public class FileDatabaseTests
         Assert.That(_fileDatabase, Is.Not.Null);
 
         // Act
-        await _fileDatabase.CreateVaultAsync(TestData.TestKeys.ImageVaultKey);
+        await _fileDatabase.CreateVaultAsync(TestData.TestKeys.ImageVaultKey, TestData.TestKeys.ImageVaultType);
 
         // Assert
         Assert.That(_fileDatabase.GetIndexSize(), Is.EqualTo(1), "Index should contain one element");
         
-        var vaultDirectory = Path.Combine(_testDatabasePath, TestData.TestKeys.ImageVaultKey.Key);
+        var vaultDirectory = Path.Combine(_testDatabasePath, TestData.TestKeys.ImageVaultKey);
         Assert.That(Directory.Exists(vaultDirectory), Is.True, "Vault directory should exist");
     }
 
@@ -80,12 +80,11 @@ public class FileDatabaseTests
         _fileDatabase = await FileDatabase.FromAsync(_testDatabasePath);
         Assert.That(_fileDatabase, Is.Not.Null);
         
-        await _fileDatabase.CreateVaultAsync(TestData.TestKeys.ImageVaultKey);
+        await _fileDatabase.CreateVaultAsync(TestData.TestKeys.ImageVaultKey, TestData.TestKeys.ImageVaultType);
         var testImage = TestData.CreateTestImageBinary(1.0);
 
         // Act
         await _fileDatabase.RegisterResourceAsync(
-            MediaVaultType.Image,
             TestData.TestKeys.ImageVaultKey,
             TestData.TestKeys.TestImageEntry,
             testImage);
@@ -104,18 +103,16 @@ public class FileDatabaseTests
         _fileDatabase = await FileDatabase.FromAsync(_testDatabasePath);
         Assert.That(_fileDatabase, Is.Not.Null);
         
-        await _fileDatabase.CreateVaultAsync(TestData.TestKeys.ImageVaultKey);
+        await _fileDatabase.CreateVaultAsync(TestData.TestKeys.ImageVaultKey, TestData.TestKeys.ImageVaultType);
         var testImage = TestData.CreateTestImageBinary(1.0);
         
         await _fileDatabase.RegisterResourceAsync(
-            MediaVaultType.Image,
             TestData.TestKeys.ImageVaultKey,
             TestData.TestKeys.TestImageEntry,
             testImage);
 
         // Act
         var loadedMedia = await _fileDatabase.LoadResourceAsync<ImageBinary>(
-            MediaVaultType.Image,
             TestData.TestKeys.ImageVaultKey,
             TestData.TestKeys.TestImageEntry);
 
@@ -139,7 +136,6 @@ public class FileDatabaseTests
         Assert.DoesNotThrowAsync(async () =>
         {
             await _fileDatabase.LoadResourceAsync<ImageBinary>(
-                MediaVaultType.Image,
                 TestData.TestKeys.NonExistentVaultKey,
                 TestData.TestKeys.NonExistentEntryKey);
         }, "Should not throw exceptions when accessing nonexistent vault");
@@ -152,13 +148,12 @@ public class FileDatabaseTests
         _fileDatabase = await FileDatabase.FromAsync(_testDatabasePath);
         Assert.That(_fileDatabase, Is.Not.Null);
         
-        await _fileDatabase.CreateVaultAsync(TestData.TestKeys.ImageVaultKey);
+        await _fileDatabase.CreateVaultAsync(TestData.TestKeys.ImageVaultKey, TestData.TestKeys.ImageVaultType);
 
         // Act & Assert - Should not throw exception when accessing nonexistent resource
         Assert.DoesNotThrowAsync(async () =>
         {
             await _fileDatabase.LoadResourceAsync<ImageBinary>(
-                MediaVaultType.Image,
                 TestData.TestKeys.ImageVaultKey,
                 TestData.TestKeys.NonExistentEntryKey);
         }, "Should not throw exceptions when accessing nonexistent resource");
@@ -171,11 +166,10 @@ public class FileDatabaseTests
         _fileDatabase = await FileDatabase.FromAsync(_testDatabasePath);
         Assert.That(_fileDatabase, Is.Not.Null);
         
-        await _fileDatabase.CreateVaultAsync(TestData.TestKeys.ImageVaultKey);
+        await _fileDatabase.CreateVaultAsync(TestData.TestKeys.ImageVaultKey, TestData.TestKeys.ImageVaultType);
         var testImage = TestData.CreateTestImageBinary(1.0);
         
         await _fileDatabase.RegisterResourceAsync(
-            MediaVaultType.Image,
             TestData.TestKeys.ImageVaultKey,
             TestData.TestKeys.TestImageEntry,
             testImage);
@@ -198,7 +192,6 @@ public class FileDatabaseTests
 
         // Verify resource can be loaded
         var loadedMedia = await reloadedDatabase.LoadResourceAsync<ImageBinary>(
-            MediaVaultType.Image,
             TestData.TestKeys.ImageVaultKey,
             TestData.TestKeys.TestImageEntry);
 

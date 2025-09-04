@@ -38,10 +38,10 @@ public class MediaVaultTests
         }
 
         /// <summary>
-        /// Helper method to create test entry keys - DRY principle
+        /// Helper method to create test entry IDs - DRY principle  
         /// </summary>
-        protected static EntryKey CreateTestEntryKey(string key, MediaVaultType type = MediaVaultType.Image)
-            => new(key, type);
+        protected static string CreateTestEntryId(string key)
+            => key;
 
         /// <summary>
         /// Helper method to create test media files - DRY principle
@@ -113,11 +113,11 @@ public class MediaVaultTests
         public async Task AddEntryAsync_ImageBinary_AddsToIndexAndCreatesFile()
         {
             // Arrange
-            var entryKey = CreateTestEntryKey("test-image");
+            var entryKey = CreateTestEntryId("test-image");
             var imageBinary = TestData.CreateTestImageBinary(1.5);
 
             // Act
-            await _imageVault.AddEntryAsync(MediaVaultType.Image, entryKey, imageBinary);
+            await _imageVault.AddEntryAsync(entryKey, imageBinary);
 
             // Assert
             Assert.That(_imageVault.HasIndexEntry(entryKey), Is.True, "Should add to index");
@@ -132,15 +132,15 @@ public class MediaVaultTests
             // Arrange
             var entries = new[]
             {
-                (CreateTestEntryKey("image1"), TestData.CreateTestImageBinary(1.0)),
-                (CreateTestEntryKey("image2"), TestData.CreateTestImageBinary(1.5)),
-                (CreateTestEntryKey("image3"), TestData.CreateTestImageBinary(2.0))
+                (CreateTestEntryId("image1"), TestData.CreateTestImageBinary(1.0)),
+                (CreateTestEntryId("image2"), TestData.CreateTestImageBinary(1.5)),
+                (CreateTestEntryId("image3"), TestData.CreateTestImageBinary(2.0))
             };
 
             // Act
             foreach (var (key, binary) in entries)
             {
-                await _imageVault.AddEntryAsync(MediaVaultType.Image, key, binary);
+                await _imageVault.AddEntryAsync(key, binary);
             }
 
             // Assert
@@ -149,7 +149,7 @@ public class MediaVaultTests
             foreach (var (key, binary) in entries)
             {
                 Assert.That(_imageVault.HasIndexEntry(key), Is.True, $"Should contain {key} in index");
-                var expectedFilePath = Path.Combine(TestDirectory, $"{key.Key}.png");
+                var expectedFilePath = Path.Combine(TestDirectory, $"{key}.png");
                 AssertMediaFileExists(expectedFilePath, binary.Buffer);
             }
         }
@@ -158,12 +158,12 @@ public class MediaVaultTests
         public async Task GetEntryAsync_ExistingImage_ReturnsImageBinary()
         {
             // Arrange
-            var entryKey = CreateTestEntryKey("existing-image");
+            var entryKey = CreateTestEntryId("existing-image");
             var originalImage = TestData.CreateTestImageBinary(1.77);
-            await _imageVault.AddEntryAsync(MediaVaultType.Image, entryKey, originalImage);
+            await _imageVault.AddEntryAsync(entryKey, originalImage);
 
             // Act
-            var retrievedImage = await _imageVault.GetEntryAsync<ImageBinary>(MediaVaultType.Image, entryKey);
+            var retrievedImage = await _imageVault.GetEntryAsync<ImageBinary>(entryKey);
 
             // Assert
             Assert.That(retrievedImage, Is.Not.Null, "Should retrieve image");
@@ -176,10 +176,10 @@ public class MediaVaultTests
         public async Task GetEntryAsync_NonExistentImage_ReturnsNull()
         {
             // Arrange
-            var nonExistentKey = CreateTestEntryKey("non-existent");
+            var nonExistentKey = CreateTestEntryId("non-existent");
 
             // Act
-            var retrievedImage = await _imageVault.GetEntryAsync<ImageBinary>(MediaVaultType.Image, nonExistentKey);
+            var retrievedImage = await _imageVault.GetEntryAsync<ImageBinary>(nonExistentKey);
 
             // Assert
             Assert.That(retrievedImage, Is.Null, "Should return null for non-existent image");
@@ -189,16 +189,16 @@ public class MediaVaultTests
         public async Task GetEntryAsync_IndexEntryExistsButFileDeleted_ReturnsNull()
         {
             // Arrange
-            var entryKey = CreateTestEntryKey("deleted-file");
+            var entryKey = CreateTestEntryId("deleted-file");
             var imageBinary = TestData.CreateTestImageBinary(1.0);
-            await _imageVault.AddEntryAsync(MediaVaultType.Image, entryKey, imageBinary);
+            await _imageVault.AddEntryAsync(entryKey, imageBinary);
 
             // Delete the physical file but leave index entry
             var filePath = Path.Combine(TestDirectory, "deleted-file.png");
             File.Delete(filePath);
 
             // Act
-            var retrievedImage = await _imageVault.GetEntryAsync<ImageBinary>(MediaVaultType.Image, entryKey);
+            var retrievedImage = await _imageVault.GetEntryAsync<ImageBinary>(entryKey);
 
             // Assert
             Assert.That(retrievedImage, Is.Null, "Should return null when file is missing");
@@ -208,18 +208,18 @@ public class MediaVaultTests
         public async Task AddEntryAsync_DuplicateKey_UpdatesExistingEntry()
         {
             // Arrange
-            var entryKey = CreateTestEntryKey("duplicate-key");
+            var entryKey = CreateTestEntryId("duplicate-key");
             var originalImage = TestData.CreateTestImageBinary(1.0);
             var updatedImage = TestData.CreateTestImageBinary(2.0);
 
             // Act
-            await _imageVault.AddEntryAsync(MediaVaultType.Image, entryKey, originalImage);
-            await _imageVault.AddEntryAsync(MediaVaultType.Image, entryKey, updatedImage);
+            await _imageVault.AddEntryAsync(entryKey, originalImage);
+            await _imageVault.AddEntryAsync(entryKey, updatedImage);
 
             // Assert
             Assert.That(_imageVault.GetIndexSize(), Is.EqualTo(1), "Should still have only one entry");
             
-            var retrievedImage = await _imageVault.GetEntryAsync<ImageBinary>(MediaVaultType.Image, entryKey);
+            var retrievedImage = await _imageVault.GetEntryAsync<ImageBinary>(entryKey);
             Assert.That(retrievedImage, Is.Not.Null, "Should retrieve updated image");
             Assert.That(retrievedImage!.AspectRatio, Is.EqualTo(2.0), "Should have updated aspect ratio");
         }
@@ -257,11 +257,11 @@ public class MediaVaultTests
         public async Task AddEntryAsync_AudioBinary_AddsToIndexAndCreatesFile()
         {
             // Arrange
-            var entryKey = CreateTestEntryKey("test-audio", MediaVaultType.Audio);
+            var entryKey = CreateTestEntryId("test-audio");
             var audioBinary = TestData.CreateTestAudioBinary(120.0, 320);
 
             // Act
-            await _audioVault.AddEntryAsync(MediaVaultType.Audio, entryKey, audioBinary);
+            await _audioVault.AddEntryAsync(entryKey, audioBinary);
 
             // Assert
             Assert.That(_audioVault.HasIndexEntry(entryKey), Is.True, "Should add to index");
@@ -274,12 +274,12 @@ public class MediaVaultTests
         public async Task GetEntryAsync_ExistingAudio_ReturnsAudioBinary()
         {
             // Arrange
-            var entryKey = CreateTestEntryKey("existing-audio", MediaVaultType.Audio);
+            var entryKey = CreateTestEntryId("existing-audio");
             var originalAudio = TestData.CreateTestAudioBinary(180.5, 256);
-            await _audioVault.AddEntryAsync(MediaVaultType.Audio, entryKey, originalAudio);
+            await _audioVault.AddEntryAsync(entryKey, originalAudio);
 
             // Act
-            var retrievedAudio = await _audioVault.GetEntryAsync<AudioBinary>(MediaVaultType.Audio, entryKey);
+            var retrievedAudio = await _audioVault.GetEntryAsync<AudioBinary>(entryKey);
 
             // Assert
             Assert.That(retrievedAudio, Is.Not.Null, "Should retrieve audio");
@@ -337,9 +337,9 @@ public class MediaVaultTests
                 return (string)method!.Invoke(_vault, new object[] { mediaKey })!;
             }
 
-            public bool HasIndexEntry(EntryKey entryKey) => _vault.HasIndexEntry(entryKey);
-            public Task AddEntryAsync(MediaVaultType vaultType, EntryKey entryKey, object media) => 
-                _vault.AddEntryAsync(vaultType, entryKey, media);
+            public bool HasIndexEntry(string entryId) => _vault.HasIndexEntry(entryId);
+            public Task AddEntryAsync(string entryId, FileBinary media) => 
+                _vault.AddEntryAsync(entryId, media);
         }
 
         [Test]
@@ -394,19 +394,19 @@ public class MediaVaultTests
         }
 
         [Test]
-        public async Task AddEntryAsync_UnsupportedMediaType_ThrowsArgumentException()
+        public async Task AddEntryAsync_BaseFileBinary_ThrowsArgumentException()
         {
             // Arrange
             var vault = await TestMediaVaultWrapper.FromAsync(TestDirectory);
             Assert.That(vault, Is.Not.Null, "Vault should be created");
             
-            var entryKey = CreateTestEntryKey("test");
-            var unsupportedMedia = new object(); // Not a supported media type
+            var entryKey = CreateTestEntryId("test");
+            var baseFileBinary = new FileBinary(new FileBinaryParams(TestData.TestPngBytes, TestData.TestPngBytes.Length)); // Base FileBinary, not a specific media type
 
             // Act & Assert
             Assert.ThrowsAsync<ArgumentException>(async () =>
-                await vault!.AddEntryAsync(MediaVaultType.Image, entryKey, unsupportedMedia),
-                "Should throw for unsupported media type");
+                await vault!.AddEntryAsync(entryKey, baseFileBinary),
+                "Should throw for base FileBinary type - must be specific media type");
         }
 
         [Test]
@@ -416,11 +416,11 @@ public class MediaVaultTests
             var vault = await TestMediaVaultWrapper.FromAsync(TestDirectory);
             Assert.That(vault, Is.Not.Null, "Vault should be created");
             
-            var entryKey = CreateTestEntryKey("test-media");
+            var entryKey = CreateTestEntryId("test-media");
             var imageBinary = TestData.CreateTestImageBinary(1.0); // Use existing test data helper
 
             // Act
-            await vault!.AddEntryAsync(MediaVaultType.Image, entryKey, imageBinary);
+            await vault!.AddEntryAsync(entryKey, imageBinary);
 
             // Assert
             Assert.That(vault.HasIndexEntry(entryKey), Is.True, "Should add entry to index");
@@ -456,10 +456,10 @@ public class MediaVaultTests
         {
             // Arrange
             var vault = await ImageVault.FromAsync(TestDirectory);
-            var entryKey = CreateTestEntryKey("corrupted-file");
+            var entryKey = CreateTestEntryId("corrupted-file");
             var imageBinary = TestData.CreateTestImageBinary(1.0);
             
-            await vault!.AddEntryAsync(MediaVaultType.Image, entryKey, imageBinary);
+            await vault!.AddEntryAsync(entryKey, imageBinary);
             
             // Corrupt the media file
             var filePath = Path.Combine(TestDirectory, "corrupted-file.png");
@@ -468,7 +468,7 @@ public class MediaVaultTests
             // Act & Assert - Should not throw, but behavior may vary
             Assert.DoesNotThrowAsync(async () =>
             {
-                await vault.GetEntryAsync<ImageBinary>(MediaVaultType.Image, entryKey);
+                await vault.GetEntryAsync<ImageBinary>(entryKey);
             }, "Should handle corrupted files gracefully");
         }
 
@@ -480,7 +480,7 @@ public class MediaVaultTests
             
             // Arrange
             var vault = await ImageVault.FromAsync(TestDirectory);
-            var entryKey = CreateTestEntryKey("large-file");
+            var entryKey = CreateTestEntryId("large-file");
             
             // Create a reasonably large buffer (not too large to cause test issues)
             var largeBuffer = new byte[1024 * 1024]; // 1MB
@@ -491,7 +491,7 @@ public class MediaVaultTests
             // Act & Assert - Should not throw exceptions
             Assert.DoesNotThrowAsync(async () =>
             {
-                await vault!.AddEntryAsync(MediaVaultType.Image, entryKey, largeBinary);
+                await vault!.AddEntryAsync(entryKey, largeBinary);
             }, "Should handle large files gracefully");
         }
 
@@ -500,16 +500,16 @@ public class MediaVaultTests
         {
             // Arrange
             var vault = await ImageVault.FromAsync(TestDirectory);
-            var entryKey = CreateTestEntryKey("concurrent-test");
+            var entryKey = CreateTestEntryId("concurrent-test");
             var imageBinary = TestData.CreateTestImageBinary(1.0);
             
-            await vault!.AddEntryAsync(MediaVaultType.Image, entryKey, imageBinary);
+            await vault!.AddEntryAsync(entryKey, imageBinary);
 
             // Act - Multiple concurrent reads
             var tasks = new List<Task<ImageBinary?>>();
             for (int i = 0; i < 10; i++)
             {
-                tasks.Add(vault.GetEntryAsync<ImageBinary>(MediaVaultType.Image, entryKey));
+                tasks.Add(vault.GetEntryAsync<ImageBinary>(entryKey));
             }
 
             var results = await Task.WhenAll(tasks);
@@ -537,14 +537,14 @@ public class MediaVaultTests
             
             // Arrange
             var database = await FileDatabase.FromAsync(TestDirectory);
-            var vaultKey = new EntryKey("test-vault", MediaVaultType.Image);
-            var entryKey = new EntryKey("test-image", MediaVaultType.Image);
+            var vaultKey = "test-vault";
+            var entryKey = "test-image";
             var imageBinary = TestData.CreateTestImageBinary(1.5);
 
             // Act
-            await database!.CreateVaultAsync(vaultKey);
-            await database.RegisterResourceAsync(MediaVaultType.Image, vaultKey, entryKey, imageBinary);
-            var retrievedImage = await database.LoadResourceAsync<ImageBinary>(MediaVaultType.Image, vaultKey, entryKey);
+            await database!.CreateVaultAsync(vaultKey, MediaVaultType.Image);
+            await database.RegisterResourceAsync(vaultKey, entryKey, imageBinary);
+            var retrievedImage = await database.LoadResourceAsync<ImageBinary>(vaultKey, entryKey);
 
             // Assert
             Assert.That(retrievedImage, Is.Not.Null, "Should retrieve image through database");
@@ -564,16 +564,16 @@ public class MediaVaultTests
             
             // Arrange - Create and populate vault
             var database1 = await FileDatabase.FromAsync(TestDirectory);
-            var vaultKey = new EntryKey("persistent-vault", MediaVaultType.Image);
-            var entryKey = new EntryKey("persistent-image", MediaVaultType.Image);
+            var vaultKey = "persistent-vault";
+            var entryKey = "persistent-image";
             var imageBinary = TestData.CreateTestImageBinary(2.0);
 
-            await database1!.CreateVaultAsync(vaultKey);
-            await database1.RegisterResourceAsync(MediaVaultType.Image, vaultKey, entryKey, imageBinary);
+            await database1!.CreateVaultAsync(vaultKey, MediaVaultType.Image);
+            await database1.RegisterResourceAsync(vaultKey, entryKey, imageBinary);
 
             // Act - Reload database
             var database2 = await FileDatabase.FromAsync(TestDirectory);
-            var retrievedImage = await database2!.LoadResourceAsync<ImageBinary>(MediaVaultType.Image, vaultKey, entryKey);
+            var retrievedImage = await database2!.LoadResourceAsync<ImageBinary>(vaultKey, entryKey);
 
             // Assert
             Assert.That(retrievedImage, Is.Not.Null, "Should retrieve image after database reload");

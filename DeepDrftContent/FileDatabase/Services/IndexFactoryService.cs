@@ -10,18 +10,11 @@ namespace DeepDrftContent.FileDatabase.Services;
 /// </summary>
 public class IndexFactoryService : IIndexFactory, IIndexDataFactory
 {
-    private readonly Dictionary<IndexType, Func<string, IIndex>> _indexCreators;
     private readonly Dictionary<IndexType, Func<object, IIndex>> _indexFromDataCreators;
     private readonly Dictionary<IndexType, Func<IIndex, object>> _indexDataCreators;
 
     public IndexFactoryService()
     {
-        _indexCreators = new Dictionary<IndexType, Func<string, IIndex>>
-        {
-            { IndexType.Directory, rootPath => new DirectoryIndex(new DirectoryIndexData(Path.GetFileName(rootPath))) },
-            { IndexType.Vault, rootPath => new VaultIndex(new VaultIndexData(Path.GetFileName(rootPath))) }
-        };
-
         _indexFromDataCreators = new Dictionary<IndexType, Func<object, IIndex>>
         {
             { IndexType.Directory, data => new DirectoryIndex((DirectoryIndexData)data) },
@@ -35,18 +28,14 @@ public class IndexFactoryService : IIndexFactory, IIndexDataFactory
         };
     }
 
-    public async Task<IIndex?> CreateIndexAsync(IndexType type, string rootPath)
+    public async Task<IDirectoryIndex?> CreateDirectoryIndexAsync(string rootPath)
     {
-        if (!_indexCreators.TryGetValue(type, out var creator))
-        {
-            throw new ArgumentException($"Unknown index type: {type}");
-        }
-
-        var index = creator(rootPath);
+        var indexData = new DirectoryIndexData(Path.GetFileName(rootPath));
+        var index = new DirectoryIndex(indexData);
         
         // Ensure directory exists and save the index
         await FileUtils.MakeVaultDirectoryAsync(rootPath);
-        await SaveIndexAsync(rootPath, type, index);
+        await SaveIndexAsync(rootPath, IndexType.Directory, index);
 
         return index;
     }
@@ -70,15 +59,41 @@ public class IndexFactoryService : IIndexFactory, IIndexDataFactory
         return creator(indexData);
     }
 
-    public async Task<IIndex?> LoadOrCreateIndexAsync(IndexType type, string rootPath)
+    public async Task<IDirectoryIndex?> LoadOrCreateDirectoryIndexAsync(string rootPath)
     {
         try
         {
-            return await LoadIndexAsync(type, rootPath);
+            var index = await LoadIndexAsync(IndexType.Directory, rootPath);
+            return index as IDirectoryIndex;
         }
         catch
         {
-            return await CreateIndexAsync(type, rootPath);
+            return await CreateDirectoryIndexAsync(rootPath);
+        }
+    }
+
+    public async Task<IVaultIndex?> CreateVaultIndexAsync(string rootPath, MediaVaultType vaultType)
+    {
+        var vaultIndexData = new VaultIndexData(Path.GetFileName(rootPath), vaultType);
+        var index = new VaultIndex(vaultIndexData);
+        
+        // Ensure directory exists and save the index
+        await FileUtils.MakeVaultDirectoryAsync(rootPath);
+        await SaveIndexAsync(rootPath, IndexType.Vault, index);
+
+        return index;
+    }
+
+    public async Task<IVaultIndex?> LoadOrCreateVaultIndexAsync(string rootPath, MediaVaultType vaultType)
+    {
+        try
+        {
+            var index = await LoadIndexAsync(IndexType.Vault, rootPath);
+            return index as IVaultIndex;
+        }
+        catch
+        {
+            return await CreateVaultIndexAsync(rootPath, vaultType);
         }
     }
 

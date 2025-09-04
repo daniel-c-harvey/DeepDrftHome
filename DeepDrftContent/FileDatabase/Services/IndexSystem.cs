@@ -39,27 +39,6 @@ public abstract class AbstractIndexContainer
     }
 }
 
-/// <summary>
-/// Factory for creating and loading indexes - delegates to IIndexFactory
-/// </summary>
-public class IndexFactory : AbstractIndexContainer
-{
-    private readonly IIndexFactory _factoryService;
-
-    public IndexFactory(string path, IndexType type, IIndexFactory? factoryService = null, IIndexDataFactory? indexDataFactory = null) 
-        : base(path, type, indexDataFactory) 
-    {
-        _factoryService = factoryService ?? new IndexFactoryService();
-    }
-
-    /// <summary>
-    /// Builds an index by loading existing or creating new
-    /// </summary>
-    public async Task<IIndex?> BuildIndexAsync()
-    {
-        return await _factoryService.LoadOrCreateIndexAsync(Type, RootPath);
-    }
-}
 
 /// <summary>
 /// Abstract base class for directory containers that manage indexes
@@ -74,11 +53,11 @@ public abstract class IndexDirectory : AbstractIndexContainer
         Index = index;
     }
 
-    protected IReadOnlyList<EntryKey> GetIndexEntries() => Index.GetEntries();
+    protected IReadOnlyList<string> GetIndexEntries() => Index.GetEntries();
 
     public int GetIndexSize() => Index.GetEntriesSize();
 
-    public bool HasIndexEntry(EntryKey entryKey) => Index.HasEntry(entryKey);
+    public bool HasIndexEntry(string entryId) => Index.HasEntry(entryId);
 }
 
 /// <summary>
@@ -94,9 +73,9 @@ public class DirectoryIndexDirectory : IndexDirectory
         _directoryIndex = index;
     }
 
-    protected async Task AddToIndexAsync(EntryKey entryKey)
+    protected async Task AddToIndexAsync(string entryId)
     {
-        _directoryIndex.PutEntry(entryKey);
+        _directoryIndex.PutEntry(entryId);
         await SaveIndexAsync(_directoryIndex);
     }
 }
@@ -114,9 +93,9 @@ public class VaultIndexDirectory : IndexDirectory
         _vaultIndex = index;
     }
 
-    protected async Task AddToIndexAsync(EntryKey entryKey, MetaData metaData)
+    protected async Task AddToIndexAsync(string entryId, MetaData metaData)
     {
-        _vaultIndex.PutEntry(entryKey, metaData);
+        _vaultIndex.PutEntry(entryId, metaData);
         await SaveIndexAsync(_vaultIndex);
     }
 }

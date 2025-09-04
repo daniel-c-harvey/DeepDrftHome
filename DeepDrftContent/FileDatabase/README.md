@@ -10,7 +10,7 @@ The C# port preserves the original three-layer architecture:
 - **Location**: `Services/FileDatabase.cs`
 - **Purpose**: Root-level manager coordinating multiple media vaults
 - **Key Features**:
-  - Manages collection of `MediaVault` instances using `StructuralMap<EntryKey, MediaVault>`
+  - Manages collection of `MediaVault` instances using `StructuralMap<string, MediaVault>`
   - Provides async factory method `FromAsync()` for initialization
   - Handles vault creation, resource loading, and resource registration
 
@@ -38,7 +38,7 @@ The C# port preserves the original three-layer architecture:
 ## Key Components
 
 ### Models (`Models/` directory)
-- **`EntryKey`**: Composite key structure with string key + MediaVaultType
+- **String-based keys**: Simple string identifiers for vault and entry management
 - **`MetaData` hierarchy**: Base metadata → `ImageMetaData` with aspect ratio
 - **Media Types**: `FileBinary` → `MediaBinary` → `ImageBinary`
 - **Factory Classes**: Type-safe creation of media objects and metadata
@@ -58,7 +58,7 @@ The C# port preserves the original three-layer architecture:
 5. **Dependency Inversion**: Abstract base classes and interfaces
 
 ### C# Language Features
-- **Records**: Immutable data structures for `EntryKey`, `MetaData`
+- **Records**: Immutable data structures for `MetaData` hierarchy
 - **Pattern Matching**: Switch expressions for type-safe factory methods
 - **Nullable Reference Types**: Explicit nullability handling
 - **Async/Await**: Full async support with `Task<T>` and `ValueTask<T>`
@@ -76,17 +76,15 @@ The C# port preserves the original three-layer architecture:
 var database = await FileDatabase.FromAsync("/path/to/database");
 
 // Create a vault
-var vaultKey = new EntryKey("images", MediaVaultType.Image);
-await database.CreateVaultAsync(vaultKey);
+var vaultId = "images";
+await database.CreateVaultAsync(vaultId, MediaVaultType.Image);
 
-// Store an image
-var entryKey = new EntryKey("photo1", MediaVaultType.Image);
+// Store an image (MediaVaultType inferred from ImageBinary)
 var imageData = new ImageBinary(new ImageBinaryParams(buffer, size, ".jpg", 1.5));
-await database.RegisterResourceAsync(MediaVaultType.Image, vaultKey, entryKey, imageData);
+await database.RegisterResourceAsync("gallery", "photo1", imageData);
 
-// Load an image
-var loadedImage = await database.LoadResourceAsync<ImageBinary>(
-    MediaVaultType.Image, vaultKey, entryKey);
+// Load an image (MediaVaultType inferred from ImageBinary generic type)
+var loadedImage = await database.LoadResourceAsync<ImageBinary>("gallery", "photo1");
 ```
 
 ## Project Structure
@@ -94,7 +92,7 @@ var loadedImage = await database.LoadResourceAsync<ImageBinary>(
 ```
 FileDatabase/
 ├── Models/
-│   ├── EntryKey.cs           # Composite key structure
+│   ├── [EntryKey removed]     # Now using simple string keys
 │   ├── MetaData.cs           # Metadata hierarchy
 │   ├── MediaModels.cs        # Binary data classes
 │   ├── MediaFactories.cs     # Factory pattern implementations

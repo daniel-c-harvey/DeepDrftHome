@@ -8,7 +8,6 @@ namespace DeepDrftContent.Controllers;
 [Route("api/[controller]")]
 public class TrackController : ControllerBase
 {
-    private readonly EntryKey _vaultKey = new("tracks", MediaVaultType.Audio);
     private readonly FileDatabase.Services.FileDatabase _fileDatabase;
 
     public TrackController(FileDatabase.Services.FileDatabase fileDatabase)
@@ -19,8 +18,12 @@ public class TrackController : ControllerBase
     [HttpGet("{trackId}")]
     public async Task<ActionResult<AudioBinaryDto>> GetTrack([FromQuery] string trackId)
     {
-        if (_fileDatabase.GetVault(_vaultKey) is not AudioVault vault) { return NotFound(); }
-        var file = await vault.GetEntryAsync<AudioBinary>(MediaVaultType.Audio, new EntryKey(trackId, MediaVaultType.Audio));
+        // BEFORE: Complex with EntryKey objects and redundant MediaVaultType
+        // var entryKey = new EntryKey(trackId, MediaVaultTypeMap.GetVaultType<AudioBinary>());
+        // var file = await _fileDatabase.LoadResourceAsync<AudioBinary>(_vaultKey, entryKey);
+
+        // AFTER: Ultra clean - just string identifiers, types inferred
+        var file = await _fileDatabase.LoadResourceAsync<AudioBinary>("tracks", trackId);
         if (file == null) { return NotFound(); }
         return File(file.Buffer, MimeTypeExtensions.GetMimeType(file.Extension));
     }

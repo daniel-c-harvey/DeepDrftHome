@@ -21,10 +21,10 @@ namespace DeepDrftContent
 
         private static async Task InitializeTrackVault(FileDatabase.Services.FileDatabase fileDatabase)
         {
-            var vaultKey = new EntryKey("tracks", MediaVaultType.Audio);
-            if (!fileDatabase.HasVault(vaultKey))
+            const string vaultId = "tracks";
+            if (!fileDatabase.HasVault(vaultId))
             {
-                await fileDatabase.CreateVaultAsync(vaultKey);
+                await fileDatabase.CreateVaultAsync(vaultId, MediaVaultType.Audio);
             }
         }
     }

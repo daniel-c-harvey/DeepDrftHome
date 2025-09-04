@@ -1,5 +1,6 @@
 using DeepDrftContent.FileDatabase.Models;
 using DeepDrftContent.FileDatabase.Utils;
+using IndexType = DeepDrftContent.FileDatabase.Services.IndexType;
 
 namespace DeepDrftContent.FileDatabase.Services;
 
@@ -8,19 +9,19 @@ namespace DeepDrftContent.FileDatabase.Services;
 /// </summary>
 public class FileDatabase : DirectoryIndexDirectory
 {
-    private readonly StructuralMap<EntryKey, MediaVault> _vaults;
+    private readonly StructuralMap<string, MediaVault> _vaults;
 
     /// <summary>
     /// Factory method to create a FileDatabase instance
     /// </summary>
     public static async Task<FileDatabase?> FromAsync(string rootPath)
     {
-        var factory = new IndexFactory(rootPath, IndexType.Directory);
-        var rootIndex = await factory.BuildIndexAsync();
+        var factoryService = new IndexFactoryService();
+        var rootIndex = await factoryService.LoadOrCreateDirectoryIndexAsync(rootPath);
 
-        if (rootIndex is DirectoryIndex directoryIndex)
+        if (rootIndex != null)
         {
-            var db = new FileDatabase(rootPath, directoryIndex);
+            var db = new FileDatabase(rootPath, (DirectoryIndex)rootIndex);
             await db.InitVaultsAsync();
             return db;
         }
@@ -30,7 +31,7 @@ public class FileDatabase : DirectoryIndexDirectory
 
     private FileDatabase(string rootPath, DirectoryIndex index) : base(rootPath, index)
     {
-        _vaults = new StructuralMap<EntryKey, MediaVault>();
+        _vaults = new StructuralMap<string, MediaVault>();
     }
 
     /// <summary>
@@ -38,56 +39,86 @@ public class FileDatabase : DirectoryIndexDirectory
     /// </summary>
     private async Task InitVaultsAsync()
     {
-        foreach (var vaultKey in GetIndexEntries())
+        foreach (var vaultId in GetIndexEntries())
         {
-            await InitVaultAsync(vaultKey);
+            var vaultType = await GetVaultTypeFromIndex(vaultId);
+            if (vaultType.HasValue)
+            {
+                await InitVaultAsync(vaultId, vaultType.Value);
+            }
         }
     }
 
     /// <summary>
     /// Initializes a specific vault
     /// </summary>
-    private async Task InitVaultAsync(EntryKey vaultKey)
+    private async Task InitVaultAsync(string vaultId, MediaVaultType vaultType)
     {
-        var path = Path.Combine(RootPath, vaultKey.Key);
-        var directoryVault = await MediaVaultFactory.From(path, vaultKey.Type);
+        var path = Path.Combine(RootPath, vaultId);
+        var directoryVault = await MediaVaultFactory.From(path, vaultType);
 
         if (directoryVault != null)
         {
-            _vaults.Set(vaultKey, directoryVault);
+            _vaults.Set(vaultId, directoryVault);
         }
     }
 
     /// <summary>
-    /// Checks if a vault exists for the given key
+    /// Gets vault type from the vault's index file
     /// </summary>
-    public bool HasVault(EntryKey vaultKey)
+    private async Task<MediaVaultType?> GetVaultTypeFromIndex(string vaultId)
     {
-        return _vaults.Has(vaultKey);
+        try
+        {
+            var factoryService = new IndexFactoryService();
+            var vaultPath = Path.Combine(RootPath, vaultId);
+            var index = await factoryService.LoadIndexAsync(IndexType.Vault, vaultPath);
+            
+            if (index is VaultIndex vaultIndex)
+            {
+                return vaultIndex.VaultType;
+            }
+        }
+        catch
+        {
+            // If we can't load the index, we can't determine the vault type
+            // This might happen for legacy vaults or corrupted indexes
+        }
+        
+        return null;
     }
 
     /// <summary>
-    /// Gets a vault by key
+    /// Checks if a vault exists for the given vault ID
     /// </summary>
-    public MediaVault? GetVault(EntryKey vaultKey)
+    public bool HasVault(string vaultId)
     {
-        return HasVault(vaultKey) ? _vaults.Get(vaultKey) : null;
+        return _vaults.Has(vaultId);
+    }
+
+    /// <summary>
+    /// Gets a vault by vault ID
+    /// </summary>
+    public MediaVault? GetVault(string vaultId)
+    {
+        return HasVault(vaultId) ? _vaults.Get(vaultId) : null;
     }
 
     /// <summary>
     /// Creates a new vault
     /// </summary>
-    public async Task CreateVaultAsync(EntryKey vaultKey)
+    public async Task CreateVaultAsync(string vaultId, MediaVaultType vaultType)
     {
         try
         {
-            var path = Path.Combine(RootPath, vaultKey.Key);
-            var directoryVault = await MediaVaultFactory.From(path, vaultKey.Type);
+            var path = Path.Combine(RootPath, vaultId);
+            var directoryVault = await MediaVaultFactory.From(path, vaultType);
 
             if (directoryVault != null)
             {
-                _vaults.Set(vaultKey, directoryVault);
-                await AddToIndexAsync(vaultKey);
+                _vaults.Set(vaultId, directoryVault);
+                // Now using string-based index
+                await AddToIndexAsync(vaultId);
             }
         }
         catch
@@ -97,17 +128,17 @@ public class FileDatabase : DirectoryIndexDirectory
     }
 
     /// <summary>
-    /// Loads a resource from a specific vault
+    /// Loads a resource from a specific vault (MediaVaultType inferred from T)
     /// </summary>
-    public async Task<T?> LoadResourceAsync<T>(MediaVaultType vaultType, EntryKey vaultKey, EntryKey entryKey) 
+    public async Task<T?> LoadResourceAsync<T>(string vaultId, string entryId) 
         where T : FileBinary
     {
         try
         {
-            var vault = _vaults.Get(vaultKey);
+            var vault = _vaults.Get(vaultId);
             if (vault != null)
             {
-                return await vault.GetEntryAsync<T>(vaultType, entryKey);
+                return await vault.GetEntryAsync<T>(entryId);
             }
         }
         catch
@@ -119,16 +150,16 @@ public class FileDatabase : DirectoryIndexDirectory
     }
 
     /// <summary>
-    /// Registers a resource in a specific vault
+    /// Registers a resource in a specific vault (MediaVaultType inferred from media type)
     /// </summary>
-    public async Task<bool> RegisterResourceAsync(MediaVaultType vaultType, EntryKey vaultKey, EntryKey entryKey, object media)
+    public async Task<bool> RegisterResourceAsync(string vaultId, string entryId, FileBinary media)
     {
         try
         {
-            var directoryVault = _vaults.Get(vaultKey);
+            var directoryVault = _vaults.Get(vaultId);
             if (directoryVault != null)
             {
-                await directoryVault.AddEntryAsync(vaultType, entryKey, media);
+                await directoryVault.AddEntryAsync(entryId, media);
                 return true;
             }
         }
@@ -141,9 +172,9 @@ public class FileDatabase : DirectoryIndexDirectory
     }
 
     /// <summary>
-    /// Gets all vault keys managed by this database
+    /// Gets all vault IDs managed by this database
     /// </summary>
-    public IReadOnlyList<EntryKey> GetVaultKeys()
+    public IReadOnlyList<string> GetVaultIds()
     {
         return _vaults.Keys.ToList().AsReadOnly();
     }
@@ -155,4 +186,5 @@ public class FileDatabase : DirectoryIndexDirectory
     {
         return _vaults.Size;
     }
+
 }

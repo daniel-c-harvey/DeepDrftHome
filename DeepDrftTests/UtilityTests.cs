@@ -16,8 +16,8 @@ public class UtilityTests
         public void StructuralMap_CanAddAndRetrieveEntries()
         {
             // Arrange
-            var map = new StructuralMap<EntryKey, string>();
-            var key = new EntryKey("test", MediaVaultType.Image);
+            var map = new StructuralMap<string, string>();
+            var key = "test";
             var value = "test-value";
 
             // Act
@@ -33,9 +33,9 @@ public class UtilityTests
         public void StructuralMap_HandlesStructuralEquality()
         {
             // Arrange
-            var map = new StructuralMap<EntryKey, string>();
-            var key1 = new EntryKey("test", MediaVaultType.Image);
-            var key2 = new EntryKey("test", MediaVaultType.Image); // Same values, different instance
+            var map = new StructuralMap<string, string>();
+            var key1 = "test";
+            var key2 = "test"; // Same values
             var value = "test-value";
 
             // Act
@@ -50,8 +50,8 @@ public class UtilityTests
         public void StructuralMap_CanRemoveEntries()
         {
             // Arrange
-            var map = new StructuralMap<EntryKey, string>();
-            var key = new EntryKey("test", MediaVaultType.Image);
+            var map = new StructuralMap<string, string>();
+            var key = "test";
             var value = "test-value";
             map.Set(key, value);
 
@@ -68,12 +68,12 @@ public class UtilityTests
         public void StructuralMap_CanEnumerateEntries()
         {
             // Arrange
-            var map = new StructuralMap<EntryKey, string>();
+            var map = new StructuralMap<string, string>();
             var entries = new[]
             {
-                (new EntryKey("key1", MediaVaultType.Image), "value1"),
-                (new EntryKey("key2", MediaVaultType.Media), "value2"),
-                (new EntryKey("key3", MediaVaultType.Image), "value3")
+                ("key1", "value1"),
+                ("key2", "value2"),
+                ("key3", "value3")
             };
 
             foreach (var (key, value) in entries)
@@ -102,8 +102,8 @@ public class UtilityTests
         public void StructuralSet_CanAddAndContainEntries()
         {
             // Arrange
-            var set = new StructuralSet<EntryKey>();
-            var key = new EntryKey("test", MediaVaultType.Image);
+            var set = new StructuralSet<string>();
+            var key = "test";
 
             // Act
             set.Add(key);
@@ -117,9 +117,9 @@ public class UtilityTests
         public void StructuralSet_HandlesStructuralEquality()
         {
             // Arrange
-            var set = new StructuralSet<EntryKey>();
-            var key1 = new EntryKey("test", MediaVaultType.Image);
-            var key2 = new EntryKey("test", MediaVaultType.Image); // Same values, different instance
+            var set = new StructuralSet<string>();
+            var key1 = "test";
+            var key2 = "test"; // Same values
 
             // Act
             set.Add(key1);
@@ -134,8 +134,8 @@ public class UtilityTests
         public void StructuralSet_CanRemoveEntries()
         {
             // Arrange
-            var set = new StructuralSet<EntryKey>();
-            var key = new EntryKey("test", MediaVaultType.Image);
+            var set = new StructuralSet<string>();
+            var key = "test";
             set.Add(key);
 
             // Act
@@ -151,12 +151,12 @@ public class UtilityTests
         public void StructuralSet_CanEnumerateEntries()
         {
             // Arrange
-            var set = new StructuralSet<EntryKey>();
+            var set = new StructuralSet<string>();
             var keys = new[]
             {
-                new EntryKey("key1", MediaVaultType.Image),
-                new EntryKey("key2", MediaVaultType.Media),
-                new EntryKey("key3", MediaVaultType.Image)
+                "key1",
+                "key2", 
+                "key3"
             };
 
             foreach (var key in keys)

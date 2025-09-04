@@ -1,4 +1,5 @@
 using DeepDrftContent.FileDatabase.Utils;
+using System.Text.Json.Serialization;
 
 namespace DeepDrftContent.FileDatabase.Models;
 
@@ -20,7 +21,7 @@ public abstract class IndexData
 /// </summary>
 public class DirectoryIndexData : IndexData
 {
-    public List<EntryKey> Entries { get; set; } = new();
+    public List<string> Entries { get; set; } = new();
 
     public DirectoryIndexData(string indexKey) : base(indexKey) { }
 
@@ -39,7 +40,7 @@ public class DirectoryIndexData : IndexData
 /// </summary>
 public class VaultEntryData
 {
-    public EntryKey Key { get; set; } = null!;
+    public string Key { get; set; } = null!;
     public MetaData Value { get; set; } = null!;
 }
 
@@ -49,12 +50,22 @@ public class VaultEntryData
 public class VaultIndexData : IndexData
 {
     public List<VaultEntryData> Entries { get; set; } = new();
+    public MediaVaultType VaultType { get; set; }
 
-    public VaultIndexData(string indexKey) : base(indexKey) { }
+    public VaultIndexData(string indexKey) : base(indexKey) 
+    {
+        VaultType = MediaVaultType.Media; // Default vault type for legacy compatibility
+    }
+    
+    [JsonConstructor]
+    public VaultIndexData(string indexKey, MediaVaultType vaultType) : base(indexKey) 
+    {
+        VaultType = vaultType;
+    }
 
     public static VaultIndexData FromIndex(VaultIndex index)
     {
-        var data = new VaultIndexData(index.GetKey())
+        var data = new VaultIndexData(index.GetKey(), index.VaultType)
         {
             Entries = index.Entries.Select(kvp => new VaultEntryData { Key = kvp.Key, Value = kvp.Value }).ToList()
         };
@@ -67,11 +78,11 @@ public class VaultIndexData : IndexData
 /// </summary>
 public class DirectoryIndex : IndexData, IDirectoryIndex
 {
-    public StructuralSet<EntryKey> Entries { get; }
+    public StructuralSet<string> Entries { get; }
 
     public DirectoryIndex(DirectoryIndexData indexData) : base(indexData.IndexKey)
     {
-        Entries = new StructuralSet<EntryKey>();
+        Entries = new StructuralSet<string>();
         // Load entries from data
         foreach (var entry in indexData.Entries)
         {
@@ -81,13 +92,13 @@ public class DirectoryIndex : IndexData, IDirectoryIndex
 
     public string GetKey() => IndexKey;
 
-    public IReadOnlyList<EntryKey> GetEntries() => Entries.ToList().AsReadOnly();
+    public IReadOnlyList<string> GetEntries() => Entries.ToList().AsReadOnly();
 
     public int GetEntriesSize() => Entries.Size;
 
-    public bool HasEntry(EntryKey entryKey) => Entries.Has(entryKey);
+    public bool HasEntry(string entryId) => Entries.Has(entryId);
 
-    public void PutEntry(EntryKey entryKey) => Entries.Add(entryKey);
+    public void PutEntry(string entryId) => Entries.Add(entryId);
 }
 
 /// <summary>
@@ -95,11 +106,13 @@ public class DirectoryIndex : IndexData, IDirectoryIndex
 /// </summary>
 public class VaultIndex : IndexData, IVaultIndex
 {
-    public StructuralMap<EntryKey, MetaData> Entries { get; }
+    public StructuralMap<string, MetaData> Entries { get; }
+    public MediaVaultType VaultType { get; }
 
     public VaultIndex(VaultIndexData indexData) : base(indexData.IndexKey)
     {
-        Entries = new StructuralMap<EntryKey, MetaData>();
+        Entries = new StructuralMap<string, MetaData>();
+        VaultType = indexData.VaultType;
         // Load entries from data
         foreach (var entry in indexData.Entries)
         {
@@ -109,13 +122,13 @@ public class VaultIndex : IndexData, IVaultIndex
 
     public string GetKey() => IndexKey;
 
-    public IReadOnlyList<EntryKey> GetEntries() => Entries.Keys.ToList().AsReadOnly();
+    public IReadOnlyList<string> GetEntries() => Entries.Keys.ToList().AsReadOnly();
 
     public int GetEntriesSize() => Entries.Size;
 
-    public bool HasEntry(EntryKey entryKey) => Entries.Has(entryKey);
+    public bool HasEntry(string entryId) => Entries.Has(entryId);
 
-    public MetaData? GetEntry(EntryKey entryKey) => Entries.Get(entryKey);
+    public MetaData? GetEntry(string entryId) => Entries.Get(entryId);
 
-    public void PutEntry(EntryKey entryKey, MetaData metaData) => Entries.Set(entryKey, metaData);
+    public void PutEntry(string entryId, MetaData metaData) => Entries.Set(entryId, metaData);
 }

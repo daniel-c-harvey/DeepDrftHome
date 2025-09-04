@@ -17,9 +17,9 @@ public interface IIndex
 public interface IEntryQueryable : IIndex
 {
     /// <summary>
-    /// Gets all entry keys in this index
+    /// Gets all entry IDs in this index
     /// </summary>
-    IReadOnlyList<EntryKey> GetEntries();
+    IReadOnlyList<string> GetEntries();
 
     /// <summary>
     /// Gets the number of entries in this index
@@ -27,9 +27,9 @@ public interface IEntryQueryable : IIndex
     int GetEntriesSize();
 
     /// <summary>
-    /// Checks if the index contains the specified entry key
+    /// Checks if the index contains the specified entry ID
     /// </summary>
-    bool HasEntry(EntryKey entryKey);
+    bool HasEntry(string entryId);
 }
 
 /// <summary>
@@ -40,7 +40,7 @@ public interface IDirectoryIndex : IEntryQueryable
     /// <summary>
     /// Adds an entry to the directory index
     /// </summary>
-    void PutEntry(EntryKey entryKey);
+    void PutEntry(string entryId);
 }
 
 /// <summary>
@@ -51,10 +51,10 @@ public interface IVaultIndex : IEntryQueryable
     /// <summary>
     /// Gets metadata for a specific entry
     /// </summary>
-    MetaData? GetEntry(EntryKey entryKey);
+    MetaData? GetEntry(string entryId);
 
     /// <summary>
     /// Adds an entry with metadata to the vault index
     /// </summary>
-    void PutEntry(EntryKey entryKey, MetaData metaData);
+    void PutEntry(string entryId, MetaData metaData);
 }

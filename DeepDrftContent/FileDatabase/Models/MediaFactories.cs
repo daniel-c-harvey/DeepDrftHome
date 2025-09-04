@@ -17,6 +17,16 @@ public static class MediaVaultTypeMap
     public static Type GetParamsType(MediaVaultType vaultType) => _registry.GetParamsType(vaultType);
 
     public static Type GetMetaDataType(MediaVaultType vaultType) => _registry.GetMetaDataType(vaultType);
+
+    /// <summary>
+    /// Get the vault type for a binary type (reverse mapping)
+    /// </summary>
+    public static MediaVaultType GetVaultType(Type binaryType) => _registry.GetVaultType(binaryType);
+
+    /// <summary>
+    /// Get the vault type for a binary type using generics (reverse mapping)
+    /// </summary>
+    public static MediaVaultType GetVaultType<T>() where T : FileBinary => _registry.GetVaultType<T>();
 }
 
 /// <summary>

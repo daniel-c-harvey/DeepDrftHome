@@ -9,19 +9,29 @@ namespace DeepDrftContent.FileDatabase.Abstractions;
 public interface IIndexFactory
 {
     /// <summary>
-    /// Creates an index of the specified type
-    /// </summary>
-    Task<IIndex?> CreateIndexAsync(IndexType type, string rootPath);
-
-    /// <summary>
     /// Loads an existing index of the specified type
     /// </summary>
     Task<IIndex?> LoadIndexAsync(IndexType type, string rootPath);
 
     /// <summary>
-    /// Loads existing index or creates new one if loading fails
+    /// Creates a directory index
     /// </summary>
-    Task<IIndex?> LoadOrCreateIndexAsync(IndexType type, string rootPath);
+    Task<IDirectoryIndex?> CreateDirectoryIndexAsync(string rootPath);
+    
+    /// <summary>
+    /// Loads existing directory index or creates new one if loading fails
+    /// </summary>
+    Task<IDirectoryIndex?> LoadOrCreateDirectoryIndexAsync(string rootPath);
+    
+    /// <summary>
+    /// Creates a vault index with the specified vault type
+    /// </summary>
+    Task<IVaultIndex?> CreateVaultIndexAsync(string rootPath, MediaVaultType vaultType);
+    
+    /// <summary>
+    /// Loads existing vault index or creates new one with the specified vault type if loading fails
+    /// </summary>
+    Task<IVaultIndex?> LoadOrCreateVaultIndexAsync(string rootPath, MediaVaultType vaultType);
 }
 
 /// <summary>

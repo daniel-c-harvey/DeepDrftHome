@@ -18,6 +18,9 @@ public class SimpleMediaTypeRegistry : IMediaTypeRegistry
     private readonly Dictionary<MediaVaultType, Type> _dtoTypes = new();
     private readonly Dictionary<MediaVaultType, Type> _paramsTypes = new();
     private readonly Dictionary<MediaVaultType, Type> _metaDataTypes = new();
+    
+    // Reverse mapping: Type -> MediaVaultType
+    private readonly Dictionary<Type, MediaVaultType> _typeToVaultType = new();
 
     public SimpleMediaTypeRegistry()
     {
@@ -75,6 +78,9 @@ public class SimpleMediaTypeRegistry : IMediaTypeRegistry
         _dtoTypes[vaultType] = typeof(TDto);
         _paramsTypes[vaultType] = typeof(TParams);
         _metaDataTypes[vaultType] = typeof(TMetaData);
+        
+        // Populate reverse mapping
+        _typeToVaultType[typeof(TBinary)] = vaultType;
         
         if (vaultFactory != null)
             _vaultFactories[vaultType] = vaultFactory;
@@ -146,4 +152,22 @@ public class SimpleMediaTypeRegistry : IMediaTypeRegistry
 
     public Type GetMetaDataType(MediaVaultType vaultType) => 
         _metaDataTypes.TryGetValue(vaultType, out var type) ? type : throw new ArgumentException($"Unknown vault type: {vaultType}");
+
+    public MediaVaultType GetVaultType(Type binaryType)
+    {
+        if (_typeToVaultType.TryGetValue(binaryType, out var vaultType))
+            return vaultType;
+            
+        // Check inheritance hierarchy for derived types
+        foreach (var kvp in _typeToVaultType)
+        {
+            if (kvp.Key.IsAssignableFrom(binaryType))
+                return kvp.Value;
+        }
+        
+        throw new ArgumentException($"Cannot infer MediaVaultType for {binaryType.Name}. Type not registered.");
+    }
+
+    public MediaVaultType GetVaultType<T>() where T : FileBinary
+        => GetVaultType(typeof(T));
 }

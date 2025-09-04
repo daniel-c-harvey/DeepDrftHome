@@ -51,14 +51,17 @@ public static class TestData
     }
 
     /// <summary>
-    /// Test entry keys used across tests
+    /// Test keys used across tests - now using simple strings and separate vault types
     /// </summary>
     public static class TestKeys
     {
-        public static readonly EntryKey TestImageEntry = new("test", MediaVaultType.Image);
-        public static readonly EntryKey ImageVaultKey = new("img", MediaVaultType.Image);
-        public static readonly EntryKey NonExistentVaultKey = new("i-do-not-exist", MediaVaultType.Image);
-        public static readonly EntryKey NonExistentEntryKey = new("i-do-not-exist", MediaVaultType.Image);
+        public const string TestImageEntry = "test";
+        public const string ImageVaultKey = "img"; 
+        public const string NonExistentVaultKey = "i-do-not-exist";
+        public const string NonExistentEntryKey = "i-do-not-exist";
+        
+        // Vault type for image-related tests
+        public const MediaVaultType ImageVaultType = MediaVaultType.Image;
     }
 
     /// <summary>

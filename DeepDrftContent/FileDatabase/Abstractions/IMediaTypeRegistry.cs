@@ -66,4 +66,14 @@ public interface IMediaTypeRegistry
     /// Get the metadata type for a vault type
     /// </summary>
     Type GetMetaDataType(MediaVaultType vaultType);
+
+    /// <summary>
+    /// Get the vault type for a binary type (reverse mapping)
+    /// </summary>
+    MediaVaultType GetVaultType(Type binaryType);
+
+    /// <summary>
+    /// Get the vault type for a binary type using generics (reverse mapping)
+    /// </summary>
+    MediaVaultType GetVaultType<T>() where T : FileBinary;
 }
