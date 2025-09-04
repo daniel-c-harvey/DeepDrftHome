@@ -3,7 +3,7 @@
 public class TrackDto
 {
     public long Id { get; set; }
-    public string MediaPath { get; set; }
+    public required string EntryKey { get; set; }
     public string TrackName { get; set; }
     public string Artist { get; set; }
     public string? Album { get; set; }

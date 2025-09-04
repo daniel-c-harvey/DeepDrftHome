@@ -56,7 +56,7 @@ public class TrackRepository
         trackEntity.Artist = track.Artist;
         trackEntity.Genre = track.Genre;
         trackEntity.ImagePath = track.ImagePath;
-        trackEntity.MediaPath = track.MediaPath;
+        trackEntity.EntryKey = track.EntryKey;
         trackEntity.ReleaseDate = track.ReleaseDate;
         trackEntity.TrackName = track.TrackName;
         

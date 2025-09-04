@@ -3,7 +3,7 @@
 public class TrackEntity
 {
     public long Id { get; set; }
-    public required string MediaPath { get; set; }
+    public required string EntryKey { get; set; }
     public required string TrackName { get; set; }
     public required string Artist { get; set; }
     public string? Album { get; set; }

@@ -16,10 +16,10 @@ public class TrackConfiguration : IEntityTypeConfiguration<TrackEntity>
             .HasColumnName("id")
             .IsRequired();
             
-        builder.Property(x => x.MediaPath)
-            .HasColumnName("media_path")
+        builder.Property(x => x.EntryKey)
+            .HasColumnName("entry_key")
             .IsRequired()
-            .HasMaxLength(500);
+            .HasMaxLength(100);
             
         builder.Property(x => x.TrackName)
             .HasColumnName("track_name")
