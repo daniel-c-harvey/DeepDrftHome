@@ -1,5 +1,7 @@
-﻿using DeepDrftContent.FileDatabase.Models;
+﻿using DeepDrftContent.Constants;
+using DeepDrftContent.FileDatabase.Models;
 using DeepDrftContent.FileDatabase.Services;
+using DeepDrftContent.Middleware;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DeepDrftContent.Controllers;
@@ -16,15 +18,19 @@ public class TrackController : ControllerBase
     }
 
     [HttpGet("{trackId}")]
-    public async Task<ActionResult<AudioBinaryDto>> GetTrack([FromQuery] string trackId)
+    public async Task<ActionResult> GetTrack(string trackId)
     {
-        // BEFORE: Complex with EntryKey objects and redundant MediaVaultType
-        // var entryKey = new EntryKey(trackId, MediaVaultTypeMap.GetVaultType<AudioBinary>());
-        // var file = await _fileDatabase.LoadResourceAsync<AudioBinary>(_vaultKey, entryKey);
-
-        // AFTER: Ultra clean - just string identifiers, types inferred
-        var file = await _fileDatabase.LoadResourceAsync<AudioBinary>("tracks", trackId);
+        var file = await _fileDatabase.LoadResourceAsync<AudioBinary>(VaultConstants.Tracks, trackId);
         if (file == null) { return NotFound(); }
         return File(file.Buffer, MimeTypeExtensions.GetMimeType(file.Extension));
+    }
+
+    [ApiKeyAuthorize]
+    [HttpPut("{trackId}")]
+    public async Task<ActionResult> PutTrack([FromQuery] string trackId, [FromBody] AudioBinaryDto track)
+    {
+        var audioBinary = AudioBinary.From(track);
+        var success = await _fileDatabase.RegisterResourceAsync(VaultConstants.Tracks, trackId, audioBinary);
+        return success ? Ok() : BadRequest("Failed to store audio track");
     }
 }

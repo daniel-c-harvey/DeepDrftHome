@@ -10,4 +10,12 @@
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.6"/>
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\DeepDrftModels\DeepDrftModels.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Middleware\" />
+    </ItemGroup>
+
 </Project>

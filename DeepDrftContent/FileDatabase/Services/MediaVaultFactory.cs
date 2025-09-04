@@ -4,7 +4,7 @@ using DeepDrftContent.FileDatabase.Models;
 namespace DeepDrftContent.FileDatabase.Services;
 
 /// <summary>
-/// Factory for creating media vaults - simple dictionary-based approach
+/// Factory for creating media vaults
 /// </summary>
 public static class MediaVaultFactory
 {

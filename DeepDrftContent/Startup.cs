@@ -1,3 +1,4 @@
+using DeepDrftContent.Constants;
 using DeepDrftContent.FileDatabase.Models;
 using DeepDrftContent.FileDatabase.Services;
 using DeepDrftContent.Models;
@@ -21,10 +22,9 @@ namespace DeepDrftContent
 
         private static async Task InitializeTrackVault(FileDatabase.Services.FileDatabase fileDatabase)
         {
-            const string vaultId = "tracks";
-            if (!fileDatabase.HasVault(vaultId))
+            if (!fileDatabase.HasVault(VaultConstants.Tracks))
             {
-                await fileDatabase.CreateVaultAsync(vaultId, MediaVaultType.Audio);
+                await fileDatabase.CreateVaultAsync(VaultConstants.Tracks, MediaVaultType.Audio);
             }
         }
     }
