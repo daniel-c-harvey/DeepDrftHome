@@ -300,3 +300,6 @@ __pycache__/
 
 # NetBlocks symlink for tool-assisted library code search
 **/NetBlocks
+
+# File Database files
+Database/Vaults/*
