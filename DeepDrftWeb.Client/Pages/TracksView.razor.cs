@@ -5,10 +5,10 @@ using Microsoft.AspNetCore.Components;
 
 namespace DeepDrftWeb.Client.Pages;
 
-public partial class TrackGallery : ComponentBase
+public partial class TracksView : ComponentBase
 {
     [Inject]
-    public required TrackGalleryViewModel ViewModel { get; set; }
+    public required TracksViewModel ViewModel { get; set; }
 
 
     protected override async Task OnInitializedAsync()

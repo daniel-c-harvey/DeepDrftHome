@@ -4,7 +4,7 @@ using DeepDrftWeb.Client.Clients;
 
 namespace DeepDrftWeb.Client.ViewModels;
 
-public class TrackGalleryViewModel
+public class TracksViewModel
 {
     public TrackClient TrackClient { get; }
 
@@ -27,7 +27,7 @@ public class TrackGalleryViewModel
     public bool IsDescending { get; set; } = false;
     public PagedResult<TrackEntity>? Page { get; set; } = null;
     
-    public TrackGalleryViewModel(TrackClient trackClient)
+    public TracksViewModel(TrackClient trackClient)
     {
         TrackClient = trackClient;
     }

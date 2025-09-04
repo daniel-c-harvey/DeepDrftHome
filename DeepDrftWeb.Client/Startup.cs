@@ -11,6 +11,6 @@ public static class Startup
     {
         // Track Client
         services.AddScoped<TrackClient>();
-        services.AddScoped<TrackGalleryViewModel>();
+        services.AddScoped<TracksViewModel>();
     }
 }
