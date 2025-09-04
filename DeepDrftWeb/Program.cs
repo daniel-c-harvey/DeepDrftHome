@@ -1,18 +1,20 @@
 using DeepDrftWeb;
 using MudBlazor.Services;
 using DeepDrftWeb.Components;
-using DeepDrftWeb.Data;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add MudBlazor services
 builder.Services.AddMudServices();
 
+// Add HttpClient services for prerendering
+builder.Services.AddHttpClient("DeepDrft.API", client => client.BaseAddress = new Uri(Startup.GetKestrelUrl(builder)));
+builder.Services.AddScoped(sp => 
+    sp.GetRequiredService<IHttpClientFactory>().CreateClient("DeepDrft.API"));
+
 Startup.ConfigureDomainServices(builder);
 
-var hostUrl = builder.Configuration.GetValue<string>("ASPNETCORE_URLS")?.Split(';').First() ?? throw new Exception("ASPNETCORE_URLS undefined");
-DeepDrftWeb.Client.Startup.ConfigureDomainServices(builder.Services, hostUrl);
+DeepDrftWeb.Client.Startup.ConfigureDomainServices(builder.Services);
 
 builder.Services.AddControllers();
 

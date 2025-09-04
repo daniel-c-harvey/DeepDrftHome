@@ -3,12 +3,18 @@ using DeepDrftModels.Models;
 using NetBlocks.Models;
 using System.Text.Json;
 using System.Web;
+using Microsoft.AspNetCore.Http;
 
 namespace DeepDrftWeb.Client.Clients;
 
-public class TrackClient : ApiClient<ClientConfig>
+public class TrackClient
 {
-    public TrackClient(ClientConfig config) : base(config) { }
+    private readonly HttpClient _http;
+
+    public TrackClient(HttpClient http)
+    {
+        _http = http;
+    }
 
     public async Task<ApiResult<PagedResult<TrackEntity>>> GetPage(
         int pageNumber, 
@@ -16,24 +22,20 @@ public class TrackClient : ApiClient<ClientConfig>
         string? sortColumn = null, 
         bool sortDescending = false)
     {
-        var uriBuilder = new UriBuilder(http.BaseAddress!)
-        {
-            Path = "api/track/page"
+        var queryArgs = new Dictionary<string, string?>(){
+            ["pageNumber"] = pageNumber.ToString(),
+            ["pageSize"] = pageSize.ToString()
         };
-
-        var query = HttpUtility.ParseQueryString(string.Empty);
-        query["pageNumber"] = pageNumber.ToString();
-        query["pageSize"] = pageSize.ToString();
         
         if (!string.IsNullOrEmpty(sortColumn))
-            query["sortColumn"] = sortColumn;
+            queryArgs["sortColumn"] = sortColumn;
         
         if (sortDescending)
-            query["sortDescending"] = "true";
+            queryArgs["sortDescending"] = "true";
 
-        uriBuilder.Query = query.ToString();
-
-        var response = await http.GetAsync(uriBuilder.Uri);
+        string query = QueryString.Create(queryArgs).ToString();
+        
+        var response = await _http.GetAsync($"api/track/page{query}");
         var json = await response.Content.ReadAsStringAsync();
         
         var dto = JsonSerializer.Deserialize<ApiResultDto<PagedResult<TrackEntity>>>(json, new JsonSerializerOptions

@@ -7,13 +7,9 @@ namespace DeepDrftWeb.Client;
 
 public static class Startup
 {
-    public static void ConfigureDomainServices(IServiceCollection services, string baseAddress)
+    public static void ConfigureDomainServices(IServiceCollection services)
     {
-        // HTTP Client for Server API
-        services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(baseAddress) });
-        
         // Track Client
-        services.AddSingleton(new ClientConfig(baseAddress));
         services.AddScoped<TrackClient>();
         services.AddScoped<TrackGalleryViewModel>();
     }
