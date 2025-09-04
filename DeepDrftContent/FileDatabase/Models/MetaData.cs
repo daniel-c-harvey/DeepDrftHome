@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace DeepDrftContent.FileDatabase.Models;
 
 /// <summary>
@@ -5,6 +7,9 @@ namespace DeepDrftContent.FileDatabase.Models;
 /// </summary>
 /// <param name="MediaKey">The key used to identify the media file</param>
 /// <param name="Extension">The file extension of the media</param>
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
+[JsonDerivedType(typeof(MetaData), typeDiscriminator: "media")]
+[JsonDerivedType(typeof(ImageMetaData), typeDiscriminator: "image")]
 public record MetaData(string MediaKey, string Extension);
 
 /// <summary>

@@ -156,8 +156,15 @@ public static class MimeTypeExtensions
         { ".bmp", "image/bmp" }
     };
 
-    private static readonly Dictionary<string, string> Extensions = 
-        MimeTypes.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
+    private static readonly Dictionary<string, string> Extensions = new()
+    {
+        { "image/jpeg", ".jpg" },
+        { "image/png", ".png" },
+        { "image/gif", ".gif" },
+        { "image/webp", ".webp" },
+        { "image/svg+xml", ".svg" },
+        { "image/bmp", ".bmp" }
+    };
 
     public static string GetMimeType(string extension)
     {

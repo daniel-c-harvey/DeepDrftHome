@@ -35,11 +35,20 @@ public class DirectoryIndexData : IndexData
 }
 
 /// <summary>
+/// Entry data for vault index serialization
+/// </summary>
+public class VaultEntryData
+{
+    public EntryKey Key { get; set; } = null!;
+    public MetaData Value { get; set; } = null!;
+}
+
+/// <summary>
 /// Serializable data for vault indexes
 /// </summary>
 public class VaultIndexData : IndexData
 {
-    public List<(EntryKey Key, MetaData Value)> Entries { get; set; } = new();
+    public List<VaultEntryData> Entries { get; set; } = new();
 
     public VaultIndexData(string indexKey) : base(indexKey) { }
 
@@ -47,7 +56,7 @@ public class VaultIndexData : IndexData
     {
         var data = new VaultIndexData(index.GetKey())
         {
-            Entries = index.Entries.Select(kvp => (kvp.Key, kvp.Value)).ToList()
+            Entries = index.Entries.Select(kvp => new VaultEntryData { Key = kvp.Key, Value = kvp.Value }).ToList()
         };
         return data;
     }
@@ -92,9 +101,9 @@ public class VaultIndex : IndexData, IIndex
     {
         Entries = new StructuralMap<EntryKey, MetaData>();
         // Load entries from data
-        foreach (var (key, value) in indexData.Entries)
+        foreach (var entry in indexData.Entries)
         {
-            Entries.Set(key, value);
+            Entries.Set(entry.Key, entry.Value);
         }
     }
 
