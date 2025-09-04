@@ -1,37 +1,22 @@
+using DeepDrftContent.FileDatabase.Abstractions;
+using DeepDrftContent.FileDatabase.Services;
+
 namespace DeepDrftContent.FileDatabase.Models;
 
 /// <summary>
-/// Type mappings for media vault types to their corresponding classes
+/// Type mappings for media vault types - simple dictionary-based approach
 /// </summary>
 public static class MediaVaultTypeMap
 {
-    public static Type GetBinaryType(MediaVaultType vaultType) => vaultType switch
-    {
-        MediaVaultType.Media => typeof(MediaBinary),
-        MediaVaultType.Image => typeof(ImageBinary),
-        _ => throw new ArgumentException($"Unknown vault type: {vaultType}")
-    };
+    private static readonly IMediaTypeRegistry _registry = new SimpleMediaTypeRegistry();
 
-    public static Type GetDtoType(MediaVaultType vaultType) => vaultType switch
-    {
-        MediaVaultType.Media => typeof(MediaBinaryDto),
-        MediaVaultType.Image => typeof(ImageBinaryDto),
-        _ => throw new ArgumentException($"Unknown vault type: {vaultType}")
-    };
+    public static Type GetBinaryType(MediaVaultType vaultType) => _registry.GetBinaryType(vaultType);
 
-    public static Type GetParamsType(MediaVaultType vaultType) => vaultType switch
-    {
-        MediaVaultType.Media => typeof(MediaBinaryParams),
-        MediaVaultType.Image => typeof(ImageBinaryParams),
-        _ => throw new ArgumentException($"Unknown vault type: {vaultType}")
-    };
+    public static Type GetDtoType(MediaVaultType vaultType) => _registry.GetDtoType(vaultType);
 
-    public static Type GetMetaDataType(MediaVaultType vaultType) => vaultType switch
-    {
-        MediaVaultType.Media => typeof(MetaData),
-        MediaVaultType.Image => typeof(ImageMetaData),
-        _ => throw new ArgumentException($"Unknown vault type: {vaultType}")
-    };
+    public static Type GetParamsType(MediaVaultType vaultType) => _registry.GetParamsType(vaultType);
+
+    public static Type GetMetaDataType(MediaVaultType vaultType) => _registry.GetMetaDataType(vaultType);
 }
 
 /// <summary>
@@ -39,38 +24,52 @@ public static class MediaVaultTypeMap
 /// </summary>
 public static class MetaDataFactory
 {
-    public static MetaData Create(MediaVaultType type, string entryKey, string extension, double aspectRatio = 1.0)
+    public static MetaData Create(MediaVaultType type, string entryKey, string extension)
     {
         return type switch
         {
             MediaVaultType.Media => new MetaData(entryKey, extension),
-            MediaVaultType.Image => new ImageMetaData(entryKey, extension, aspectRatio),
+            MediaVaultType.Image => throw new ArgumentException("Image metadata requires aspect ratio. Use CreateImageMetaData instead."),
+            MediaVaultType.Audio => throw new ArgumentException("Audio metadata requires duration and bitrate. Use CreateAudioMetaData instead."),
             _ => throw new ArgumentException($"Unknown vault type: {type}")
         };
     }
 
-    public static T Create<T>(MediaVaultType type, string entryKey, string extension, double aspectRatio = 1.0) 
+    public static ImageMetaData CreateImageMetaData(string entryKey, string extension, double aspectRatio)
+    {
+        return new ImageMetaData(entryKey, extension, aspectRatio);
+    }
+
+    public static AudioMetaData CreateAudioMetaData(string entryKey, string extension, double duration, int bitrate)
+    {
+        return new AudioMetaData(entryKey, extension, duration, bitrate);
+    }
+
+    private static readonly IMediaTypeRegistry _metaDataRegistry = new SimpleMediaTypeRegistry();
+
+    public static MetaData CreateFromMedia(MediaVaultType type, string entryKey, string extension, object media)
+    {
+        return _metaDataRegistry.CreateMetaDataFromMedia(type, entryKey, extension, media);
+    }
+
+    public static T Create<T>(MediaVaultType type, string entryKey, string extension) 
         where T : MetaData
     {
-        var metaData = Create(type, entryKey, extension, aspectRatio);
+        var metaData = Create(type, entryKey, extension);
         return (T)metaData;
     }
 }
 
 /// <summary>
-/// Factory for creating media parameter objects
+/// Factory for creating media parameter objects - simple dictionary-based approach
 /// </summary>
 public static class MediaParamsFactory
 {
+    private static readonly IMediaTypeRegistry _registry = new SimpleMediaTypeRegistry();
+
     public static object Create(MediaVaultType type, FileBinary fileBinary, MetaData metaData)
     {
-        return type switch
-        {
-            MediaVaultType.Media => new MediaBinaryParams(fileBinary.Buffer, fileBinary.Size, metaData.Extension),
-            MediaVaultType.Image when metaData is ImageMetaData imageMetaData => 
-                new ImageBinaryParams(fileBinary.Buffer, fileBinary.Size, metaData.Extension, imageMetaData.AspectRatio),
-            _ => throw new ArgumentException($"Invalid vault type {type} or metadata type mismatch")
-        };
+        return _registry.CreateParams(type, fileBinary, metaData);
     }
 
     public static T Create<T>(MediaVaultType type, FileBinary fileBinary, MetaData metaData)
@@ -81,20 +80,15 @@ public static class MediaParamsFactory
 }
 
 /// <summary>
-/// Factory for creating media binary objects from parameters
+/// Factory for creating media binary objects - simple dictionary-based approach
 /// </summary>
 public static class FileBinaryFactory
 {
+    private static readonly IMediaTypeRegistry _registry = new SimpleMediaTypeRegistry();
+
     public static object Create(MediaVaultType vaultType, object parameters)
     {
-        return vaultType switch
-        {
-            MediaVaultType.Media when parameters is MediaBinaryParams mediaParams => 
-                new MediaBinary(mediaParams),
-            MediaVaultType.Image when parameters is ImageBinaryParams imageParams => 
-                new ImageBinary(imageParams),
-            _ => throw new ArgumentException($"Invalid vault type {vaultType} or parameter type mismatch")
-        };
+        return _registry.CreateBinary(vaultType, parameters);
     }
 
     public static T Create<T>(MediaVaultType vaultType, object parameters) where T : FileBinary
@@ -105,14 +99,7 @@ public static class FileBinaryFactory
 
     public static object From(MediaVaultType type, object mediaBinaryDto)
     {
-        return type switch
-        {
-            MediaVaultType.Media when mediaBinaryDto is MediaBinaryDto mediaDto => 
-                MediaBinary.From(mediaDto),
-            MediaVaultType.Image when mediaBinaryDto is ImageBinaryDto imageDto => 
-                ImageBinary.From(imageDto),
-            _ => throw new ArgumentException($"Invalid type {type} or DTO type mismatch")
-        };
+        return _registry.CreateBinaryFromDto(type, mediaBinaryDto);
     }
 
     public static T From<T>(MediaVaultType type, object mediaBinaryDto) where T : FileBinary
@@ -123,20 +110,18 @@ public static class FileBinaryFactory
 }
 
 /// <summary>
-/// Factory for creating DTO objects from media binaries
+/// Factory for creating DTO objects from media binaries - simple dictionary-based approach
 /// </summary>
 public static class FileBinaryDtoFactory
 {
+    private static readonly IMediaTypeRegistry _registry = new SimpleMediaTypeRegistry();
+
     public static object From(MediaVaultType type, object mediaBinary)
     {
-        return type switch
-        {
-            MediaVaultType.Media when mediaBinary is MediaBinary media => 
-                new MediaBinaryDto(media),
-            MediaVaultType.Image when mediaBinary is ImageBinary image => 
-                new ImageBinaryDto(image),
-            _ => throw new ArgumentException($"Invalid type {type} or binary type mismatch")
-        };
+        if (mediaBinary is not FileBinary fileBinary)
+            throw new ArgumentException($"Expected FileBinary but got {mediaBinary.GetType()}");
+
+        return _registry.CreateDto(type, fileBinary);
     }
 
     public static T From<T>(MediaVaultType type, object mediaBinary)

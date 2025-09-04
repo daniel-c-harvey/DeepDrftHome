@@ -6,5 +6,6 @@ namespace DeepDrftContent.FileDatabase.Models;
 public enum MediaVaultType
 {
     Media,
-    Image
+    Image,
+    Audio
 }

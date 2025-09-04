@@ -150,6 +150,69 @@ public class ModelTests
             var decodedBuffer = Convert.FromBase64String(dto.Base64);
             Assert.That(decodedBuffer, Is.EqualTo(imageBinary.Buffer), "Decoded buffer should match original");
         }
+
+        [Test]
+        public void AudioBinary_CanBeCreated()
+        {
+            // Arrange
+            var buffer = TestData.TestPngBytes;
+            var size = buffer.Length;
+            var extension = ".mp3";
+            var duration = 240.5;
+            var bitrate = 192;
+            var parameters = new AudioBinaryParams(buffer, size, extension, duration, bitrate);
+
+            // Act
+            var audioBinary = new AudioBinary(parameters);
+
+            // Assert
+            Assert.That(audioBinary.Buffer, Is.EqualTo(buffer), "Buffer should match");
+            Assert.That(audioBinary.Size, Is.EqualTo(size), "Size should match");
+            Assert.That(audioBinary.Extension, Is.EqualTo(extension), "Extension should match");
+            Assert.That(audioBinary.Duration, Is.EqualTo(duration), "Duration should match");
+            Assert.That(audioBinary.Bitrate, Is.EqualTo(bitrate), "Bitrate should match");
+        }
+
+        [Test]
+        public void AudioBinary_CanBeCreatedFromDto()
+        {
+            // Arrange
+            var originalBuffer = TestData.TestPngBytes;
+            var base64Data = Convert.ToBase64String(originalBuffer);
+            var duration = 180.0;
+            var bitrate = 256;
+            var dto = new AudioBinaryDto(base64Data, originalBuffer.Length, "audio/mpeg", duration, bitrate);
+
+            // Act
+            var audioBinary = AudioBinary.From(dto);
+
+            // Assert
+            Assert.That(audioBinary.Size, Is.EqualTo(originalBuffer.Length), "Size should match");
+            Assert.That(audioBinary.Buffer, Is.EqualTo(originalBuffer), "Buffer should match original");
+            Assert.That(audioBinary.Extension, Is.EqualTo(".mp3"), "Extension should match");
+            Assert.That(audioBinary.Duration, Is.EqualTo(duration), "Duration should match");
+            Assert.That(audioBinary.Bitrate, Is.EqualTo(bitrate), "Bitrate should match");
+        }
+
+        [Test]
+        public void AudioBinaryDto_CanBeCreatedFromAudioBinary()
+        {
+            // Arrange
+            var audioBinary = TestData.CreateTestAudioBinary(300.5, 128);
+
+            // Act
+            var dto = new AudioBinaryDto(audioBinary);
+
+            // Assert
+            Assert.That(dto.Size, Is.EqualTo(audioBinary.Size), "Size should match");
+            Assert.That(dto.Mime, Is.EqualTo(MimeTypeExtensions.GetMimeType(audioBinary.Extension)), "MIME type should match");
+            Assert.That(dto.Duration, Is.EqualTo(audioBinary.Duration), "Duration should match");
+            Assert.That(dto.Bitrate, Is.EqualTo(audioBinary.Bitrate), "Bitrate should match");
+            
+            // Verify base64 encoding
+            var decodedBuffer = Convert.FromBase64String(dto.Base64);
+            Assert.That(decodedBuffer, Is.EqualTo(audioBinary.Buffer), "Decoded buffer should match original");
+        }
     }
 
     [TestFixture]
@@ -188,23 +251,111 @@ public class ModelTests
         }
 
         [Test]
-        public void MetaDataFactory_CreatesCorrectTypes()
+        public void MetaDataFactory_CreatesMediaMetaData()
         {
             // Arrange
             var key = "test";
             var extension = ".png";
-            var aspectRatio = 2.0;
 
             // Act
-            var mediaMetaData = MetaDataFactory.Create(MediaVaultType.Media, key, extension, 0.0);
-            var imageMetaData = MetaDataFactory.Create(MediaVaultType.Image, key, extension, aspectRatio);
+            var mediaMetaData = MetaDataFactory.Create(MediaVaultType.Media, key, extension);
 
             // Assert
             Assert.That(mediaMetaData, Is.TypeOf<MetaData>(), "Should create MetaData for Media type");
-            Assert.That(imageMetaData, Is.TypeOf<ImageMetaData>(), "Should create ImageMetaData for Image type");
+            Assert.That(mediaMetaData.MediaKey, Is.EqualTo(key), "MediaKey should match");
+            Assert.That(mediaMetaData.Extension, Is.EqualTo(extension), "Extension should match");
+        }
 
-            var typedImageMetaData = (ImageMetaData)imageMetaData;
-            Assert.That(typedImageMetaData.AspectRatio, Is.EqualTo(aspectRatio), "Aspect ratio should be set");
+        [Test]
+        public void MetaDataFactory_CreatesImageMetaData()
+        {
+            // Arrange
+            var key = "test-image";
+            var extension = ".png";
+            var aspectRatio = 2.0;
+
+            // Act
+            var imageMetaData = MetaDataFactory.CreateImageMetaData(key, extension, aspectRatio);
+
+            // Assert
+            Assert.That(imageMetaData, Is.TypeOf<ImageMetaData>(), "Should create ImageMetaData for Image type");
+            Assert.That(imageMetaData.MediaKey, Is.EqualTo(key), "MediaKey should match");
+            Assert.That(imageMetaData.Extension, Is.EqualTo(extension), "Extension should match");
+            Assert.That(imageMetaData.AspectRatio, Is.EqualTo(aspectRatio), "Aspect ratio should be set");
+        }
+
+        [Test]
+        public void MetaDataFactory_CreatesAudioMetaData()
+        {
+            // Arrange
+            var key = "test-audio";
+            var extension = ".mp3";
+            var duration = 120.0;
+            var bitrate = 320;
+
+            // Act
+            var audioMetaData = MetaDataFactory.CreateAudioMetaData(key, extension, duration, bitrate);
+
+            // Assert
+            Assert.That(audioMetaData, Is.TypeOf<AudioMetaData>(), "Should create AudioMetaData for Audio type");
+            Assert.That(audioMetaData.MediaKey, Is.EqualTo(key), "MediaKey should match");
+            Assert.That(audioMetaData.Extension, Is.EqualTo(extension), "Extension should match");
+            Assert.That(audioMetaData.Duration, Is.EqualTo(duration), "Duration should be set");
+            Assert.That(audioMetaData.Bitrate, Is.EqualTo(bitrate), "Bitrate should be set");
+        }
+
+        [Test]
+        public void AudioMetaData_CanBeCreated()
+        {
+            // Arrange
+            var key = "test-audio";
+            var extension = ".mp3";
+            var duration = 180.5;
+            var bitrate = 256;
+
+            // Act
+            var audioMetaData = new AudioMetaData(key, extension, duration, bitrate);
+
+            // Assert
+            Assert.That(audioMetaData.MediaKey, Is.EqualTo(key), "MediaKey should match");
+            Assert.That(audioMetaData.Extension, Is.EqualTo(extension), "Extension should match");
+            Assert.That(audioMetaData.Duration, Is.EqualTo(duration), "Duration should match");
+            Assert.That(audioMetaData.Bitrate, Is.EqualTo(bitrate), "Bitrate should match");
+        }
+
+        [Test]
+        public void MetaDataFactory_CreateFromMedia_CreatesImageMetaData()
+        {
+            // Arrange
+            var key = "test-image";
+            var extension = ".png";
+            var imageBinary = TestData.CreateTestImageBinary(1.77);
+
+            // Act
+            var metaData = MetaDataFactory.CreateFromMedia(MediaVaultType.Image, key, extension, imageBinary);
+
+            // Assert
+            Assert.That(metaData, Is.TypeOf<ImageMetaData>(), "Should create ImageMetaData from ImageBinary");
+            var imageMetaData = (ImageMetaData)metaData;
+            Assert.That(imageMetaData.AspectRatio, Is.EqualTo(1.77), "Should extract aspect ratio from ImageBinary");
+        }
+
+        [Test]
+        public void MetaDataFactory_CreateFromMedia_CreatesAudioMetaData()
+        {
+            // Arrange
+            var key = "test-audio";
+            var extension = ".mp3";
+            var audioBinary = TestData.CreateTestAudioBinary(240.5, 192);
+
+            // Act
+            var metaData = MetaDataFactory.CreateFromMedia(MediaVaultType.Audio, key, extension, audioBinary);
+
+            // Assert
+            Assert.That(metaData, Is.TypeOf<AudioMetaData>(), "Should create AudioMetaData from AudioBinary");
+            var audioMetaData = (AudioMetaData)metaData;
+            Assert.That(audioMetaData.Duration, Is.EqualTo(240.5), "Should extract duration from AudioBinary");
+            Assert.That(audioMetaData.Bitrate, Is.EqualTo(192), "Should extract bitrate from AudioBinary");
         }
     }
 
@@ -212,7 +363,7 @@ public class ModelTests
     public class MediaFactoryTests
     {
         [Test]
-        public void MediaBinaryFactory_CreatesCorrectTypes()
+        public void MediaBinaryFactory_CreatesMediaBinary()
         {
             // Arrange
             var buffer = TestData.TestPngBytes;
@@ -221,17 +372,60 @@ public class ModelTests
 
             // Act
             var mediaParams = new MediaBinaryParams(buffer, size, extension);
-            var imageParams = new ImageBinaryParams(buffer, size, extension, 1.0);
-            
             var mediaBinary = FileBinaryFactory.Create(MediaVaultType.Media, mediaParams);
-            var imageBinary = FileBinaryFactory.Create(MediaVaultType.Image, imageParams);
 
             // Assert
             Assert.That(mediaBinary, Is.TypeOf<MediaBinary>(), "Should create MediaBinary for Media type");
-            Assert.That(imageBinary, Is.TypeOf<ImageBinary>(), "Should create ImageBinary for Image type");
+            var typedMediaBinary = (MediaBinary)mediaBinary;
+            Assert.That(typedMediaBinary.Buffer, Is.EqualTo(buffer), "Buffer should match");
+            Assert.That(typedMediaBinary.Size, Is.EqualTo(size), "Size should match");
+            Assert.That(typedMediaBinary.Extension, Is.EqualTo(extension), "Extension should match");
+        }
 
+        [Test]
+        public void MediaBinaryFactory_CreatesImageBinary()
+        {
+            // Arrange
+            var buffer = TestData.TestPngBytes;
+            var size = buffer.Length;
+            var extension = ".png";
+            var aspectRatio = 1.77;
+
+            // Act
+            var imageParams = new ImageBinaryParams(buffer, size, extension, aspectRatio);
+            var imageBinary = FileBinaryFactory.Create(MediaVaultType.Image, imageParams);
+
+            // Assert
+            Assert.That(imageBinary, Is.TypeOf<ImageBinary>(), "Should create ImageBinary for Image type");
             var typedImageBinary = (ImageBinary)imageBinary;
-            Assert.That(typedImageBinary.AspectRatio, Is.EqualTo(1.0), "Aspect ratio should be set");
+            Assert.That(typedImageBinary.Buffer, Is.EqualTo(buffer), "Buffer should match");
+            Assert.That(typedImageBinary.Size, Is.EqualTo(size), "Size should match");
+            Assert.That(typedImageBinary.Extension, Is.EqualTo(extension), "Extension should match");
+            Assert.That(typedImageBinary.AspectRatio, Is.EqualTo(aspectRatio), "Aspect ratio should be set");
+        }
+
+        [Test]
+        public void MediaBinaryFactory_CreatesAudioBinary()
+        {
+            // Arrange
+            var buffer = TestData.TestPngBytes;
+            var size = buffer.Length;
+            var extension = ".mp3";
+            var duration = 180.5;
+            var bitrate = 256;
+
+            // Act
+            var audioParams = new AudioBinaryParams(buffer, size, extension, duration, bitrate);
+            var audioBinary = FileBinaryFactory.Create(MediaVaultType.Audio, audioParams);
+
+            // Assert
+            Assert.That(audioBinary, Is.TypeOf<AudioBinary>(), "Should create AudioBinary for Audio type");
+            var typedAudioBinary = (AudioBinary)audioBinary;
+            Assert.That(typedAudioBinary.Buffer, Is.EqualTo(buffer), "Buffer should match");
+            Assert.That(typedAudioBinary.Size, Is.EqualTo(size), "Size should match");
+            Assert.That(typedAudioBinary.Extension, Is.EqualTo(extension), "Extension should match");
+            Assert.That(typedAudioBinary.Duration, Is.EqualTo(duration), "Duration should be set");
+            Assert.That(typedAudioBinary.Bitrate, Is.EqualTo(bitrate), "Bitrate should be set");
         }
 
         [Test]

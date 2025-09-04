@@ -32,6 +32,25 @@ public static class TestData
     }
 
     /// <summary>
+    /// Creates a test AudioBinary with mock audio data
+    /// </summary>
+    /// <param name="duration">The duration in seconds</param>
+    /// <param name="bitrate">The bitrate in kbps</param>
+    /// <returns>An AudioBinary instance with test data</returns>
+    public static AudioBinary CreateTestAudioBinary(double duration = 120.0, int bitrate = 320)
+    {
+        // Using PNG bytes as mock audio data for testing purposes
+        var parameters = new AudioBinaryParams(
+            Buffer: TestPngBytes,
+            Size: TestPngBytes.Length,
+            Extension: ".mp3",
+            Duration: duration,
+            Bitrate: bitrate
+        );
+        return new AudioBinary(parameters);
+    }
+
+    /// <summary>
     /// Test entry keys used across tests
     /// </summary>
     public static class TestKeys

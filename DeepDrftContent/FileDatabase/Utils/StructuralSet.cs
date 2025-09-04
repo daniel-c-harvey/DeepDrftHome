@@ -6,24 +6,42 @@ namespace DeepDrftContent.FileDatabase.Utils;
 /// <summary>
 /// A set implementation that uses structural equality for values by serializing them to JSON.
 /// This provides the same behavior as the TypeScript StructuralSet.
+/// Optimized with caching to avoid repeated serialization.
 /// </summary>
 /// <typeparam name="T">The value type</typeparam>
-public class StructuralSet<T> : IEnumerable<T>
+public class StructuralSet<T> : IEnumerable<T> where T : notnull
 {
     private readonly Dictionary<string, T> _innerMap = new();
+    private readonly Dictionary<T, string> _valueStringCache = new();
 
     /// <summary>
     /// Converts a value to its string representation for structural comparison
+    /// Uses caching to avoid expensive serialization on repeated lookups
     /// </summary>
     private string GetValueString(T value)
     {
-        return value switch
+        if (value == null) return "null";
+        
+        // For reference types, use cache to avoid repeated serialization
+        if (!typeof(T).IsValueType && _valueStringCache.TryGetValue(value, out var cached))
         {
-            null => "null",
+            return cached;
+        }
+
+        var valueString = value switch
+        {
             string s => s,
             int or long or float or double or decimal => value.ToString()!,
             _ => JsonSerializer.Serialize(value)
         };
+
+        // Cache for reference types only (value types are cheap to convert)
+        if (!typeof(T).IsValueType)
+        {
+            _valueStringCache[value] = valueString;
+        }
+
+        return valueString;
     }
 
     /// <summary>

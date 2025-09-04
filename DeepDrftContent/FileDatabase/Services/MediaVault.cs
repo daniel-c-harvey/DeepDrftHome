@@ -45,7 +45,7 @@ public abstract class MediaVault : VaultIndexDirectory
         var (buffer, extension) = ExtractMediaProperties(media);
         
         var mediaPath = GetMediaPathFromEntryKey(entryKey.Key, extension);
-        var metaData = MetaDataFactory.Create(vaultType, entryKey.Key, extension, GetAspectRatio(media));
+        var metaData = MetaDataFactory.CreateFromMedia(vaultType, entryKey.Key, extension, media);
         
         await AddToIndexAsync(entryKey, metaData);
         await FileUtils.PutFileAsync(mediaPath, buffer);
@@ -86,42 +86,51 @@ public abstract class MediaVault : VaultIndexDirectory
         return media switch
         {
             ImageBinary imageBinary => (imageBinary.Buffer, imageBinary.Extension),
+            AudioBinary audioBinary => (audioBinary.Buffer, audioBinary.Extension),
             MediaBinary mediaBinary => (mediaBinary.Buffer, mediaBinary.Extension),
             _ => throw new ArgumentException($"Unsupported media type: {media.GetType()}")
         };
-    }
-
-    /// <summary>
-    /// Extracts aspect ratio from media object if it's an image
-    /// </summary>
-    private static double GetAspectRatio(object media)
-    {
-        return media is ImageBinary imageBinary ? imageBinary.AspectRatio : 1.0;
     }
 }
 
 /// <summary>
 /// Concrete implementation of MediaVault for image storage
 /// </summary>
-public class ImageDirectoryVault : MediaVault
+public class ImageVault : MediaVault
 {
-    private ImageDirectoryVault(string rootPath, VaultIndex index) : base(rootPath, index) { }
+    private ImageVault(string rootPath, VaultIndex index) : base(rootPath, index) { }
 
     /// <summary>
-    /// Factory method to create an ImageDirectoryVault instance
+    /// Factory method to create an ImageVault instance
     /// </summary>
-    public static async Task<ImageDirectoryVault?> FromAsync(string rootPath)
+    public static async Task<ImageVault?> FromAsync(string rootPath)
     {
         var factory = new IndexFactory(rootPath, IndexType.Vault);
         var index = await factory.BuildIndexAsync();
 
         if (index is VaultIndex vaultIndex)
         {
-            return new ImageDirectoryVault(rootPath, vaultIndex);
+            return new ImageVault(rootPath, vaultIndex);
         }
 
         return null;
     }
+}
 
+public class AudioVault : MediaVault
+{
+    private AudioVault(string rootPath, VaultIndex index) : base(rootPath, index) { }
+    
+    public static async Task<AudioVault?> FromAsync(string rootPath)
+    {
+        var factory = new IndexFactory(rootPath, IndexType.Vault);
+        var index = await factory.BuildIndexAsync();
 
+        if (index is VaultIndex vaultIndex)
+        {
+            return new AudioVault(rootPath, vaultIndex);
+        }
+
+        return null;
+    }
 }

@@ -141,6 +141,63 @@ public record ImageBinaryDto(string Base64, int Size, string Mime, double Aspect
 }
 
 /// <summary>
+/// Parameters for creating an AudioBinary
+/// </summary>
+/// <param name="Buffer">The binary data</param>
+/// <param name="Size">The size of the data in bytes</param>
+/// <param name="Extension">The file extension</param>
+/// <param name="Duration">The duration of the audio in seconds</param>
+/// <param name="Bitrate">The bitrate of the audio in kbps</param>
+public record AudioBinaryParams(byte[] Buffer, int Size, string Extension, double Duration, int Bitrate) 
+    : MediaBinaryParams(Buffer, Size, Extension);
+
+/// <summary>
+/// Audio binary with duration and bitrate information
+/// </summary>
+public class AudioBinary : MediaBinary
+{
+    public double Duration { get; }
+    public int Bitrate { get; }
+
+    public AudioBinary(AudioBinaryParams parameters) : base(parameters)
+    {
+        Duration = parameters.Duration;
+        Bitrate = parameters.Bitrate;
+    }
+
+    public static AudioBinary From(AudioBinaryDto dto)
+    {
+        var buffer = Convert.FromBase64String(dto.Base64);
+        var extension = GetExtensionType(dto.Mime);
+        return new AudioBinary(new AudioBinaryParams(buffer, dto.Size, extension, dto.Duration, dto.Bitrate));
+    }
+
+    private static string GetExtensionType(string mime)
+    {
+        return MimeTypeExtensions.GetExtension(mime);
+    }
+}
+
+/// <summary>
+/// DTO for AudioBinary serialization
+/// </summary>
+/// <param name="Base64">Base64 encoded binary data</param>
+/// <param name="Size">Size of the original data</param>
+/// <param name="Mime">MIME type of the media</param>
+/// <param name="Duration">The duration of the audio in seconds</param>
+/// <param name="Bitrate">The bitrate of the audio in kbps</param>
+public record AudioBinaryDto(string Base64, int Size, string Mime, double Duration, int Bitrate) 
+    : MediaBinaryDto(Base64, Size, Mime)
+{
+    public AudioBinaryDto(AudioBinary audioBinary) : this(
+        Convert.ToBase64String(audioBinary.Buffer),
+        audioBinary.Size,
+        MimeTypeExtensions.GetMimeType(audioBinary.Extension),
+        audioBinary.Duration,
+        audioBinary.Bitrate) { }
+}
+
+/// <summary>
 /// Utility class for MIME type and extension conversions
 /// </summary>
 public static class MimeTypeExtensions
@@ -153,7 +210,13 @@ public static class MimeTypeExtensions
         { ".gif", "image/gif" },
         { ".webp", "image/webp" },
         { ".svg", "image/svg+xml" },
-        { ".bmp", "image/bmp" }
+        { ".bmp", "image/bmp" },
+        { ".mp3", "audio/mpeg" },
+        { ".wav", "audio/wav" },
+        { ".flac", "audio/flac" },
+        { ".aac", "audio/aac" },
+        { ".ogg", "audio/ogg" },
+        { ".m4a", "audio/mp4" }
     };
 
     private static readonly Dictionary<string, string> Extensions = new()
@@ -163,7 +226,13 @@ public static class MimeTypeExtensions
         { "image/gif", ".gif" },
         { "image/webp", ".webp" },
         { "image/svg+xml", ".svg" },
-        { "image/bmp", ".bmp" }
+        { "image/bmp", ".bmp" },
+        { "audio/mpeg", ".mp3" },
+        { "audio/wav", ".wav" },
+        { "audio/flac", ".flac" },
+        { "audio/aac", ".aac" },
+        { "audio/ogg", ".ogg" },
+        { "audio/mp4", ".m4a" }
     };
 
     public static string GetMimeType(string extension)

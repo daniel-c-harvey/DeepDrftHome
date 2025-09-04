@@ -50,7 +50,7 @@ public class FileDatabase : DirectoryIndexDirectory
     private async Task InitVaultAsync(EntryKey vaultKey)
     {
         var path = Path.Combine(RootPath, vaultKey.Key);
-        var directoryVault = await ImageDirectoryVault.FromAsync(path);
+        var directoryVault = await MediaVaultFactory.From(path, vaultKey.Type);
 
         if (directoryVault != null)
         {
@@ -82,7 +82,7 @@ public class FileDatabase : DirectoryIndexDirectory
         try
         {
             var path = Path.Combine(RootPath, vaultKey.Key);
-            var directoryVault = await ImageDirectoryVault.FromAsync(path);
+            var directoryVault = await MediaVaultFactory.From(path, vaultKey.Type);
 
             if (directoryVault != null)
             {
@@ -92,7 +92,6 @@ public class FileDatabase : DirectoryIndexDirectory
         }
         catch
         {
-            // Re-throw to maintain the same error behavior as TypeScript version
             throw;
         }
     }

@@ -65,7 +65,7 @@ public class VaultIndexData : IndexData
 /// <summary>
 /// Directory index implementation using StructuralSet for entries
 /// </summary>
-public class DirectoryIndex : IndexData, IIndex
+public class DirectoryIndex : IndexData, IDirectoryIndex
 {
     public StructuralSet<EntryKey> Entries { get; }
 
@@ -93,7 +93,7 @@ public class DirectoryIndex : IndexData, IIndex
 /// <summary>
 /// Vault index implementation using StructuralMap for entries with metadata
 /// </summary>
-public class VaultIndex : IndexData, IIndex
+public class VaultIndex : IndexData, IVaultIndex
 {
     public StructuralMap<EntryKey, MetaData> Entries { get; }
 

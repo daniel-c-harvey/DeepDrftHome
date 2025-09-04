@@ -6,25 +6,43 @@ namespace DeepDrftContent.FileDatabase.Utils;
 /// <summary>
 /// A map implementation that uses structural equality for keys by serializing them to JSON.
 /// This provides the same behavior as the TypeScript StructuralMap.
+/// Optimized with caching to avoid repeated serialization.
 /// </summary>
 /// <typeparam name="TKey">The key type</typeparam>
 /// <typeparam name="TValue">The value type</typeparam>
-public class StructuralMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>
+public class StructuralMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>> where TKey : notnull
 {
     private readonly Dictionary<string, KeyValuePair<TKey, TValue>> _innerMap = new();
+    private readonly Dictionary<TKey, string> _keyStringCache = new();
 
     /// <summary>
     /// Converts a key to its string representation for structural comparison
+    /// Uses caching to avoid expensive serialization on repeated lookups
     /// </summary>
     private string GetKeyString(TKey key)
     {
-        return key switch
+        if (key == null) return "null";
+        
+        // For reference types, use cache to avoid repeated serialization
+        if (!typeof(TKey).IsValueType && _keyStringCache.TryGetValue(key, out var cached))
         {
-            null => "null",
+            return cached;
+        }
+
+        var keyString = key switch
+        {
             string s => s,
             int or long or float or double or decimal => key.ToString()!,
             _ => JsonSerializer.Serialize(key)
         };
+
+        // Cache for reference types only (value types are cheap to convert)
+        if (!typeof(TKey).IsValueType)
+        {
+            _keyStringCache[key] = keyString;
+        }
+
+        return keyString;
     }
 
     /// <summary>
