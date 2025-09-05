@@ -4,6 +4,7 @@ using NetBlocks.Models;
 using System.Text.Json;
 using System.Web;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DeepDrftWeb.Client.Clients;
 
@@ -11,9 +12,9 @@ public class TrackClient
 {
     private readonly HttpClient _http;
 
-    public TrackClient(HttpClient http)
+    public TrackClient(IHttpClientFactory httpClientFactory)
     {
-        _http = http;
+        _http = httpClientFactory.CreateClient("DeepDrft.API");
     }
 
     public async Task<ApiResult<PagedResult<TrackEntity>>> GetPage(

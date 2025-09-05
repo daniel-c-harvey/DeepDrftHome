@@ -303,3 +303,6 @@ __pycache__/
 
 # File Database files
 Database/Vaults/*
+
+# TypeScript output
+**/wwwroot/js/*

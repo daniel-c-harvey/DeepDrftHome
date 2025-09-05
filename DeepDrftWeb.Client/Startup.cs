@@ -13,4 +13,21 @@ public static class Startup
         services.AddScoped<TrackClient>();
         services.AddScoped<TracksViewModel>();
     }
+
+    public static void ConfigureApiHttpClient(IServiceCollection services, string baseAddress)
+    {
+        services.AddHttpClient("DeepDrft.API", client => 
+        {
+            client.BaseAddress = new Uri(baseAddress);
+        });
+    }
+
+    public static void ConfigureCommonServices(IServiceCollection services, string contentApiUrl)
+    {
+        services.AddHttpClient("DeepDrft.Content", client => 
+        {
+            client.BaseAddress = new Uri(contentApiUrl);
+        });
+        services.AddScoped<TrackMediaClient>();
+    }
 }

@@ -12,6 +12,24 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+// Add CORS policy using configured origins
+var corsSettings = builder.Configuration.GetSection(nameof(CorsSettings)).Get<CorsSettings>();
+if (corsSettings?.AllowedOrigins == null || corsSettings.AllowedOrigins.Length == 0)
+{
+    throw new Exception("CorsSettings.AllowedOrigins configuration is required for CORS policy");
+}
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ContentApiPolicy", policy =>
+    {
+        policy.WithOrigins(corsSettings.AllowedOrigins)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+});
+
 // Load API key configuration
 builder.Configuration.AddJsonFile("environment/apikey.json", optional: false, reloadOnChange: true);
 var apiKeySettings = builder.Configuration.GetSection(nameof(ApiKeySettings)).Get<ApiKeySettings>();
@@ -25,6 +43,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseCors("ContentApiPolicy");
 app.UseApiKeyAuthentication(apiKeySettings.ApiKey);
 app.UseAuthorization();
 

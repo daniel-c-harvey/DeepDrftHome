@@ -1,0 +1,98 @@
+@page "/audio-example"
+
+<PageTitle>Audio Player Example</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudText Typo="Typo.h3" GutterBottom="true">Audio Player Example</MudText>
+    
+    <div style="padding: 24px;">
+        <MudText Typo="Typo.h5" GutterBottom="true">Load Audio from URL</MudText>
+        
+        <MudTextField @bind-Value="audioUrl" 
+                      Label="Audio URL" 
+                      Placeholder="https://example.com/audio.mp3"
+                      FullWidth="true"
+                      Margin="Margin.Normal" />
+        
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Primary" 
+                   OnClick="@LoadFromUrl"
+                   StartIcon="Icons.Material.Filled.CloudDownload">
+            Load Audio
+        </MudButton>
+        
+        @if (showUrlPlayer)
+        {
+            <div style="margin-top: 24px;">
+                <AudioPlayer AudioUrl="@audioUrl" 
+                           OnProgressChanged="OnProgressChanged"
+                           OnPlaybackEnded="OnPlaybackEnded" />
+            </div>
+        }
+    </div>
+    
+    @if (!string.IsNullOrEmpty(statusMessage))
+    {
+        <MudAlert Severity="Severity.Info" Style="margin-top: 24px;">
+            @statusMessage
+        </MudAlert>
+    }
+    
+    <div style="margin-top: 32px;">
+        <MudText Typo="Typo.h6" GutterBottom="true">Usage Instructions</MudText>
+        <MudList T="string">
+            <MudListItem T="string"
+                         Icon="Icons.Material.Filled.Audiotrack" 
+                         Text="Load audio directly from a web URL" />
+            <MudListItem T="string"
+                         Icon="Icons.Material.Filled.PlayArrow" 
+                         Text="Use play/pause controls to control playback" />
+            <MudListItem T="string"
+                         Icon="Icons.Material.Filled.VolumeUp" 
+                         Text="Adjust volume with the volume slider" />
+            <MudListItem T="string"
+                         Icon="Icons.Material.Filled.Timeline" 
+                         Text="Seek through the audio using the progress slider" />
+        </MudList>
+    </div>
+</MudContainer>
+
+@code {
+    private string audioUrl = "";
+    private bool showUrlPlayer = false;
+    private string statusMessage = "";
+
+    private void LoadFromUrl()
+    {
+        if (string.IsNullOrWhiteSpace(audioUrl))
+        {
+            statusMessage = "Please enter a valid audio URL";
+            return;
+        }
+
+        showUrlPlayer = true;
+        statusMessage = $"Loading audio from: {audioUrl}";
+        StateHasChanged();
+    }
+
+    private Task OnProgressChanged(double currentTime)
+    {
+        // Update status with current playback time
+        statusMessage = $"Playing: {FormatTime(currentTime)}";
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task OnPlaybackEnded()
+    {
+        statusMessage = "Playback completed";
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private static string FormatTime(double seconds)
+    {
+        var timeSpan = TimeSpan.FromSeconds(seconds);
+        return timeSpan.ToString(timeSpan.TotalHours >= 1 ? @"h\:mm\:ss" : @"m\:ss");
+    }
+}

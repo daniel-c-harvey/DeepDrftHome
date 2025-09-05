@@ -73,9 +73,9 @@
             
             <MudFab Color="Color.Primary" 
                     Size="Size.Medium"
-                    StartIcon="@Icons.Material.Filled.PlayArrow"
-                    OnClick="@HandlePlayClick"
-                    Elevation="4" />
+                    StartIcon="@_playPauseIcon"
+                    OnClick="@HandlePlayClick"/>
+            <audio class="d-none" src="@_audioStream" autoplay></audio>
         </div>
         
     </MudCardContent>

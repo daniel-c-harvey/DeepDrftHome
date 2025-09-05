@@ -1,14 +1,19 @@
 using DeepDrftWeb.Client;
+using DeepDrftWeb.Client.Services;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
 Console.WriteLine(builder.HostEnvironment.BaseAddress);
-builder.Services.AddScoped<HttpClient>(_ => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+
+var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"] ?? "https://localhost:7001";
 
 builder.Services.AddMudServices();
+builder.Services.AddScoped<AudioInteropService>();
 
+Startup.ConfigureApiHttpClient(builder.Services, builder.HostEnvironment.BaseAddress);
+Startup.ConfigureCommonServices(builder.Services, contentApiUrl);
 Startup.ConfigureDomainServices(builder.Services);
 
-await builder.Build().RunAsync();
+var app = builder.Build();
