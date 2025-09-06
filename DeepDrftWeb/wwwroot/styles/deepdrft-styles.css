@@ -1,0 +1,288 @@
+/* DeepDrft Global Styles - Aesthetic and Structural Classes */
+
+/* === AESTHETIC STYLES (Reusable across components) === */
+
+/* Color Variables - Aligned with MudBlazor Theme */
+:root {
+    /* Main DeepDrft Colors */
+    --deepdrft-primary: #8A2BE2;        /* BlueViolet - Primary brand color */
+    --deepdrft-secondary: #FF1493;      /* DeepPink - Secondary brand color */
+    --deepdrft-tertiary: #4B0082;       /* Indigo - Deep accent color */
+    --deepdrft-accent: #9370DB;         /* MediumPurple - Light accent */
+    
+    /* Surface Colors */
+    --deepdrft-surface: rgba(255, 255, 255, 1);
+    --deepdrft-surface-alpha: rgba(255, 255, 255, 0.9);
+    
+    /* Theme-aware Variables (Light Mode Default) */
+    --deepdrft-theme-primary: var(--deepdrft-primary);
+    --deepdrft-theme-secondary: var(--deepdrft-secondary);
+    --deepdrft-theme-tertiary: var(--deepdrft-tertiary);
+    --deepdrft-theme-info: var(--deepdrft-accent);
+}
+
+/* Dark Mode Variables */
+[data-theme="dark"], .mud-theme-dark {
+    --deepdrft-theme-primary: #FF1493;     /* DeepPink for dark mode */
+    --deepdrft-theme-secondary: #8A2BE2;   /* BlueViolet for dark mode */
+    --deepdrft-theme-tertiary: #9370DB;    /* MediumPurple for dark mode */
+    --deepdrft-theme-info: #4B0082;        /* Indigo for dark mode */
+}
+
+/* Primary Gradient Backgrounds */
+.deepdrft-gradient-primary {
+    background: linear-gradient(135deg, #8A2BE2 0%, #FF1493 50%, #4B0082 100%);
+}
+
+.deepdrft-gradient-hero {
+    background: linear-gradient(135deg, #8A2BE2 0%, #FF1493 50%, #4B0082 100%);
+}
+
+.deepdrft-gradient-soft-primary {
+    background: linear-gradient(45deg, rgba(138,43,226,0.1) 0%, rgba(255,20,147,0.1) 100%);
+}
+
+.deepdrft-gradient-soft-secondary {
+    background: linear-gradient(45deg, rgba(75,0,130,0.1) 0%, rgba(138,43,226,0.1) 100%);
+}
+
+.deepdrft-gradient-soft-accent {
+    background: linear-gradient(135deg, rgba(138,43,226,0.1) 0%, rgba(75,0,130,0.1) 100%);
+}
+
+.deepdrft-gradient-soft-tertiary {
+    background: linear-gradient(135deg, rgba(255,20,147,0.1) 0%, rgba(138,43,226,0.1) 100%);
+}
+
+.deepdrft-gradient-features {
+    background: linear-gradient(to right, rgba(138,43,226,0.05) 0%, rgba(255,20,147,0.05) 100%);
+}
+
+/* Text Shadows and Effects */
+.deepdrft-text-hero {
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    font-size: clamp(2rem, 8vw, 4rem);
+}
+
+.deepdrft-text-subtitle {
+    font-weight: 300;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+.deepdrft-text-description {
+    font-weight: 400;
+    opacity: 0.9;
+}
+
+.deepdrft-text-bold {
+    font-weight: bold;
+}
+
+.deepdrft-text-readable {
+    line-height: 1.6;
+}
+
+/* Border Accents */
+.deepdrft-border-left-primary {
+    border-left: 4px solid #FF1493;
+}
+
+.deepdrft-border-left-secondary {
+    border-left: 4px solid #8A2BE2;
+}
+
+.deepdrft-border-top-primary {
+    border-top: 4px solid #8A2BE2;
+}
+
+.deepdrft-border-top-secondary {
+    border-top: 4px solid #FF1493;
+}
+
+/* Buttons */
+.deepdrft-button-primary {
+    color: #8A2BE2;
+    font-weight: bold;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.deepdrft-button-outlined {
+    border: 2px solid rgba(255,255,255,0.8);
+}
+
+.deepdrft-button-spaced {
+    margin: 8px;
+}
+
+/* Card Aesthetics */
+.deepdrft-card-purple-tint {
+    background: rgba(138,43,226,0.1);
+}
+
+.deepdrft-card-pink-tint {
+    background: rgba(255,20,147,0.1);
+}
+
+.deepdrft-card-indigo-tint {
+    background: rgba(75,0,130,0.1);
+}
+
+.deepdrft-card-lavender-tint {
+    background: rgba(147,112,219,0.1);
+}
+
+/* Track Card Specific */
+.deepdrft-track-card-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.7);
+}
+
+.deepdrft-track-card-content {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 16px;
+}
+
+.deepdrft-genre-chip {
+    opacity: 0.9;
+    margin-top: 4px;
+}
+
+.deepdrft-chip-spacing {
+    margin: 2px;
+}
+
+/* Icons */
+.deepdrft-icon-large {
+    font-size: 3rem;
+}
+
+/* === STRUCTURAL STYLES (Layout and positioning) === */
+
+/* Hero Section Layout */
+.deepdrft-hero-container {
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.deepdrft-hero-text-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Feature Cards Layout */
+.deepdrft-feature-card {
+    height: 100%;
+}
+
+.deepdrft-feature-icon-container {
+    text-align: center;
+}
+
+/* About Section Layout */
+.deepdrft-about-card {
+    height: 100%;
+}
+
+/* CTA Section Layout */
+.deepdrft-cta-container {
+    border-radius: 16px;
+    text-align: center;
+}
+
+.deepdrft-cta-buttons {
+    margin-bottom: 16px;
+}
+
+/* Track Card Layout */
+.deepdrft-track-card-container {
+    width: 250px;
+    height: 250px;
+    position: relative;
+    overflow: hidden;
+}
+
+.deepdrft-track-card-fallback {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.deepdrft-track-info-top {
+    /* Used for track name and artist at top */
+}
+
+.deepdrft-track-info-middle {
+    margin: 8px 0;
+    /* Used for album and genre in middle */
+}
+
+.deepdrft-track-info-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    /* Used for year and play button at bottom */
+}
+
+.deepdrft-track-gallery-item-center {
+    display: flex;
+    justify-content: center;
+}
+
+/* Audio Player Layout */
+.deepdrft-audio-controls {
+    display: flex;
+    align-items: center;
+    width: 140px;
+}
+
+.deepdrft-audio-time {
+    min-width: 120px;
+}
+
+.deepdrft-audio-volume-icon {
+    margin-right: 4px;
+}
+
+.deepdrft-audio-slider {
+    flex: 1;
+}
+
+.deepdrft-audio-slider-seek {
+    flex: 1;
+    margin-right: 8px;
+}
+
+/* Responsive Utilities */
+@media (max-width: 768px) {
+    .deepdrft-hero-text {
+        font-size: clamp(1.5rem, 6vw, 3rem) !important;
+    }
+    
+    .deepdrft-cta-buttons .mud-button {
+        margin: 4px !important;
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .deepdrft-track-card-container {
+        width: 200px;
+        height: 200px;
+    }
+}

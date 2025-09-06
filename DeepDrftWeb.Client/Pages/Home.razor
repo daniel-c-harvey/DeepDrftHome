@@ -1,4 +1,225 @@
 ﻿@page "/"
 
-<PageTitle>Deep Drft Home</PageTitle>
+<PageTitle>DeepDrft - Electronic Music Collective</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-0">
+    
+    @* Hero Section *@
+    <MudPaper Elevation="0" Class="pa-8 mb-6 text-center deepdrft-gradient-hero deepdrft-hero-container">
+        
+        <MudGrid Justify="Justify.Center" AlignItems="Center">
+            <MudItem xs="12" md="8">
+                <MudText Typo="Typo.h1" Color="Color.Surface" 
+                         Class="mb-4 deepdrft-text-hero">
+                    DEEPDRFT
+                </MudText>
+                
+                <MudText Typo="Typo.h4" Color="Color.Surface" 
+                         Class="mb-6 deepdrft-text-subtitle">
+                    ELECTRONIC MUSIC COLLECTIVE
+                </MudText>
+                
+                <MudText Typo="Typo.h6" Color="Color.Surface" 
+                         Class="mb-8 deepdrft-text-description deepdrft-hero-text-container">
+                    Live electronic music from Charleston, SC featuring house, techno, trance, and IDM crafted with synthesizers and grooveboxes
+                </MudText>
+                
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Surface" 
+                           Size="Size.Large" 
+                           Class="mr-4 mb-2 deepdrft-button-primary">
+                    <MudIcon Icon="@Icons.Material.Filled.PlayArrow" Class="mr-2" />
+                    START STREAMING
+                </MudButton>
+                
+                <MudButton Variant="Variant.Outlined" 
+                           Color="Color.Surface" 
+                           Size="Size.Large"
+                           Class="mb-2 deepdrft-button-outlined">
+                    <MudIcon Icon="@Icons.Material.Filled.LibraryMusic" Class="mr-2" />
+                    BROWSE TRACKS
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @* About Section *@
+    <MudGrid Class="mb-8" Spacing="6">
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="4" Class="pa-6 deepdrft-gradient-soft-primary deepdrft-border-left-primary deepdrft-about-card">
+                <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-4 deepdrft-text-bold">
+                    <MudIcon Icon="@Icons.Material.Filled.Group" Class="mr-2" />
+                    The Collective
+                </MudText>
+                <MudText Typo="Typo.body1" Class="mb-4 deepdrft-text-readable">
+                    DeepDrft is a two-member electronic music collective based in Charleston, South Carolina. 
+                    We create immersive soundscapes that blend the energy of underground club culture with 
+                    the precision of live electronic performance.
+                </MudText>
+                <MudText Typo="Typo.body1" Class="deepdrft-text-readable">
+                    Using an arsenal of synthesizers, drum machines, and grooveboxes, we craft dynamic live 
+                    performances that span house, techno, trance, and intelligent dance music (IDM). 
+                    Every session is a journey through sound and rhythm.
+                </MudText>
+            </MudPaper>
+        </MudItem>
+        
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="4" Class="pa-6 deepdrft-gradient-soft-secondary deepdrft-border-left-secondary deepdrft-about-card">
+                <MudText Typo="Typo.h4" Color="Color.Secondary" Class="mb-4 deepdrft-text-bold">
+                    <MudIcon Icon="@Icons.Material.Filled.MusicNote" Class="mr-2" />
+                    Our Sound
+                </MudText>
+                <MudChipSet T="string" Class="mb-4">
+                    <MudChip Color="Color.Primary" Class="deepdrft-chip-spacing">House</MudChip>
+                    <MudChip Color="Color.Secondary" Class="deepdrft-chip-spacing">Techno</MudChip>
+                    <MudChip Color="Color.Tertiary" Class="deepdrft-chip-spacing">Trance</MudChip>
+                    <MudChip Color="Color.Info" Class="deepdrft-chip-spacing">IDM</MudChip>
+                    <MudChip Color="Color.Primary" Variant="Variant.Outlined" Class="deepdrft-chip-spacing">Progressive</MudChip>
+                    <MudChip Color="Color.Secondary" Variant="Variant.Outlined" Class="deepdrft-chip-spacing">Ambient</MudChip>
+                </MudChipSet>
+                <MudText Typo="Typo.body1" Class="deepdrft-text-readable">
+                    From deep, driving basslines to ethereal atmospheric textures, our music explores the 
+                    full spectrum of electronic expression. We believe in the power of live performance 
+                    to create unique, unrepeatable moments that connect artist and audience through rhythm and melody.
+                </MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* Features Section *@
+    <MudPaper Elevation="2" Class="pa-8 mb-8 deepdrft-gradient-features">
+        <MudText Typo="Typo.h3" Align="Align.Center" Color="Color.Primary" Class="mb-8 deepdrft-text-bold">
+            Experience DeepDrft
+        </MudText>
+        
+        <MudGrid Spacing="6">
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="8" Class="pa-4 deepdrft-feature-card deepdrft-feature-icon-container deepdrft-card-purple-tint">
+                    <MudIcon Icon="@Icons.Material.Filled.Headphones" 
+                             Size="Size.Large" 
+                             Color="Color.Primary" 
+                             Class="mb-3 deepdrft-icon-large" />
+                    <MudText Typo="Typo.h6" Color="Color.Primary" Class="mb-2 deepdrft-text-bold">
+                        High-Quality Streaming
+                    </MudText>
+                    <MudText Typo="Typo.body2">
+                        Crystal-clear audio streaming with lossless quality for the best listening experience
+                    </MudText>
+                </MudCard>
+            </MudItem>
+            
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="8" Class="pa-4 deepdrft-feature-card deepdrft-feature-icon-container deepdrft-card-pink-tint">
+                    <MudIcon Icon="@Icons.Material.Filled.LiveTv" 
+                             Size="Size.Large" 
+                             Color="Color.Tertiary" 
+                             Class="mb-3 deepdrft-icon-large" />
+                    <MudText Typo="Typo.h6" Color="Color.Tertiary" Class="mb-2 deepdrft-text-bold">
+                        Live Sessions
+                    </MudText>
+                    <MudText Typo="Typo.body2">
+                        Join us for live streaming sessions and experience electronic music as it's created
+                    </MudText>
+                </MudCard>
+            </MudItem>
+            
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="8" Class="pa-4 deepdrft-feature-card deepdrft-feature-icon-container deepdrft-card-indigo-tint">
+                    <MudIcon Icon="@Icons.Material.Filled.VideoLibrary" 
+                             Size="Size.Large" 
+                             Color="Color.Secondary" 
+                             Class="mb-3 deepdrft-icon-large" />
+                    <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mb-2 deepdrft-text-bold">
+                        Video Content
+                    </MudText>
+                    <MudText Typo="Typo.body2">
+                        Watch behind-the-scenes content and live performance videos (coming soon)
+                    </MudText>
+                </MudCard>
+            </MudItem>
+            
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="8" Class="pa-4 deepdrft-feature-card deepdrft-feature-icon-container deepdrft-card-lavender-tint">
+                    <MudIcon Icon="@Icons.Material.Filled.Archive" 
+                             Size="Size.Large" 
+                             Color="Color.Info" 
+                             Class="mb-3 deepdrft-icon-large" />
+                    <MudText Typo="Typo.h6" Color="Color.Info" Class="mb-2 deepdrft-text-bold">
+                        Growing Archive
+                    </MudText>
+                    <MudText Typo="Typo.body2">
+                        Explore our expanding collection of tracks, mixes, and live recordings
+                    </MudText>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @* Location & Connect Section *@
+    <MudGrid Class="mb-8" Spacing="6">
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="4" Class="pa-6 deepdrft-gradient-soft-accent deepdrft-border-top-primary">
+                <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-4 deepdrft-text-bold">
+                    <MudIcon Icon="@Icons.Material.Filled.LocationOn" Class="mr-2" />
+                    Charleston, SC
+                </MudText>
+                <MudText Typo="Typo.body1" Class="mb-4 deepdrft-text-readable">
+                    Based in the vibrant music scene of Charleston, South Carolina, DeepDrft draws inspiration 
+                    from both the city's rich cultural heritage and the cutting-edge sounds of global electronic music.
+                </MudText>
+                <MudText Typo="Typo.body1" Class="deepdrft-text-readable">
+                    The Holy City's unique blend of tradition and innovation provides the perfect backdrop 
+                    for our electronic explorations, where historic charm meets futuristic beats.
+                </MudText>
+            </MudPaper>
+        </MudItem>
+        
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="4" Class="pa-6 deepdrft-gradient-soft-tertiary deepdrft-border-top-secondary">
+                <MudText Typo="Typo.h4" Color="Color.Tertiary" Class="mb-4 deepdrft-text-bold">
+                    <MudIcon Icon="@Icons.Material.Filled.ConnectWithoutContact" Class="mr-2" />
+                    Connect With Us
+                </MudText>
+                <MudText Typo="Typo.body1" Class="mb-4 deepdrft-text-readable">
+                    Stay connected with DeepDrft for the latest releases, live session announcements, 
+                    and updates from our studio in Charleston.
+                </MudText>
+                <MudButtonGroup Variant="Variant.Outlined" Class="mb-2">
+                    <MudButton StartIcon="@Icons.Material.Filled.Email" Color="Color.Primary">
+                        Newsletter
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Filled.Notifications" Color="Color.Tertiary">
+                        Live Alerts
+                    </MudButton>
+                </MudButtonGroup>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* Call to Action *@
+    <MudPaper Elevation="8" Class="pa-8 deepdrft-gradient-primary deepdrft-cta-container">
+        <MudText Typo="Typo.h3" Color="Color.Surface" Class="mb-4 deepdrft-text-bold">
+            Ready to Dive Deep?
+        </MudText>
+        <MudText Typo="Typo.h6" Color="Color.Surface" Class="mb-6 deepdrft-text-description">
+            Immerse yourself in the electronic soundscapes of DeepDrft
+        </MudText>
+        <MudButtonGroup Size="Size.Large" Class="deepdrft-cta-buttons">
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Surface" 
+                       Class="deepdrft-button-primary deepdrft-button-spaced">
+                <MudIcon Icon="@Icons.Material.Filled.PlayCircle" Class="mr-2" />
+                EXPLORE MUSIC
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" 
+                       Color="Color.Surface" 
+                       Class="deepdrft-button-outlined deepdrft-button-spaced">
+                <MudIcon Icon="@Icons.Material.Filled.Schedule" Class="mr-2" />
+                LIVE SCHEDULE
+            </MudButton>
+        </MudButtonGroup>
+    </MudPaper>
+
+</MudContainer>
 

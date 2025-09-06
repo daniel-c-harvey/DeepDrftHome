@@ -1,42 +1,35 @@
-﻿<MudCard Style="width: 250px; height: 250px; position: relative; overflow: hidden;"
+﻿<MudCard Class="deepdrft-track-card-container"
          Elevation="4">
     
     @if (!string.IsNullOrEmpty(TrackModel?.ImagePath))
     {
-        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-                    background-image: url('@TrackModel.ImagePath'); 
-                    background-size: cover; 
-                    background-position: center;
-                    filter: brightness(0.7);">
+        <div class="deepdrft-track-card-bg" style="background-image: url('@TrackModel.ImagePath');">
         </div>
     }
     else
     {
-        <MudPaper Style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
-                  Class="mud-theme-secondary"
+        <MudPaper Class="deepdrft-track-card-fallback mud-theme-secondary"
                   Elevation="0">
         </MudPaper>
     }
     
-    <MudCardContent Style="position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; justify-content: space-between; padding: 16px;">
+    <MudCardContent Class="deepdrft-track-card-content">
         
-        <div>
+        <div class="deepdrft-track-info-top">
             <MudText Typo="Typo.h6" 
                      Color="Color.Surface"
-                     Style="margin-bottom: 4px;"
-                     Class="text-truncate">
+                     Class="text-truncate mb-1">
                 @TrackModel?.TrackName
             </MudText>
             
             <MudText Typo="Typo.subtitle1" 
                      Color="Color.Surface"
-                     Style="margin-bottom: 8px;"
-                     Class="text-truncate">
+                     Class="text-truncate mb-2">
                 @TrackModel?.Artist
             </MudText>
         </div>
         
-        <div Style="margin: 8px 0;">
+        <div class="deepdrft-track-info-middle">
             @if (!string.IsNullOrEmpty(TrackModel?.Album))
             {
                 <MudText Typo="Typo.caption" 
@@ -52,13 +45,13 @@
                          Size="Size.Small" 
                          Variant="Variant.Filled" 
                          Color="Color.Primary"
-                         Style="opacity: 0.9; margin-top: 4px;">
+                         Class="deepdrft-genre-chip">
                     @TrackModel.Genre
                 </MudChip>
             }
         </div>
         
-        <div Style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="deepdrft-track-info-bottom">
             @if (TrackModel?.ReleaseDate.HasValue == true)
             {
                 <MudText Typo="Typo.caption" 

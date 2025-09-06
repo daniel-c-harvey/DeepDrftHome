@@ -3,7 +3,7 @@
         @foreach (var track in Tracks)
         {
             <MudItem xs="12" sm="6" md="4" lg="2" xl="2">
-                <div Style="display: flex; justify-content: center;">
+                <div class="deepdrft-track-gallery-item-center">
                     <TrackCard TrackModel="@track" IsPlaying="@(track.Id == SelectedTrack?.Id)" OnPlay="@HandlePlayClick"/>
                 </div>
             </MudItem>

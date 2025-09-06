@@ -74,10 +74,10 @@
 
     private readonly PaletteLight _lightPalette = new()
     {
-        Primary = "#9370DB",           // MediumPurple - stronger but still pastel
-        Secondary = "#F4A460",         // SandyBrown - warm pastel orange
-        Tertiary = "#FF1493",          // DeepPink - vibrant accent (kept neon)
-        Info = "#8A2BE2",             // BlueViolet - stronger purple info
+        Primary = "#8A2BE2",           // BlueViolet - main DeepDrft purple
+        Secondary = "#FF1493",         // DeepPink - main DeepDrft pink
+        Tertiary = "#4B0082",          // Indigo - DeepDrft deep purple
+        Info = "#9370DB",             // MediumPurple - DeepDrft accent purple
         Success = "#98FB98",          // PaleGreen - soft success
         Warning = "#FFEAA7",          // Light peach - soft warning
         Error = "#FFB6C1",            // LightPink - soft error
@@ -86,35 +86,35 @@
         Surface = "#FFFAF0",          // FloralWhite - creamy surface
         Background = "#FAF0E6",       // Linen - warm cream background
         AppbarText = "#2F2F2F",       // Dark text on light appbar
-        AppbarBackground = "rgba(211,180,221,0.90)", // Translucent plum - more presence
-        DrawerBackground = "#D3B4DD", // Plum drawer - stronger presence
+        AppbarBackground = "rgba(138,43,226,0.85)", // Translucent DeepDrft primary
+        DrawerBackground = "rgba(138,43,226,0.1)", // Very light DeepDrft primary
         TextPrimary = "#2F2F2F",      // Dark primary text
         TextSecondary = "#6B6B6B",    // Medium gray secondary text
-        GrayLight = "#E6E6FA",        // Lavender - light purple-tinted gray
-        GrayLighter = "#F8F8FF",      // GhostWhite - very light purple-tinted
-        GrayDefault = "#BC8F8F",      // RosyBrown - warm gray
-        GrayDark = "#8B4513",         // SaddleBrown - warm dark gray
-        Divider = "#E6E6FA",          // Lavender - soft purple divider lines
-        TableLines = "#E6E6FA",       // Lavender - soft table lines
+        GrayLight = "rgba(138,43,226,0.1)",        // Light DeepDrft tint
+        GrayLighter = "rgba(138,43,226,0.05)",     // Very light DeepDrft tint
+        GrayDefault = "rgba(138,43,226,0.2)",      // Medium DeepDrft tint
+        GrayDark = "rgba(138,43,226,0.4)",         // Darker DeepDrft tint
+        Divider = "rgba(138,43,226,0.15)",         // Soft DeepDrft divider lines
+        TableLines = "rgba(138,43,226,0.15)",      // Soft DeepDrft table lines
     };
 
     private readonly PaletteDark _darkPalette = new()
     {
-        Primary = "#FF69B4",          // HotPink - softer magenta for dark mode
-        Secondary = "#4B0082",        // Indigo - deep purple from logo
-        Tertiary = "#8A2BE2",         // BlueViolet - purple accent instead of blue
-        Info = "#9370DB",            // MediumPurple - purple info instead of blue
+        Primary = "#FF1493",          // DeepPink - main DeepDrft pink for dark mode
+        Secondary = "#8A2BE2",        // BlueViolet - main DeepDrft purple
+        Tertiary = "#9370DB",         // MediumPurple - DeepDrft accent
+        Info = "#4B0082",            // Indigo - DeepDrft deep purple
         Success = "#00FF7F",         // SpringGreen - bright success
         Warning = "#FFD700",         // Gold - warning color
         Error = "#FF6347",           // Tomato - error color
         Black = "#000000",           // Pure black
         White = "#FFFFFF",           // Pure white
-        Surface = "#2D1B4E",         // Dark purple - surface with purple tint
-        Background = "#0D0D0D",      // Near black - very dark background
+        Surface = "rgba(75,0,130,0.2)",         // Dark DeepDrft indigo tint
+        Background = "#0A0A0A",      // Very dark background
         BackgroundGray = "#1A1A1A",  // Very dark gray
         AppbarText = "#FFFFFF",      // White text on dark appbar
-        AppbarBackground = "rgba(45,27,78,0.95)", // Translucent dark purple
-        DrawerBackground = "#2D1B4E", // Dark purple drawer
+        AppbarBackground = "rgba(75,0,130,0.95)", // Translucent DeepDrft indigo
+        DrawerBackground = "rgba(75,0,130,0.15)", // Dark DeepDrft indigo tint
         DrawerIcon = "#E0E0E0",      // Light gray icons
         DrawerText = "#E0E0E0",      // Light gray drawer text
         ActionDefault = "#BDBDBD",   // Light gray for actions
@@ -123,13 +123,13 @@
         TextPrimary = "#FFFFFF",     // White primary text
         TextSecondary = "#E0E0E0",   // Light gray secondary text
         TextDisabled = "#757575",    // Disabled text
-        GrayLight = "#424242",       // Light gray in dark mode
-        GrayLighter = "#2F2F2F",     // Lighter gray in dark mode
-        GrayDefault = "#757575",     // Default gray
-        GrayDark = "#BDBDBD",        // Dark gray (inverted for dark mode)
-        Divider = "#424242",         // Medium gray divider lines
-        LinesDefault = "#424242",    // Default lines
-        TableLines = "#424242",      // Table lines
+        GrayLight = "rgba(255,20,147,0.15)",       // Light DeepDrft pink tint
+        GrayLighter = "rgba(255,20,147,0.08)",     // Lighter DeepDrft pink tint
+        GrayDefault = "rgba(255,20,147,0.25)",     // Default DeepDrft pink tint
+        GrayDark = "rgba(255,20,147,0.4)",        // Darker DeepDrft pink tint
+        Divider = "rgba(255,20,147,0.2)",         // DeepDrft pink divider lines
+        LinesDefault = "rgba(255,20,147,0.2)",    // DeepDrft pink lines
+        TableLines = "rgba(255,20,147,0.2)",      // DeepDrft pink table lines
         OverlayLight = "rgba(0,0,0,0.7)", // Dark overlay
         OverlayDark = "rgba(255,255,255,0.1)", // Light overlay for dark mode
     };

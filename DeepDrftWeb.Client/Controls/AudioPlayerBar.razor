@@ -15,7 +15,7 @@
                                    Disabled="!IsLoaded"/>    
                 }
             </MudStack>
-            <MudText Typo="Typo.body2" Class="font-monospace" Style="min-width: 120px">
+            <MudText Typo="Typo.body2" Class="font-monospace deepdrft-audio-time">
                 @FormatTime(CurrentTime) / @FormatTime(Duration)
             </MudText>
         </MudStack>
@@ -27,17 +27,17 @@
                    Value="@CurrentTime"
                    ValueChanged="@OnSeek"
                    Disabled="!IsLoaded"
-                   Style="flex: 1; margin-right: 8px;"/>
+                   Class="deepdrft-audio-slider-seek"/>
 
-        <div style="display: flex; align-items: center; width: 140px;">
-            <MudIcon Icon="@GetVolumeIcon()" Style="margin-right: 4px;"/>
+        <div class="deepdrft-audio-controls">
+            <MudIcon Icon="@GetVolumeIcon()" Class="deepdrft-audio-volume-icon"/>
             <MudSlider T="double"
                        Min="0"
                        Max="1"
                        Step="0.01"
                        Value="@Volume"
                        ValueChanged="@OnVolumeChange"
-                       Style="flex: 1;"/>
+                       Class="deepdrft-audio-slider"/>
         </div>
     </MudStack>
     @if (!string.IsNullOrEmpty(ErrorMessage))
