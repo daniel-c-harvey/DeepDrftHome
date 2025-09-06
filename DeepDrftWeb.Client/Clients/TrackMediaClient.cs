@@ -2,6 +2,18 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace DeepDrftWeb.Client.Clients;
 
+public class TrackMediaResponse
+{
+    public Stream Stream { get; }
+    public long ContentLength { get; }
+    
+    public TrackMediaResponse(Stream stream, long contentLength)
+    {
+        Stream = stream;
+        ContentLength = contentLength;
+    }
+}
+
 public class TrackMediaClient
 {
     private readonly HttpClient _http;
@@ -11,8 +23,14 @@ public class TrackMediaClient
         _http = httpClientFactory.CreateClient("DeepDrft.Content");
     }
 
-    public async Task<Stream> GetTrackMedia(string trackId)
+    public async Task<TrackMediaResponse> GetTrackMedia(string trackId)
     {
-        return await _http.GetStreamAsync($"api/track/{trackId}");
+        var response = await _http.GetAsync($"api/track/{trackId}");
+        response.EnsureSuccessStatusCode();
+        
+        var contentLength = response.Content.Headers.ContentLength ?? 0;
+        var stream = await response.Content.ReadAsStreamAsync();
+        
+        return new TrackMediaResponse(stream, contentLength);
     }
 }

@@ -1,8 +1,8 @@
 ﻿.tracks-page-wrapper {
     display: flex;
     flex-direction: column;
-    height: calc(100dvh - 64px); /* Subtract app bar height (pt-16 = 4rem = 64px) */
-    margin: -16px; /* Counteract MudMainContent padding */
+    height: calc(100dvh - 80px); /* Subtract app bar height (pt-16 = 4rem = 64px) */
+    /*margin: -16px; !* Counteract MudMainContent padding *!*/
     padding-top: 16px; /* Restore top padding for spacing */
 }
 
@@ -17,12 +17,12 @@
 
 .tracks-content {
     flex: 1 1 auto;
-    overflow-y: scroll;
     min-height: 0;
     padding-top: 16px;
 }
 
-.tracks-pagination {
+.tracks-footer {
     flex: 0 0 auto;
     padding: 8px 0;
+    justify-items: center;
 }

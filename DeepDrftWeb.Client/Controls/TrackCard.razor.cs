@@ -9,16 +9,15 @@ public partial class TrackCard : ComponentBase
 {
     [Parameter] public required TrackEntity TrackModel { get; set; }
     [Parameter] public EventCallback<TrackEntity> OnPlay { get; set; }
+    [Parameter] public bool IsPlaying { get; set; } = false;
     
-    private bool _isPlaying = false;
-    private string PlayPauseIcon => _isPlaying ? Icons.Material.Filled.MusicNote : Icons.Material.Filled.PlayArrow;
+    private string PlayPauseIcon => IsPlaying ? Icons.Material.Filled.MusicNote : Icons.Material.Filled.PlayArrow;
 
     private async Task PlayClick()
     {
-        if (!_isPlaying)
+        if (!IsPlaying && OnPlay.HasDelegate)
         {
-            _isPlaying = true;
-            await OnPlay.InvokeAsync();
+            await OnPlay.InvokeAsync(TrackModel);
         }
     }
 }

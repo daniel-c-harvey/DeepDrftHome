@@ -21,7 +21,8 @@ public class TrackController : ControllerBase
     {
         var file = await _fileDatabase.LoadResourceAsync<AudioBinary>(VaultConstants.Tracks, trackId);
         if (file == null) { return NotFound(); }
-        return File(file.Buffer, MimeTypeExtensions.GetMimeType(file.Extension));
+
+        return File(file.Buffer, MimeTypeExtensions.GetMimeType(file.Extension), enableRangeProcessing: true);
     }
 
     [ApiKeyAuthorize]

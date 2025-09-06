@@ -17,8 +17,8 @@ var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"] ?? "https://loca
 Startup.ConfigureDomainServices(builder);
 
 DeepDrftWeb.Client.Startup.ConfigureApiHttpClient(builder.Services, baseUrl);
-DeepDrftWeb.Client.Startup.ConfigureCommonServices(builder.Services, contentApiUrl);
 DeepDrftWeb.Client.Startup.ConfigureDomainServices(builder.Services);
+DeepDrftWeb.Client.Startup.ConfigureContentServices(builder.Services, contentApiUrl);
 
 builder.Services.AddControllers();
 

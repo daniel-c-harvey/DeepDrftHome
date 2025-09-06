@@ -1,4 +1,5 @@
 ﻿using DeepDrftWeb.Client.Clients;
+using DeepDrftWeb.Client.Services;
 using DeepDrftWeb.Client.ViewModels;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using NetBlocks.Models;
@@ -22,12 +23,14 @@ public static class Startup
         });
     }
 
-    public static void ConfigureCommonServices(IServiceCollection services, string contentApiUrl)
+    public static void ConfigureContentServices(IServiceCollection services, string contentApiUrl)
     {
         services.AddHttpClient("DeepDrft.Content", client => 
         {
             client.BaseAddress = new Uri(contentApiUrl);
         });
         services.AddScoped<TrackMediaClient>();
+        services.AddScoped<AudioInteropService>();
+        services.AddScoped<AudioPlaybackEngine>();
     }
 }

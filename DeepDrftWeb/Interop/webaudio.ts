@@ -42,6 +42,9 @@ class AudioPlayer {
     private onEndCallback: EndCallback | null = null;
     private onLoadProgressCallback: LoadProgressCallback | null = null;
     private progressInterval: number | null = null;
+    private bufferChunks: Uint8Array[] = [];
+    private expectedSize: number = 0;
+    private currentSize: number = 0;
 
     async initialize(): Promise<AudioResult> {
         try {
@@ -54,76 +57,52 @@ class AudioPlayer {
         }
     }
 
-    async loadAudioFromUrl(url: string): Promise<LoadAudioResult> {
+    initializeBuffered(): AudioResult {
         try {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            this.bufferChunks = [];
+            this.currentSize = 0;
+            this.expectedSize = 0;
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: (error as Error).message };
+        }
+    }
+
+    appendAudioBlock(audioBlock: Uint8Array): AudioResult {
+        try {
+            this.bufferChunks.push(audioBlock);
+            this.currentSize += audioBlock.length;
+            
+            if (this.expectedSize > 0 && this.onLoadProgressCallback) {
+                const progress = (this.currentSize / this.expectedSize) * 100;
+                this.onLoadProgressCallback(Math.min(progress, 100));
             }
             
-            const contentLength = response.headers.get('Content-Length');
-            const reader = response.body?.getReader();
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: (error as Error).message };
+        }
+    }
+
+    async finalizeAudioBuffer(): Promise<LoadAudioResult> {
+        try {
+            const arrayBuffer = new ArrayBuffer(this.currentSize);
+            const view = new Uint8Array(arrayBuffer);
+            let offset = 0;
             
-            if (reader && contentLength) {
-                // Stream with progress tracking
-                const total = parseInt(contentLength, 10);
-                let loaded = 0;
-                const chunks: Uint8Array[] = [];
-                
-                // Initial progress
-                if (this.onLoadProgressCallback) {
-                    this.onLoadProgressCallback(0);
-                }
-                
-                let readAttempts = 0;
-                const maxReadAttempts = 10000; // Prevent infinite loop
-                
-                while (readAttempts < maxReadAttempts) {
-                    try {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-                        
-                        chunks.push(value);
-                        loaded += value.length;
-                        
-                        const progress = (loaded / total) * 100;
-                        if (this.onLoadProgressCallback) {
-                            this.onLoadProgressCallback(progress);
-                        }
-                        
-                        readAttempts++;
-                    } catch (readerError) {
-                        break;
-                    }
-                }
-                
-                
-                // Combine chunks into single ArrayBuffer
-                const arrayBuffer = new ArrayBuffer(loaded);
-                const view = new Uint8Array(arrayBuffer);
-                let offset = 0;
-                for (const chunk of chunks) {
-                    view.set(chunk, offset);
-                    offset += chunk.length;
-                }
-                
-                this.audioBuffer = await this.audioContext!.decodeAudioData(arrayBuffer);
-                this.duration = this.audioBuffer.duration;
-                
-                // Final progress
-                if (this.onLoadProgressCallback) {
-                    this.onLoadProgressCallback(100);
-                }
-            } else {
-                // Fallback to original method if streaming not possible
-                const arrayBuffer = await response.arrayBuffer();
-                this.audioBuffer = await this.audioContext!.decodeAudioData(arrayBuffer);
-                this.duration = this.audioBuffer.duration;
-                
-                // Report 100% immediately for non-streaming responses
-                if (this.onLoadProgressCallback) {
-                    this.onLoadProgressCallback(100);
-                }
+            for (const chunk of this.bufferChunks) {
+                view.set(chunk, offset);
+                offset += chunk.length;
+            }
+            
+            this.audioBuffer = await this.audioContext!.decodeAudioData(arrayBuffer);
+            this.duration = this.audioBuffer.duration;
+            
+            this.bufferChunks = [];
+            this.currentSize = 0;
+            
+            if (this.onLoadProgressCallback) {
+                this.onLoadProgressCallback(100);
             }
             
             return { 
@@ -331,6 +310,8 @@ class AudioPlayer {
         this.audioContext = null;
         this.audioBuffer = null;
         this.gainNode = null;
+        this.bufferChunks = [];
+        this.currentSize = 0;
     }
 }
 
@@ -357,12 +338,28 @@ const DeepDrftAudio = {
         }
     },
 
-    loadAudioFromUrl: async (playerId: string, url: string): Promise<LoadAudioResult> => {
+    initializeBufferedPlayer: (playerId: string): AudioResult => {
         const player = audioPlayers.get(playerId);
         if (!player) {
             return { success: false, error: "Player not found" };
         }
-        return await player.loadAudioFromUrl(url);
+        return player.initializeBuffered();
+    },
+
+    appendAudioBlock: (playerId: string, audioBlock: Uint8Array): AudioResult => {
+        const player = audioPlayers.get(playerId);
+        if (!player) {
+            return { success: false, error: "Player not found" };
+        }
+        return player.appendAudioBlock(audioBlock);
+    },
+
+    finalizeAudioBuffer: async (playerId: string): Promise<LoadAudioResult> => {
+        const player = audioPlayers.get(playerId);
+        if (!player) {
+            return { success: false, error: "Player not found" };
+        }
+        return await player.finalizeAudioBuffer();
     },
 
 

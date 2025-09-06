@@ -5,7 +5,7 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 <MudLayout>
-    <MudThemeManagerButton OnClick="@((e) => OpenThemeManager(true))" />
+    @* <MudThemeManagerButton OnClick="@((e) => OpenThemeManager(true))" /> *@
     <MudThemeManager Open="_themeManagerOpen" OpenChanged="OpenThemeManager" Theme="_themeManager" ThemeChanged="UpdateTheme" />
     <MudAppBar Elevation="_themeManager.AppBarElevation">
         <MudAvatar Class="mr-2">

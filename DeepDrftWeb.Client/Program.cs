@@ -10,10 +10,9 @@ Console.WriteLine(builder.HostEnvironment.BaseAddress);
 var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"] ?? "https://localhost:7001";
 
 builder.Services.AddMudServices();
-builder.Services.AddScoped<AudioInteropService>();
 
 Startup.ConfigureApiHttpClient(builder.Services, builder.HostEnvironment.BaseAddress);
-Startup.ConfigureCommonServices(builder.Services, contentApiUrl);
+Startup.ConfigureContentServices(builder.Services, contentApiUrl);
 Startup.ConfigureDomainServices(builder.Services);
 
 var app = builder.Build();

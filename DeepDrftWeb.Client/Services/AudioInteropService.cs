@@ -25,83 +25,45 @@ public class AudioInteropService : IAsyncDisposable
         }
     }
 
-    public async Task<AudioLoadResult> LoadAudioFromUrlAsync(string playerId, string url)
+    public async Task<AudioOperationResult> InitializeBufferedPlayerAsync(string playerId)
     {
-        try
-        {
-            var result = await _jsRuntime.InvokeAsync<AudioLoadResult>("DeepDrftAudio.loadAudioFromUrl", playerId, url);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            return new AudioLoadResult { Success = false, Error = ex.Message };
-        }
+        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.initializeBufferedPlayer", playerId);
+    }
+
+    public async Task<AudioOperationResult> AppendAudioBlockAsync(string playerId, byte[] audioBlock)
+    {
+        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.appendAudioBlock", playerId, audioBlock);
+    }
+
+    public async Task<AudioLoadResult> FinalizeAudioBufferAsync(string playerId)
+    {
+        return await InvokeJsAsync<AudioLoadResult>("DeepDrftAudio.finalizeAudioBuffer", playerId);
     }
 
 
     public async Task<AudioOperationResult> PlayAsync(string playerId)
     {
-        try
-        {
-            var result = await _jsRuntime.InvokeAsync<AudioOperationResult>("DeepDrftAudio.play", playerId);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            return new AudioOperationResult { Success = false, Error = ex.Message };
-        }
+        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.play", playerId);
     }
 
     public async Task<AudioOperationResult> PauseAsync(string playerId)
     {
-        try
-        {
-            var result = await _jsRuntime.InvokeAsync<AudioOperationResult>("DeepDrftAudio.pause", playerId);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            return new AudioOperationResult { Success = false, Error = ex.Message };
-        }
+        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.pause", playerId);
     }
 
     public async Task<AudioOperationResult> StopAsync(string playerId)
     {
-        try
-        {
-            var result = await _jsRuntime.InvokeAsync<AudioOperationResult>("DeepDrftAudio.stop", playerId);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            return new AudioOperationResult { Success = false, Error = ex.Message };
-        }
+        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.stop", playerId);
     }
 
     public async Task<AudioOperationResult> SeekAsync(string playerId, double position)
     {
-        try
-        {
-            var result = await _jsRuntime.InvokeAsync<AudioOperationResult>("DeepDrftAudio.seek", playerId, position);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            return new AudioOperationResult { Success = false, Error = ex.Message };
-        }
+        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.seek", playerId, position);
     }
 
     public async Task<AudioOperationResult> SetVolumeAsync(string playerId, double volume)
     {
-        try
-        {
-            var result = await _jsRuntime.InvokeAsync<AudioOperationResult>("DeepDrftAudio.setVolume", playerId, volume);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            return new AudioOperationResult { Success = false, Error = ex.Message };
-        }
+        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.setVolume", playerId, volume);
     }
 
     public async Task<double> GetCurrentTimeAsync(string playerId)
@@ -130,60 +92,56 @@ public class AudioInteropService : IAsyncDisposable
 
     public async Task<AudioOperationResult> SetOnProgressCallbackAsync(string playerId, Func<double, Task> callback)
     {
-        try
-        {
-            var callbackWrapper = new AudioPlayerCallback();
-            callbackWrapper.OnProgress = callback;
-            
-            var dotNetObjectRef = DotNetObjectReference.Create(callbackWrapper);
-            _callbacks[playerId + "_progress"] = dotNetObjectRef;
-
-            var result = await _jsRuntime.InvokeAsync<AudioOperationResult>("DeepDrftAudio.setOnProgressCallback", 
-                playerId, dotNetObjectRef, "OnProgressCallback");
-            
-            return result;
-        }
-        catch (Exception ex)
-        {
-            return new AudioOperationResult { Success = false, Error = ex.Message };
-        }
+        return await SetCallbackAsync(playerId, "_progress", "setOnProgressCallback", "OnProgressCallback", 
+            wrapper => wrapper.OnProgress = callback);
     }
 
     public async Task<AudioOperationResult> SetOnEndCallbackAsync(string playerId, Func<Task> callback)
     {
-        try
-        {
-            var callbackWrapper = new AudioPlayerCallback();
-            callbackWrapper.OnEnd = callback;
-            
-            var dotNetObjectRef = DotNetObjectReference.Create(callbackWrapper);
-            _callbacks[playerId + "_end"] = dotNetObjectRef;
-
-            var result = await _jsRuntime.InvokeAsync<AudioOperationResult>("DeepDrftAudio.setOnEndCallback", 
-                playerId, dotNetObjectRef, "OnEndCallback");
-            
-            return result;
-        }
-        catch (Exception ex)
-        {
-            return new AudioOperationResult { Success = false, Error = ex.Message };
-        }
+        return await SetCallbackAsync(playerId, "_end", "setOnEndCallback", "OnEndCallback", 
+            wrapper => wrapper.OnEnd = callback);
     }
 
     public async Task<AudioOperationResult> SetOnLoadProgressCallbackAsync(string playerId, Func<double, Task> callback)
     {
+        return await SetCallbackAsync(playerId, "_loadprogress", "setOnLoadProgressCallback", "OnLoadProgressCallback", 
+            wrapper => wrapper.OnLoadProgress = callback);
+    }
+
+    public async Task<AudioOperationResult> DisposePlayerAsync(string playerId)
+    {
+        CleanupPlayerCallbacks(playerId);
+        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.disposePlayer", playerId);
+    }
+
+    private async Task<T> InvokeJsAsync<T>(string identifier, params object[] args)
+    {
+        try
+        {
+            return await _jsRuntime.InvokeAsync<T>(identifier, args);
+        }
+        catch (Exception ex)
+        {
+            if (typeof(T) == typeof(AudioOperationResult))
+                return (T)(object)new AudioOperationResult { Success = false, Error = ex.Message };
+            if (typeof(T) == typeof(AudioLoadResult))
+                return (T)(object)new AudioLoadResult { Success = false, Error = ex.Message };
+            throw;
+        }
+    }
+
+    private async Task<AudioOperationResult> SetCallbackAsync(string playerId, string suffix, string jsMethod, string callbackMethod, Action<AudioPlayerCallback> configureCallback)
+    {
         try
         {
             var callbackWrapper = new AudioPlayerCallback();
-            callbackWrapper.OnLoadProgress = callback;
+            configureCallback(callbackWrapper);
             
             var dotNetObjectRef = DotNetObjectReference.Create(callbackWrapper);
-            _callbacks[playerId + "_loadprogress"] = dotNetObjectRef;
+            _callbacks[playerId + suffix] = dotNetObjectRef;
 
-            var result = await _jsRuntime.InvokeAsync<AudioOperationResult>("DeepDrftAudio.setOnLoadProgressCallback", 
-                playerId, dotNetObjectRef, "OnLoadProgressCallback");
-            
-            return result;
+            return await _jsRuntime.InvokeAsync<AudioOperationResult>($"DeepDrftAudio.{jsMethod}", 
+                playerId, dotNetObjectRef, callbackMethod);
         }
         catch (Exception ex)
         {
@@ -191,24 +149,13 @@ public class AudioInteropService : IAsyncDisposable
         }
     }
 
-    public async Task<AudioOperationResult> DisposePlayerAsync(string playerId)
+    private void CleanupPlayerCallbacks(string playerId)
     {
-        try
+        var keysToRemove = _callbacks.Keys.Where(k => k.StartsWith(playerId + "_")).ToList();
+        foreach (var key in keysToRemove)
         {
-            // Clean up callbacks
-            var keysToRemove = _callbacks.Keys.Where(k => k.StartsWith(playerId + "_")).ToList();
-            foreach (var key in keysToRemove)
-            {
-                _callbacks[key]?.Dispose();
-                _callbacks.Remove(key);
-            }
-
-            var result = await _jsRuntime.InvokeAsync<AudioOperationResult>("DeepDrftAudio.disposePlayer", playerId);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            return new AudioOperationResult { Success = false, Error = ex.Message };
+            _callbacks[key]?.Dispose();
+            _callbacks.Remove(key);
         }
     }
 

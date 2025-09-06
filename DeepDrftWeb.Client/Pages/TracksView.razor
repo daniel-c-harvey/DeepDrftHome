@@ -9,29 +9,30 @@
         @if (ViewModel.Page != null)
         {
             <div class="tracks-content">
-                <TracksGallery Tracks="@ViewModel.Page.Items"/>
+                <TracksGallery Tracks="@ViewModel.Page.Items"
+                               SelectedTrack="_selectedTrack"
+                               SelectedTrackChanged="@PlayTrack"/>
             </div>
-
-            <div class="tracks-pagination">
-                <MudContainer Class="d-flex justify-center py-2">
+            <div class="tracks-footer">
+                <div class="py-4">
                     <MudPagination Count="@ViewModel.Page.TotalPages"
                                    Selected="@ViewModel.Page.Page"
-                                   SelectedChanged="i => SetPage(i)"
+                                   SelectedChanged="@SetPage"
                                    BoundaryCount="2"
                                    MiddleCount="3"/>
-                </MudContainer>
+                </div>
+                <AudioPlayerBar AudioPlaybackEngine="AudioPlaybackEngine" />
             </div>
         }
         else
         {
             <div class="tracks-content">
-                <MudSkeleton Height="100%" Class="pa-2 ma-2"/>
+                <MudSkeleton Height="95%" Class="pa-2 ma-6"/>
             </div>
-            <div class="tracks-pagination">
-                <MudSkeleton Height="60px"/>
+            <div class="tracks-footer">
+                <MudSkeleton Height="60px" Width="240px" Class="justify-center"/>
+                <MudSkeleton Height="120px" Width="460px"/>
             </div>
         }
     </div>
-
-    <AudioPlayerBar AudioUrl=""></AudioPlayerBar>
 </div>

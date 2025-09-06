@@ -6,23 +6,19 @@ namespace DeepDrftWeb.Client.Controls;
 
 public partial class TracksGallery : ComponentBase
 {
-    private Stream? _audioStream = null;
-    [Parameter] public IEnumerable<TrackEntity> Tracks { get; set; } = Enumerable.Empty<TrackEntity>();
-    
-    [Inject] public required TrackMediaClient Client { get; set; }
+    [Parameter] public IEnumerable<TrackEntity> Tracks { get; set; } = [];
+    [Parameter] public TrackEntity? SelectedTrack { get; set; }
+    [Parameter] public EventCallback<TrackEntity?> SelectedTrackChanged { get; set; }
     
     private async Task HandlePlayClick(TrackEntity track)
     {
-        if (_audioStream == null)
+        if (SelectedTrack == track) return;
+        SelectedTrack = track;
+        StateHasChanged();
+
+        if (SelectedTrackChanged.HasDelegate)
         {
-            _audioStream = await Client.GetTrackMedia(track.EntryKey);
-            PlayAudio();
+            await SelectedTrackChanged.InvokeAsync(track);
         }
     }
-
-    private void PlayAudio()
-    {
-        throw new NotImplementedException();
-    }
-    
 }

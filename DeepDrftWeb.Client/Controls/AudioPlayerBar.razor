@@ -1,51 +1,49 @@
-﻿<MudContainer>
-    <MudPaper Class="bottom-bar" Square="true">
-        <MudStack Row AlignItems="AlignItems.Center" Spacing="4" Class="px-4 py-2">
-            <MudStack Class="pb-2">
-                <MudStack Row AlignItems="AlignItems.Center">
-                    <MudIconButton Icon="@GetPlayIcon()"
-                                   Color="Color.Primary"
-                                   Size="Size.Large"
-                                   OnClick="@TogglePlayPause"
-                                   Disabled="!IsLoaded"/>
-                    @if (IsLoaded)
-                    {
-                        <MudIconButton Icon="Icons.Material.Filled.Stop"
-                                       Color="Color.Secondary"
-                                       OnClick="@Stop"
-                                       Disabled="!IsLoaded"/>    
-                    }
-                </MudStack>
-                <MudText Typo="Typo.body2" Class="font-monospace" Style="min-width: 120px">
-                    @FormatTime(CurrentTime) / @FormatTime(Duration)
-                </MudText>
+﻿<MudPaper MaxWidth="1600px" Square="true">
+    <MudStack Row AlignItems="AlignItems.Center" Spacing="4" Class="px-4 py-2">
+        <MudStack Class="pb-2">
+            <MudStack Row AlignItems="AlignItems.Center">
+                <MudIconButton Icon="@GetPlayIcon()"
+                               Color="Color.Primary"
+                               Size="Size.Large"
+                               OnClick="@TogglePlayPause"
+                               Disabled="!IsLoaded"/>
+                @if (IsLoaded)
+                {
+                    <MudIconButton Icon="Icons.Material.Filled.Stop"
+                                   Color="Color.Secondary"
+                                   OnClick="@Stop"
+                                   Disabled="!IsLoaded"/>    
+                }
             </MudStack>
+            <MudText Typo="Typo.body2" Class="font-monospace" Style="min-width: 120px">
+                @FormatTime(CurrentTime) / @FormatTime(Duration)
+            </MudText>
+        </MudStack>
 
+        <MudSlider T="double"
+                   Min="0"
+                   Max="@Duration"
+                   Step="0.1"
+                   Value="@CurrentTime"
+                   ValueChanged="@OnSeek"
+                   Disabled="!IsLoaded"
+                   Style="flex: 1; margin-right: 8px;"/>
+
+        <div style="display: flex; align-items: center; width: 140px;">
+            <MudIcon Icon="@GetVolumeIcon()" Style="margin-right: 4px;"/>
             <MudSlider T="double"
                        Min="0"
-                       Max="@Duration"
-                       Step="0.1"
-                       Value="@CurrentTime"
-                       ValueChanged="OnSeek"
-                       Disabled="!IsLoaded"
-                       Style="flex: 1; margin-right: 8px;"/>
-
-            <div style="display: flex; align-items: center; width: 140px;">
-                <MudIcon Icon="@GetVolumeIcon()" Style="margin-right: 4px;"/>
-                <MudSlider T="double"
-                           Min="0"
-                           Max="1"
-                           Step="0.01"
-                           Value="@Volume"
-                           ValueChanged="OnVolumeChange"
-                           Style="flex: 1;"/>
-            </div>
-        </MudStack>
-        @if (!string.IsNullOrEmpty(ErrorMessage))
-        {
-            <MudAlert Severity="Severity.Error" ShowCloseIcon="true" CloseIconClicked="ClearError">
-                @ErrorMessage
-            </MudAlert>
-        }
-    </MudPaper>
-</MudContainer>
+                       Max="1"
+                       Step="0.01"
+                       Value="@Volume"
+                       ValueChanged="@OnVolumeChange"
+                       Style="flex: 1;"/>
+        </div>
+    </MudStack>
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <MudAlert Severity="Severity.Error" ShowCloseIcon="true" CloseIconClicked="ClearError">
+            @ErrorMessage
+        </MudAlert>
+    }
+</MudPaper>
