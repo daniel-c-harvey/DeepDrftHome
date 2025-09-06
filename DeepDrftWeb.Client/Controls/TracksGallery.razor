@@ -1,8 +1,8 @@
-﻿<MudContainer MaxWidth="MaxWidth.False" Class="tracks-gallery-container">
+﻿<MudContainer MaxWidth="MaxWidth.Large" Class="tracks-gallery-container">
     <MudGrid Spacing="3" Justify="Justify.Center">
         @foreach (var track in Tracks)
         {
-            <MudItem xs="12" sm="6" md="4" lg="2" xl="2">
+            <MudItem xs="12" sm="6" md="4" lg="3" xl="3">
                 <div class="deepdrft-track-gallery-item-center">
                     <TrackCard TrackModel="@track" IsPlaying="@(track.Id == SelectedTrack?.Id)" OnPlay="@HandlePlayClick"/>
                 </div>

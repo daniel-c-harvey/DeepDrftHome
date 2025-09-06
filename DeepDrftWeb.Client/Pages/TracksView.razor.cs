@@ -34,7 +34,7 @@ public partial class TracksView : ComponentBase
 
     private async Task PlayTrack(TrackEntity? track)
     {
-        if (track == null) return;
+        if (track == null && _selectedTrack == null || track?.Id == _selectedTrack?.Id) return;
         
         await AudioPlaybackEngine.LoadTrack(track);
         StateHasChanged();

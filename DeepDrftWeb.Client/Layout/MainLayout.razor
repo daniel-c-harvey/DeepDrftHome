@@ -41,7 +41,42 @@
             Theme =
             {
                 PaletteDark = _darkPalette,
-                PaletteLight = _lightPalette
+                PaletteLight = _lightPalette,
+                Typography = new Typography()
+                {
+                    Default = new DefaultTypography()
+                    {
+                        FontFamily = new[] {"Electrolize", "sans-serif"}
+                    },
+                    H1 = new H1Typography()
+                    {
+                        FontFamily = new[] {"Audiowide", "sans-serif"}
+                    },
+                    H2 = new H2Typography()
+                    {
+                        FontFamily = new[] {"Michroma", "sans-serif"}
+                    },
+                    H3 = new H3Typography()
+                    {
+                        FontFamily = new[] {"Michroma", "sans-serif"}
+                    },
+                    H4 = new H4Typography()
+                    {
+                        FontFamily = new[] {"Michroma", "sans-serif"}
+                    },
+                    H5 = new H5Typography()
+                    {
+                        FontFamily = new[] {"Michroma", "sans-serif"}
+                    },
+                    H6 = new H6Typography()
+                    {
+                        FontFamily = new[] {"Michroma", "sans-serif"}
+                    },
+                    Button = new ButtonTypography()
+                    {
+                        FontFamily = new[] {"Michroma", "sans-serif"}
+                    }
+                }
             }
         };
 
@@ -104,8 +139,8 @@
         Secondary = "#8A2BE2",        // BlueViolet - main DeepDrft purple
         Tertiary = "#9370DB",         // MediumPurple - DeepDrft accent
         Info = "#4B0082",            // Indigo - DeepDrft deep purple
-        Success = "#00FF7F",         // SpringGreen - bright success
-        Warning = "#FFD700",         // Gold - warning color
+        Success = "#00A86B",         // Jade - true jade green success color
+        Warning = "#FF8C00",         // DarkOrange - orange warning color
         Error = "#FF6347",           // Tomato - error color
         Black = "#000000",           // Pure black
         White = "#FFFFFF",           // Pure white
