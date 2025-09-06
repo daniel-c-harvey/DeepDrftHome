@@ -1,46 +1,37 @@
 ﻿@page "/tracks"
-@using DeepDrftModels.DTOs
-@using DeepDrftModels.Entities
+
 @using DeepDrftWeb.Client.Controls
 
-<h3>Track Gallery</h3>
-    
-@if (ViewModel.Page != null)
-{
-    @* <MudTable T="TrackEntity" Items="@ViewModel.Page.Items" Hover="true" Breakpoint="Breakpoint.Sm"> *@
-    @*     <HeaderContent> *@
-    @*         <MudTh>Name</MudTh> *@
-    @*         <MudTh>Artist</MudTh> *@
-    @*         <MudTh>Album</MudTh> *@
-    @*         <MudTh>Genre</MudTh> *@
-    @*         <MudTh>Released</MudTh> *@
-    @*         <MudTh>Actions</MudTh> *@
-    @*     </HeaderContent> *@
-    @*     <RowTemplate> *@
-    @*         <MudTd DataLabel="Name">@context.TrackName</MudTd> *@
-    @*         <MudTd DataLabel="Artist">@context.Artist</MudTd> *@
-    @*         <MudTd DataLabel="Album">@context.Album</MudTd> *@
-    @*         <MudTd DataLabel="Genre">@context.Genre</MudTd> *@
-    @*         <MudTd DataLabel="Released">@context.ReleaseDate</MudTd> *@
-    @*         <MudTd DataLabel="Actions"> *@
-    @*             <MudButton Variant="Variant.Text" Color="Color.Primary">View</MudButton> *@
-    @*         </MudTd> *@
-    @*     </RowTemplate> *@
-    @* </MudTable> *@
-    
-    <TracksGallery Tracks="@ViewModel.Page.Items" />
-    
-    <MudContainer Class="d-flex justify-center my-4 py-4">
-        <MudPagination Count="@ViewModel.Page.TotalPages" 
-                       Selected="@ViewModel.Page.Page" 
-                       SelectedChanged="i => SetPage(i)" 
-                       BoundaryCount="2" 
-                       MiddleCount="3"/>
-    </MudContainer>
-}
-else
-{
-    <MudSkeleton Height="650px" Class="pa-2 ma-2"/>
-    <MudSkeleton Height="80px"/>
-    <MudSpacer />
-}
+<PageTitle>DeepDrft Track Gallery</PageTitle>
+
+<div class="tracks-page-wrapper">
+    <div class="tracks-view-container">
+        @if (ViewModel.Page != null)
+        {
+            <div class="tracks-content">
+                <TracksGallery Tracks="@ViewModel.Page.Items"/>
+            </div>
+
+            <div class="tracks-pagination">
+                <MudContainer Class="d-flex justify-center py-2">
+                    <MudPagination Count="@ViewModel.Page.TotalPages"
+                                   Selected="@ViewModel.Page.Page"
+                                   SelectedChanged="i => SetPage(i)"
+                                   BoundaryCount="2"
+                                   MiddleCount="3"/>
+                </MudContainer>
+            </div>
+        }
+        else
+        {
+            <div class="tracks-content">
+                <MudSkeleton Height="100%" Class="pa-2 ma-2"/>
+            </div>
+            <div class="tracks-pagination">
+                <MudSkeleton Height="60px"/>
+            </div>
+        }
+    </div>
+
+    <AudioPlayerBar AudioUrl=""></AudioPlayerBar>
+</div>

@@ -1,21 +1,22 @@
 ﻿@inherits LayoutComponentBase
 
-<MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
+<MudThemeProvider Theme="@_themeManager.Theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 <MudLayout>
-    <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <MudText Typo="Typo.h5" Class="ml-3">Application</MudText>
-        <MudSpacer />
-        <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle" />
-        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End" />
-    </MudAppBar>
-    <MudDrawer id="nav-drawer" @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+    <MudThemeManagerButton OnClick="@((e) => OpenThemeManager(true))" />
+    <MudThemeManager Open="_themeManagerOpen" OpenChanged="OpenThemeManager" Theme="_themeManager" ThemeChanged="UpdateTheme" />
+    <MudAppBar Elevation="_themeManager.AppBarElevation">
+        <MudAvatar Class="mr-2">
+            <MudImage Src="img/deepdrft-logo.jpg"></MudImage>
+        </MudAvatar>
         <NavMenu />
-    </MudDrawer>
-    <MudMainContent Class="pt-16 pa-4">
+        <MudSpacer/>
+        <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle"/>
+        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End"/>
+    </MudAppBar>
+    <MudMainContent Class="pt-16 pa-4" Style="min-height: 100vh">
         @Body
     </MudMainContent>
 </MudLayout>
@@ -30,18 +31,21 @@
 @code {
     private bool _drawerOpen = true;
     private bool _isDarkMode = true;
-    private MudTheme? _theme = null;
+    // private MudTheme? _theme = null;
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
-
-        _theme = new()
+        _themeManager = new ThemeManagerTheme
         {
-            PaletteLight = _lightPalette,
-            PaletteDark = _darkPalette,
-            LayoutProperties = new LayoutProperties()
+            Theme =
+            {
+                PaletteDark = _darkPalette,
+                PaletteLight = _lightPalette
+            }
         };
+
+        StateHasChanged();
     }
 
     private void DrawerToggle()
@@ -52,6 +56,20 @@
     private void DarkModeToggle()
     {
         _isDarkMode = !_isDarkMode;
+    }
+    
+    private ThemeManagerTheme _themeManager;
+    public bool _themeManagerOpen = false;
+
+    void OpenThemeManager(bool value)
+    {
+        _themeManagerOpen = value;
+    }
+
+    void UpdateTheme(ThemeManagerTheme value)
+    {
+        _themeManager = value;
+        StateHasChanged();
     }
 
     private readonly PaletteLight _lightPalette = new()

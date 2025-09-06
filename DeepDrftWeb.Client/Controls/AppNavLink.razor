@@ -1,0 +1,12 @@
+﻿<MudStack Row AlignItems="AlignItems.Center" Spacing="3" Class="mx-3">
+    @if (Icon != null)
+    {
+        <MudIcon Icon="@Icon" />
+    }
+    <NavLink href="@Href" Match="@(Match ?? NavLinkMatch.Prefix)">
+        @if (ChildContent != null)
+        {
+            @ChildContent
+        }
+    </NavLink>
+</MudStack>
