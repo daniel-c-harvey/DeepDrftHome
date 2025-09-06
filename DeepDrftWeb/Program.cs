@@ -2,6 +2,7 @@ using DeepDrftWeb;
 using DeepDrftWeb.Client.Services;
 using MudBlazor.Services;
 using DeepDrftWeb.Components;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,9 +28,21 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
+// Configure forwarded headers for reverse proxy support
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+    // Trust any proxy (nginx) - in production, specify known proxy networks
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+// Use forwarded headers before other middleware
+app.UseForwardedHeaders();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
@@ -39,7 +52,13 @@ else
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
-    app.UseHttpsRedirection();
+    
+    // Only use HTTPS redirection if not behind a reverse proxy
+    var disableHttpsRedirection = app.Configuration.GetValue<bool>("ForwardedHeaders:DisableHttpsRedirection");
+    if (!disableHttpsRedirection)
+    {
+        app.UseHttpsRedirection();
+    }
 }
 
 app.UseAntiforgery();

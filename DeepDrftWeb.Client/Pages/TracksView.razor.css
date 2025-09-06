@@ -24,5 +24,8 @@
 .tracks-footer {
     flex: 0 0 auto;
     padding: 8px 0;
-    justify-items: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
 }

@@ -2,6 +2,7 @@ using DeepDrftContent;
 using DeepDrftContent.FileDatabase.Services;
 using DeepDrftContent.Middleware;
 using DeepDrftContent.Models;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,12 +36,33 @@ builder.Configuration.AddJsonFile("environment/apikey.json", optional: false, re
 var apiKeySettings = builder.Configuration.GetSection(nameof(ApiKeySettings)).Get<ApiKeySettings>();
 if (apiKeySettings is null) { throw new Exception("API key settings are not configured"); }
 
+// Configure forwarded headers for reverse proxy support
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+    // Trust any proxy (nginx) - in production, specify known proxy networks
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+// Use forwarded headers before other middleware
+app.UseForwardedHeaders();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+}
+else
+{
+    // Only use HTTPS redirection if not behind a reverse proxy
+    var forwardedProto = app.Services.GetService<IConfiguration>()?["ForwardedHeaders:DisableHttpsRedirection"];
+    if (string.IsNullOrEmpty(forwardedProto) || !bool.Parse(forwardedProto))
+    {
+        app.UseHttpsRedirection();
+    }
 }
 
 app.UseCors("ContentApiPolicy");

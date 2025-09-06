@@ -30,10 +30,26 @@
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
       <Folder Include="wwwroot\js\" />
-      <Content Update="Interop\webaudio.js">
-          <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-          <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <TypeScriptCompile Include="Interop\webaudio.ts">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </TypeScriptCompile>
+  </ItemGroup>
+
+  <!-- Prevent TypeScript compilation issues during publish -->
+  <PropertyGroup>
+    <TypeScriptCompileOnSaveEnabled>false</TypeScriptCompileOnSaveEnabled>
+    <TypeScriptToolsVersion>Latest</TypeScriptToolsVersion>
+  </PropertyGroup>
+
+  <!-- Only copy tsconfig.json to root output, not nested publish folders -->
+  <ItemGroup>
+    <None Update="tsconfig.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

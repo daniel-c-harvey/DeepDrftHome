@@ -25,7 +25,7 @@ public class TrackMediaClient
 
     public async Task<TrackMediaResponse> GetTrackMedia(string trackId)
     {
-        var response = await _http.GetAsync($"api/track/{trackId}");
+        var response = await _http.GetAsync($"track/{trackId}");
         response.EnsureSuccessStatusCode();
         
         var contentLength = response.Content.Headers.ContentLength ?? 0;

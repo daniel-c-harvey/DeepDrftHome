@@ -13,14 +13,12 @@
                                SelectedTrack="_selectedTrack"
                                SelectedTrackChanged="@PlayTrack"/>
             </div>
-            <div class="tracks-footer">
-                <div class="py-4">
-                    <MudPagination Count="@ViewModel.Page.TotalPages"
-                                   Selected="@ViewModel.Page.Page"
-                                   SelectedChanged="@SetPage"
-                                   BoundaryCount="2"
-                                   MiddleCount="3"/>
-                </div>
+            <div class="tracks-footer py-4">
+                <MudPagination Count="@ViewModel.Page.TotalPages"
+                                Selected="@ViewModel.Page.Page"
+                                SelectedChanged="@SetPage"
+                                BoundaryCount="2"
+                                MiddleCount="3"/>
                 <AudioPlayerBar AudioPlaybackEngine="AudioPlaybackEngine" />
             </div>
         }
