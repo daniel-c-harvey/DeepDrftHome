@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
-using DeepDrftWeb.Data.Repositories;
+using Microsoft.Extensions.DependencyInjection;
+using DeepDrftWeb.Services.Repositories;
 using DeepDrftContent.Services;
 using DeepDrftModels.Entities;
 using NetBlocks.Models;
@@ -49,6 +50,10 @@ public class CliService
                     break;
                 case "list":
                     await HandleListCommand();
+                    break;
+                case "gui":
+                case "--gui":
+                    Console.WriteLine("Error: GUI mode should be launched directly. Use: DeepDrftCli gui");
                     break;
                 case "help":
                 case "--help":
@@ -243,6 +248,10 @@ public class CliService
     private void ShowHelp()
     {
         Console.WriteLine("DeepDrft CLI - Audio Track Management Tool");
+        Console.WriteLine();
+        Console.WriteLine("Usage:");
+        Console.WriteLine("  DeepDrftCli gui                    - Launch interactive GUI mode");
+        Console.WriteLine("  DeepDrftCli [command] [options]    - Run command-line mode");
         Console.WriteLine();
         Console.WriteLine("Commands:");
         Console.WriteLine("  add <wav-file> <track-name> <artist> [album] [genre] [release-date]");

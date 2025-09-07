@@ -3,43 +3,34 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
-using DeepDrftWeb.Data;
-using DeepDrftWeb.Data.Repositories;
-using DeepDrftContent.FileDatabase.Services;
-using DeepDrftContent.Processors;
-using DeepDrftContent.Services;
+using DeepDrftWeb.Services.Data;
+using DeepDrftWeb.Services.Repositories;
+using DeepDrftContent.Services.FileDatabase.Services;
+using DeepDrftContent.Services.Processors;
 using DeepDrftCli.Services;
+using DeepDrftCli.Models;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// Add configuration
-var appDirectory = AppContext.BaseDirectory;
-var configPath = Path.Combine(appDirectory, "appsettings.json");
-builder.Configuration.AddJsonFile(configPath, optional: false, reloadOnChange: true);
+// Load configuration from environment/config.json
+builder.Configuration.AddJsonFile($"{AppDomain.CurrentDomain.BaseDirectory}environment/connections.json", optional: false, reloadOnChange: true);
+var cliSettings = builder.Configuration.GetSection(nameof(CliSettings)).Get<CliSettings>();
+if (cliSettings is null) { throw new Exception("CLI settings are not configured"); }
 
 // Add logging
 builder.Services.AddLogging(configure => configure.AddConsole());
 
 // Add database context
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-if (string.IsNullOrEmpty(connectionString))
-    throw new InvalidOperationException("DefaultConnection not found in configuration");
-
 builder.Services.AddDbContext<DeepDrftContext>(options =>
-    options.UseSqlite(connectionString));
+    options.UseSqlite(cliSettings.ConnectionString));
 
 // Add FileDatabase
 builder.Services.AddSingleton<FileDatabase>(provider =>
 {
     var logger = provider.GetRequiredService<ILogger<Program>>();
-    var configuration = provider.GetRequiredService<IConfiguration>();
     try
     {
-        var vaultPath = configuration["FileDatabaseSettings:VaultPath"];
-        if (string.IsNullOrEmpty(vaultPath))
-            throw new InvalidOperationException("FileDatabaseSettings:VaultPath not found in configuration");
-            
-        var fileDatabase = FileDatabase.FromAsync(vaultPath).GetAwaiter().GetResult();
+        var fileDatabase = FileDatabase.FromAsync(cliSettings.VaultPath).GetAwaiter().GetResult();
         if (fileDatabase == null)
         {
             logger.LogError("Failed to initialize FileDatabase");
@@ -60,10 +51,21 @@ builder.Services.AddScoped<DeepDrftWeb.Services.TrackService>();
 builder.Services.AddScoped<AudioProcessor>();
 builder.Services.AddScoped<DeepDrftContent.Services.TrackService>();
 builder.Services.AddScoped<CliService>();
+builder.Services.AddScoped<GuiService>();
 
 // Build and run
 var app = builder.Build();
 
-// Get the CLI service and run
-var cliService = app.Services.GetRequiredService<CliService>();
-await cliService.RunAsync(args);
+// Check if GUI mode is requested
+if (args.Length > 0 && (args[0].ToLowerInvariant() == "gui" || args[0].ToLowerInvariant() == "--gui"))
+{
+    // Run GUI mode
+    var guiService = app.Services.GetRequiredService<GuiService>();
+    await guiService.RunAsync();
+}
+else
+{
+    // Run traditional CLI mode
+    var cliService = app.Services.GetRequiredService<CliService>();
+    await cliService.RunAsync(args);
+}

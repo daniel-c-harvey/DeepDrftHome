@@ -60,6 +60,18 @@ public async Task<TrackEntity?> AddTrackFromWavAsync(
 
 ### Available Commands
 
+#### GUI Mode (Interactive Terminal Interface)
+```bash
+DeepDrftCli gui
+```
+Launches the interactive Terminal.Gui interface with:
+- **DeepDrft brand color theme** (Magenta/Purple/Pink)
+- **Color-coded track list** with navigation
+- **Persistent hotkey legend** showing shortcuts
+- **Interactive add track dialog** with file browser
+- **Real-time status updates** and feedback
+- **Full keyboard shortcuts** for all operations
+
 #### Add Track
 ```bash
 DeepDrftCli add <wav-file-path> <track-name> <artist> [album] [genre] [release-date]

@@ -8,24 +8,39 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.8" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.8" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.8" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.8" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.8" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.8" />
+    <PackageReference Include="Terminal.Gui" Version="1.17.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DeepDrftWeb\DeepDrftWeb.csproj" />
-    <ProjectReference Include="..\DeepDrftContent\DeepDrftContent.csproj" />
     <ProjectReference Include="..\DeepDrftModels\DeepDrftModels.csproj" />
+    <ProjectReference Include="..\DeepDrftWeb.Services\DeepDrftWeb.Services.csproj" />
+    <ProjectReference Include="..\DeepDrftContent.Services\DeepDrftContent.Services.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="appsettings.json">
+    <None Update="environment\config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="environment\connections.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+
+  <!-- Enable single file publish -->
+  <PropertyGroup>
+    <PublishSingleFile>true</PublishSingleFile>
+<!--    <SelfContained>true</SelfContained>-->
+<!--    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>-->
+  </PropertyGroup>
+
+  <!-- Environment config (copied manually by build script) -->
 
 </Project>
