@@ -1,5 +1,5 @@
-﻿using DeepDrftContent.Constants;
-using DeepDrftContent.FileDatabase.Models;
+﻿using DeepDrftContent.Services.Constants;
+using DeepDrftContent.Services.FileDatabase.Models;
 using DeepDrftContent.Middleware;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,9 +9,9 @@ namespace DeepDrftContent.Controllers;
 [Route("api/[controller]")]
 public class TrackController : ControllerBase
 {
-    private readonly FileDatabase.Services.FileDatabase _fileDatabase;
+    private readonly DeepDrftContent.Services.FileDatabase.Services.FileDatabase _fileDatabase;
 
-    public TrackController(FileDatabase.Services.FileDatabase fileDatabase)
+    public TrackController(DeepDrftContent.Services.FileDatabase.Services.FileDatabase fileDatabase)
     {
         _fileDatabase = fileDatabase;
     }

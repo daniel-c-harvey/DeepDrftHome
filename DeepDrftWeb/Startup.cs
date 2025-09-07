@@ -1,5 +1,5 @@
-﻿using DeepDrftWeb.Data;
-using DeepDrftWeb.Data.Repositories;
+﻿using DeepDrftWeb.Services.Data;
+using DeepDrftWeb.Services.Repositories;
 using DeepDrftWeb.Services;
 using Microsoft.EntityFrameworkCore;
 

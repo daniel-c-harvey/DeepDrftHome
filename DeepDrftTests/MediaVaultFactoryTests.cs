@@ -1,5 +1,5 @@
-using DeepDrftContent.FileDatabase.Models;
-using DeepDrftContent.FileDatabase.Services;
+using DeepDrftContent.Services.FileDatabase.Models;
+using DeepDrftContent.Services.FileDatabase.Services;
 
 namespace DeepDrftTests;
 

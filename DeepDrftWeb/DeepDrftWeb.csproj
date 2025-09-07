@@ -21,6 +21,7 @@
     </PackageReference>
     <ProjectReference Include="..\DeepDrftModels\DeepDrftModels.csproj" />
     <ProjectReference Include="..\DeepDrftWeb.Client\DeepDrftWeb.Client.csproj" />
+    <ProjectReference Include="..\DeepDrftWeb.Services\DeepDrftWeb.Services.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.*" />
   </ItemGroup>
 

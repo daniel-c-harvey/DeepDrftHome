@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DeepDrftContent\DeepDrftContent.csproj" />
+    <ProjectReference Include="..\DeepDrftContent.Services\DeepDrftContent.Services.csproj" />
   </ItemGroup>
 
 </Project>
