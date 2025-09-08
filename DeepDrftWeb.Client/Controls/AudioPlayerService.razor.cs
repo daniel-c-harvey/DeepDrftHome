@@ -13,14 +13,6 @@ public partial class AudioPlayerService : ComponentBase
     
     [Parameter] public RenderFragment? ChildContent { get; set; }
     
-    protected override void OnInitialized()
-    {
-        base.OnInitialized();
-        
-        // PlayerService is already created as a field, so it's immediately available to cascading components
-        // It will be in uninitialized state until OnAfterRenderAsync when AudioPlaybackEngine is ready
-    }
-    
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)

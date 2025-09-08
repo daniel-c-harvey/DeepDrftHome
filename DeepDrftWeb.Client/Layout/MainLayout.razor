@@ -8,7 +8,7 @@
 <MudLayout>
     <AudioPlayerService>
         @* <MudThemeManagerButton OnClick="@((e) => OpenThemeManager(true))" /> *@
-        <MudThemeManager Open="_themeManagerOpen" OpenChanged="OpenThemeManager" Theme="_themeManager" ThemeChanged="UpdateTheme" />
+        @* <MudThemeManager Open="_themeManagerOpen" OpenChanged="OpenThemeManager" Theme="_themeManager" ThemeChanged="UpdateTheme" /> *@
         <MudAppBar Elevation="_themeManager.AppBarElevation">
             <MudAvatar Class="mr-2">
                 <MudImage Src="img/deepdrft-logo.jpg"></MudImage>
@@ -16,10 +16,12 @@
             <NavMenu />
             <MudSpacer/>
             <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle"/>
-            <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End"/>
+            @* <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End"/> *@
         </MudAppBar>
-        <MudMainContent Class="pt-16 pa-4" Style="min-height: 100vh">
-            @Body
+        <MudMainContent Class="pt-16 deepdrft-layout-with-overlay-player">
+            <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+                @Body
+            </MudContainer>
             <AudioPlayerBar />
         </MudMainContent>
     </AudioPlayerService>

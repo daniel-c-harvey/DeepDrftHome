@@ -4,6 +4,7 @@ ssh-add /c/.ssh/deepdrft_ed25519
 
 CONTENT_PROJ="DeepDrftContent"
 WEB_PROJ="DeepDrftWeb"
+WEB_SERVICES_PROJ="DeepDrftWeb.Services"
 CONTENT_APP="deepdrft-content.tar.gz"
 WEB_APP="deepdrft-web.tar.gz"
 
@@ -16,15 +17,15 @@ WEB_MIG="deepdrft-migrations.sql"
 REMOTE="deepdrft@dch5.snailbird.net"
 WEB_APPROOT="/deepdrft/web"
 
-LATEST_MIGRATION=$(dotnet ef migrations list --project $WEB_PROJ --context DeepDrftContext --no-build | tail -1)
+LATEST_MIGRATION=$(dotnet ef migrations list --project $WEB_SERVICES_PROJ --context DeepDrftContext --no-build | tail -1)
 REMOTE_MIGRATION=$(ssh $REMOTE "sqlite3 $WEB_APPROOT/Database/deepdrft.db 'SELECT MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId DESC LIMIT 1;'" 2>/dev/null || echo "")
 
 if [ "$LATEST_MIGRATION" != "$REMOTE_MIGRATION" ]; then
     echo "Generating migration script from $REMOTE_MIGRATION to $LATEST_MIGRATION..."
     if [ -z "$REMOTE_MIGRATION" ]; then
-        dotnet ef migrations script --project $WEB_PROJ --context DeepDrftContext --output $WEB_MIG --verbose --no-build
+        dotnet ef migrations script --project $WEB_SERVICES_PROJ --context DeepDrftContext --output $WEB_MIG --verbose --no-build
     else
-        dotnet ef migrations script $REMOTE_MIGRATION --project $WEB_PROJ --context DeepDrftContext --output $WEB_MIG --verbose --no-build
+        dotnet ef migrations script $REMOTE_MIGRATION --project $WEB_SERVICES_PROJ --context DeepDrftContext --output $WEB_MIG --verbose --no-build
     fi
     APPLY_MIGRATIONS=true
 else

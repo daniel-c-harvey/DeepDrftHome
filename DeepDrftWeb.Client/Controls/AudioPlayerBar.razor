@@ -1,55 +1,87 @@
-﻿<MudPaper MaxWidth="1600px" Square="true">
-    <MudStack Row AlignItems="AlignItems.Center" Spacing="4" Class="px-4 py-2">
-        <MudStack Class="pb-2">
-            <MudStack Row AlignItems="AlignItems.Center">
-                <MudIconButton Icon="@GetPlayIcon()"
-                               Color="Color.Primary"
-                               Size="Size.Large"
-                               OnClick="@TogglePlayPause"
-                               Disabled="!IsLoaded"/>
-                @if (IsLoaded)
-                {
-                    <MudIconButton Icon="Icons.Material.Filled.Stop"
-                                   Color="Color.Primary"
-                                   OnClick="@Stop"
-                                   Disabled="!IsLoaded"/>    
-                }
-            </MudStack>
-            <MudStack Row AlignItems="AlignItems.Center">
-                <MudText Typo="Typo.body2" Class="font-monospace deepdrft-audio-time">
-                    @FormatTime(CurrentTime) / @(Duration.HasValue ? FormatTime(Duration.Value) : "--:--")
-                </MudText>
-                @if (!IsLoaded)
-                {
-                    <MudProgressCircular Color="Color.Tertiary" Value="@LoadProgress" Size="Size.Small"/>
-                }
-            </MudStack>
-        </MudStack>
+@if (_isMinimized)
+{
+    <div class="deepdrft-minimized-player-dock">
+        <MudIconButton Icon="@GetPlayIcon()"
+                       Color="Color.Primary" 
+                       Size="Size.Large"
+                       Class="deepdrft-minimized-player-button"
+                       OnClick="@ToggleMinimized" />
+    </div>
+}
+else
+{
+    @* Full-width outer container *@
+    <div class="deepdrft-player-outer-container">
+        <MudContainer MaxWidth="MaxWidth.Large" Class="deepdrft-player-inner-container">
+            <div class="deepdrft-audio-player-bar">
+                <div class="deepdrft-audio-player-content">
+                    
+                    @* Controls section *@
+                    <div class="deepdrft-audio-controls-section">
+                        <div class="deepdrft-audio-buttons-row">
+                            <MudIconButton Icon="@GetPlayIcon()"
+                                           Color="Color.Primary"
+                                           Size="Size.Large"
+                                           OnClick="@TogglePlayPause"
+                                           Disabled="!IsLoaded"/>
+                            @if (IsLoaded)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Stop"
+                                               Color="Color.Primary"
+                                               OnClick="@Stop"/>    
+                            }
+                        </div>
+                        
+                        <div class="deepdrft-audio-info-row">
+                            <MudText Typo="Typo.body2" Class="font-monospace deepdrft-audio-time">
+                                @FormatTime(CurrentTime) / @(Duration.HasValue ? FormatTime(Duration.Value) : "--:--")
+                            </MudText>
+                            @if (!IsLoaded)
+                            {
+                                <MudProgressCircular Color="Color.Tertiary" Value="@LoadProgress" Size="Size.Small"/>
+                            }
+                        </div>
+                    </div>
 
-        <MudSlider T="double"
-                   Min="0"
-                   Max="@(Duration ?? 0D)"
-                   Step="0.1"
-                   Value="@CurrentTime"
-                   ValueChanged="@OnSeek"
-                   Disabled="!IsLoaded"
-                   Class="deepdrft-audio-slider-seek"/>
+                    @* Seek slider *@
+                    <MudSlider T="double"
+                               Min="0"
+                               Max="@(Duration ?? 0D)"
+                               Step="0.1"
+                               Value="@CurrentTime"
+                               ValueChanged="@OnSeek"
+                               Disabled="!IsLoaded"
+                               Class="deepdrft-audio-seek-slider"/>
 
-        <div class="deepdrft-audio-controls">
-            <MudIcon Icon="@GetVolumeIcon()" Class="deepdrft-audio-volume-icon"/>
-            <MudSlider T="double"
-                       Min="0"
-                       Max="1"
-                       Step="0.01"
-                       Value="@Volume"
-                       ValueChanged="@OnVolumeChange"
-                       Class="deepdrft-audio-slider"/>
-        </div>
-    </MudStack>
-    @if (!string.IsNullOrEmpty(ErrorMessage))
-    {
-        <MudAlert Severity="Severity.Error" ShowCloseIcon="true" CloseIconClicked="ClearError">
-            @ErrorMessage
-        </MudAlert>
-    }
-</MudPaper>
+                    @* Volume section *@
+                    <div class="deepdrft-audio-volume-section">
+                        <MudIcon Icon="@GetVolumeIcon()" Class="deepdrft-audio-volume-icon"/>
+                        <MudSlider T="double"
+                                   Min="0"
+                                   Max="1"
+                                   Step="0.01"
+                                   Value="@Volume"
+                                   ValueChanged="@OnVolumeChange"
+                                   Class="deepdrft-audio-volume-slider"/>
+                    </div>
+                    <div class="deepdrft-audio-minimize-section">
+                        <MudIconButton Icon="@Icons.Material.Filled.Minimize"
+                                       Color="Color.Secondary"
+                                       Size="Size.Small"
+                                       OnClick="@ToggleMinimized"/>
+                    </div>
+                </div>
+                
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <MudAlert Severity="Severity.Error" ShowCloseIcon="true" CloseIconClicked="ClearError" Class="ma-2">
+                        @ErrorMessage
+                    </MudAlert>
+                }
+            </div>
+        </MudContainer>
+    </div>
+    
+    @* Spacer div to maintain layout spacing *@
+    <div class="deepdrft-player-spacer"></div>
+}

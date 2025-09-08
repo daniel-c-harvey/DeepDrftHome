@@ -10,6 +10,7 @@ public partial class AudioPlayerBar : ComponentBase
 {
     [CascadingParameter] public required IPlayerService PlayerService { get; set; }
     [Parameter] public bool ShowLoadProgress { get; set; } = true;
+    private bool _isMinimized = true;
     
     private bool IsLoaded => PlayerService.IsLoaded;
     private bool IsPlaying => PlayerService.IsPlaying;
@@ -68,6 +69,12 @@ public partial class AudioPlayerBar : ComponentBase
     private void ClearError()
     {
         PlayerService.ClearError();
+    }
+    
+    private void ToggleMinimized()
+    {
+        _isMinimized = !_isMinimized;
+        StateHasChanged();
     }
     
 }

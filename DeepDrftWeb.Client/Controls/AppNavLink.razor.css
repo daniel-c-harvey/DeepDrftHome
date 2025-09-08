@@ -1,1 +1,71 @@
-﻿
+﻿/* Navigation menu item styling */
+.nav-menu-item {
+    display: block;
+    padding: 8px 16px;
+    margin: 4px 8px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.nav-item-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 12px;
+}
+
+.nav-item-icon {
+    width: 20px;
+    height: 20px;
+    transition: all 0.3s ease;
+}
+
+.nav-item-text {
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+/* Hover state */
+.nav-menu-item:hover {
+    background-color: rgba(138, 43, 226, 0.08);
+    color: #8A2BE2;
+    text-decoration: none;
+}
+
+.nav-menu-item:hover .nav-item-content {
+    color: var(--mud-palette-tertiary);
+}
+
+.nav-menu-item:hover .nav-item-text {
+    font-weight: 600;
+}
+
+/* Active state */
+.nav-menu-item.active {
+    background-color: rgba(138, 43, 226, 0.12);
+    color: var(--mud-palette-primary);
+    border-left: 4px solid #8A2BE2;
+    padding-left: 12px;
+}
+
+.nav-menu-item.active .nav-item-content {
+    color: var(--mud-palette-primary);
+}
+
+.nav-menu-item.active .nav-item-icon {
+    color: var(--mud-palette-primary);
+}
+
+.nav-menu-item.active .nav-item-text {
+    font-weight: 600;
+}
+
+/* Focus state */
+.nav-menu-item:focus {
+    outline: 2px solid #8A2BE2;
+    outline-offset: 2px;
+}

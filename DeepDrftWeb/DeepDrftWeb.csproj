@@ -33,12 +33,6 @@
       <Folder Include="wwwroot\js\" />
   </ItemGroup>
 
-  <ItemGroup>
-    <TypeScriptCompile Include="Interop\webaudio.ts">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </TypeScriptCompile>
-  </ItemGroup>
-
   <!-- Prevent TypeScript compilation issues during publish -->
   <PropertyGroup>
     <TypeScriptCompileOnSaveEnabled>false</TypeScriptCompileOnSaveEnabled>

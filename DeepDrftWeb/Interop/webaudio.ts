@@ -72,12 +72,12 @@ class AudioPlayer {
         try {
             this.bufferChunks.push(audioBlock);
             this.currentSize += audioBlock.length;
-            
+
             if (this.expectedSize > 0 && this.onLoadProgressCallback) {
                 const progress = (this.currentSize / this.expectedSize) * 100;
                 this.onLoadProgressCallback(Math.min(progress, 100));
             }
-            
+
             return { success: true };
         } catch (error) {
             return { success: false, error: (error as Error).message };
@@ -89,24 +89,24 @@ class AudioPlayer {
             const arrayBuffer = new ArrayBuffer(this.currentSize);
             const view = new Uint8Array(arrayBuffer);
             let offset = 0;
-            
+
             for (const chunk of this.bufferChunks) {
                 view.set(chunk, offset);
                 offset += chunk.length;
             }
-            
+
             this.audioBuffer = await this.audioContext!.decodeAudioData(arrayBuffer);
             this.duration = this.audioBuffer.duration;
-            
+
             this.bufferChunks = [];
             this.currentSize = 0;
-            
+
             if (this.onLoadProgressCallback) {
                 this.onLoadProgressCallback(100);
             }
-            
-            return { 
-                success: true, 
+
+            return {
+                success: true,
                 duration: this.duration,
                 sampleRate: this.audioBuffer.sampleRate,
                 numberOfChannels: this.audioBuffer.numberOfChannels,
@@ -202,18 +202,18 @@ class AudioPlayer {
 
         try {
             const wasPlaying = this.isPlaying;
-            
+
             if (this.isPlaying) {
                 this.source!.stop();
             }
 
             this.pauseOffset = position;
-            
+
             if (wasPlaying) {
                 this.source = this.audioContext!.createBufferSource();
                 this.source.buffer = this.audioBuffer;
                 this.source.connect(this.gainNode!);
-                
+
                 this.source.onended = () => {
                     this.isPlaying = false;
                     this.isPaused = false;
@@ -424,11 +424,11 @@ const DeepDrftAudio = {
         if (!player) {
             return { success: false, error: "Player not found" };
         }
-        
+
         player.setOnProgressCallback((currentTime: number) => {
             dotNetObjectReference.invokeMethodAsync(methodName, currentTime);
         });
-        
+
         return { success: true };
     },
 
@@ -437,11 +437,11 @@ const DeepDrftAudio = {
         if (!player) {
             return { success: false, error: "Player not found" };
         }
-        
+
         player.setOnEndCallback(() => {
             dotNetObjectReference.invokeMethodAsync(methodName);
         });
-        
+
         return { success: true };
     },
 
@@ -450,11 +450,11 @@ const DeepDrftAudio = {
         if (!player) {
             return { success: false, error: "Player not found" };
         }
-        
+
         player.setOnLoadProgressCallback((progress: number) => {
             dotNetObjectReference.invokeMethodAsync(methodName, progress);
         });
-        
+
         return { success: true };
     },
 

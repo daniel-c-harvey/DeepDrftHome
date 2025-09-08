@@ -293,29 +293,28 @@ body, p, span, div,
     justify-content: center;
 }
 
-/* Audio Player Layout */
-.deepdrft-audio-controls {
-    display: flex;
-    align-items: center;
-    width: 140px;
-}
 
-.deepdrft-audio-time {
-    min-width: 120px;
-}
+/* Layout with overlay audio player - Global layout class */
+/*.deepdrft-layout-with-overlay-player {*/
+/*    position: relative;*/
+/*    min-height: calc(100vh - 64px);*/
+/*    padding-bottom: 160px; !* Increased space for overlay player *!*/
+/*}*/
 
-.deepdrft-audio-volume-icon {
-    margin-right: 4px;
-}
+/*!* Audio player overlay positioning - Global positioning *!*/
+/*.deepdrft-layout-with-overlay-player > .AudioPlayerBar,*/
+/*.deepdrft-layout-with-overlay-player > *:last-child {*/
+/*    position: fixed;*/
+/*    bottom: 0;*/
+/*    left: 0;*/
+/*    right: 0;*/
+/*    z-index: 1000;*/
+/*    pointer-events: none;*/
+/*}*/
 
-.deepdrft-audio-slider {
-    flex: 1;
-}
-
-.deepdrft-audio-slider-seek {
-    flex: 1;
-    margin-right: 8px;
-}
+/*.deepdrft-layout-with-overlay-player > *:last-child > * {*/
+/*    pointer-events: auto;*/
+/*}*/
 
 /* Responsive Utilities */
 @media (max-width: 768px) {
