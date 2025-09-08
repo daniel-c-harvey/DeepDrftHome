@@ -47,9 +47,11 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-// Use forwarded headers before other middleware
-app.UseForwardedHeaders();
+if (app.Environment.IsProduction())
+{
+    // Use forwarded headers before other middleware
+    app.UseForwardedHeaders();
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -58,7 +60,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("ContentApiPolicy");
 app.UseApiKeyAuthentication(apiKeySettings.ApiKey);
-app.UseAuthorization();
 
 app.MapControllers();
 

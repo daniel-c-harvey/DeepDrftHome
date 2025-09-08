@@ -4,7 +4,6 @@ using NetBlocks.Models;
 using System.Text.Json;
 using System.Web;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace DeepDrftWeb.Client.Clients;
 
