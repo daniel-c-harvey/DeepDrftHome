@@ -10,19 +10,25 @@
                 @if (IsLoaded)
                 {
                     <MudIconButton Icon="Icons.Material.Filled.Stop"
-                                   Color="Color.Secondary"
+                                   Color="Color.Primary"
                                    OnClick="@Stop"
                                    Disabled="!IsLoaded"/>    
                 }
             </MudStack>
-            <MudText Typo="Typo.body2" Class="font-monospace deepdrft-audio-time">
-                @FormatTime(CurrentTime) / @FormatTime(Duration)
-            </MudText>
+            <MudStack Row AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.body2" Class="font-monospace deepdrft-audio-time">
+                    @FormatTime(CurrentTime) / @(Duration.HasValue ? FormatTime(Duration.Value) : "--:--")
+                </MudText>
+                @if (!IsLoaded)
+                {
+                    <MudProgressCircular Color="Color.Tertiary" Value="@LoadProgress" Size="Size.Small"/>
+                }
+            </MudStack>
         </MudStack>
 
         <MudSlider T="double"
                    Min="0"
-                   Max="@Duration"
+                   Max="@(Duration ?? 0D)"
                    Step="0.1"
                    Value="@CurrentTime"
                    ValueChanged="@OnSeek"

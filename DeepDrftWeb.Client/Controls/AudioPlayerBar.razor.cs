@@ -6,27 +6,25 @@ using MudBlazor;
 
 namespace DeepDrftWeb.Client.Controls;
 
-public partial class AudioPlayerBar : ComponentBase, IAsyncDisposable
+public partial class AudioPlayerBar : ComponentBase
 {
+    [CascadingParameter] public required IPlayerService PlayerService { get; set; }
     [Parameter] public bool ShowLoadProgress { get; set; } = true;
     
-    [Parameter] public required AudioPlaybackEngine AudioPlaybackEngine { get; set; }
-    
-    private bool IsLoaded => AudioPlaybackEngine.IsLoaded;
-    private bool IsPlaying => AudioPlaybackEngine.IsPlaying;
-    private bool IsPaused => AudioPlaybackEngine.IsPaused;
-    private double CurrentTime => AudioPlaybackEngine.CurrentTime;
-    private double Duration => AudioPlaybackEngine.Duration;
-    private double Volume => AudioPlaybackEngine.Volume;
-    private double LoadProgress => AudioPlaybackEngine.LoadProgress;
-    private string? ErrorMessage => AudioPlaybackEngine.ErrorMessage;
+    private bool IsLoaded => PlayerService.IsLoaded;
+    private bool IsPlaying => PlayerService.IsPlaying;
+    private bool IsPaused => PlayerService.IsPaused;
+    private double CurrentTime => PlayerService.CurrentTime;
+    private double? Duration => PlayerService.Duration;
+    private double Volume => PlayerService.Volume;
+    private double LoadProgress => PlayerService.LoadProgress;
+    private string? ErrorMessage => PlayerService.ErrorMessage;
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
 
-        AudioPlaybackEngine.OnProgressChanged += async _ => StateHasChanged();
-        AudioPlaybackEngine.OnPlaybackEnded += async () => await Stop(); // TODO unload the engine track instead of stopping
+        PlayerService.OnStateChanged += StateHasChanged;
     }
 
     private string GetPlayIcon()
@@ -49,36 +47,27 @@ public partial class AudioPlayerBar : ComponentBase, IAsyncDisposable
 
     private async Task TogglePlayPause()
     {
-        await AudioPlaybackEngine.TogglePlayPause();
-        StateHasChanged();
+        await PlayerService.TogglePlayPause();
     }
 
     private async Task Stop()
     {
-        await AudioPlaybackEngine.Stop();
-        StateHasChanged();
+        await PlayerService.Stop();
     }
 
     private async Task OnSeek(double position)
     {
-        await AudioPlaybackEngine.OnSeek(position);
-        StateHasChanged();
+        await PlayerService.Seek(position);
     }
 
     private async Task OnVolumeChange(double volume)
     {
-        await AudioPlaybackEngine.OnVolumeChange(volume);
-        StateHasChanged();
+        await PlayerService.SetVolume(volume);
     }
     
     private void ClearError()
     {
-        AudioPlaybackEngine.ClearError();
-        StateHasChanged();
+        PlayerService.ClearError();
     }
     
-    public async ValueTask DisposeAsync()
-    {
-        await AudioPlaybackEngine.DisposeAsync();
-    }
 }

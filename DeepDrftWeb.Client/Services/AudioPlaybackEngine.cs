@@ -18,7 +18,7 @@ public class AudioPlaybackEngine : IAsyncDisposable
     public bool IsPlaying { get; private set; } = false;
     public bool IsPaused { get; private set; } = false;
     public double CurrentTime { get; private set; } = 0;
-    public double Duration { get; private set; } = 0;
+    public double? Duration { get; private set; } = null;
     public double Volume { get; private set; } = 0.8;
     public double LoadProgress { get; private set; } = 0;
     public string? ErrorMessage { get; private set; }
@@ -55,38 +55,99 @@ public class AudioPlaybackEngine : IAsyncDisposable
 
         try
         {
+            ErrorMessage = null;
+            LoadProgress = 0;
+            
             AudioOperationResult? loadResult = await AudioInterop.InitializeBufferedPlayerAsync(PlayerId);
-            TrackMediaResponse? audio = await Client.GetTrackMedia(track.EntryKey);
+            if (loadResult?.Success != true)
+            {
+                ErrorMessage = $"Failed to initialize audio buffer: {loadResult?.Error ?? "Unknown error"}";
+                return;
+            }
 
-            if (loadResult?.Success == true)
+            var mediaResult =  await Client.GetTrackMedia(track.EntryKey);
+            if (!mediaResult.Success)
             {
-                IsLoaded = true;
-                ErrorMessage = null;
-                await StreamAndPlay(audio);
+                ErrorMessage = mediaResult.GetMessage();
+                return;
             }
-            else
+
+            if (mediaResult.Value == null)
             {
-                ErrorMessage = $"Failed to play audio: {loadResult?.Error ?? "No audio source provided"}";
+                ErrorMessage = "No audio returned from server";
+                return;
             }
+            
+            TrackMediaResponse audio = mediaResult.Value;
+            await StreamAndPlay(audio);
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error loading audio: {ex.Message}";
+            LoadProgress = 0;
+            IsLoaded = false;
         }
     }
 
     private async Task StreamAndPlay(TrackMediaResponse audio)
     {
-        int bytesRead = 0;
-        do
+        try
         {
-            var buffer = new byte[8 * 1024];
-            int newBytes = await audio.Stream.ReadAsync(buffer, 0, buffer.Length);
-            bytesRead += newBytes;
-            if (bytesRead == 0) break;
-            await AudioInterop.AppendAudioBlockAsync(PlayerId, buffer);
-        } while (bytesRead < audio.ContentLength);
-        await AudioInterop.FinalizeAudioBufferAsync(PlayerId);
+            const int bufferSize = 32 * 1024; // Increased buffer size for better performance
+            long totalBytesRead = 0;
+            int currentBytes;
+            
+            do
+            {
+                var buffer = new byte[bufferSize];
+                currentBytes = await audio.Stream.ReadAsync(buffer, 0, buffer.Length);
+                
+                if (currentBytes > 0)
+                {
+                    totalBytesRead += currentBytes;
+                    
+                    // Resize buffer if we didn't read the full amount
+                    if (currentBytes < bufferSize)
+                    {
+                        var trimmedBuffer = new byte[currentBytes];
+                        Array.Copy(buffer, trimmedBuffer, currentBytes);
+                        buffer = trimmedBuffer;
+                    }
+                    
+                    var appendResult = await AudioInterop.AppendAudioBlockAsync(PlayerId, buffer);
+                    if (!appendResult.Success)
+                    {
+                        throw new Exception($"Failed to append audio block: {appendResult.Error}");
+                    }
+                    
+                    // Update progress during streaming
+                    if (audio.ContentLength > 0)
+                    {
+                        LoadProgress = Math.Min(1.0, (double)totalBytesRead / audio.ContentLength);
+                    }
+                }
+            } while (currentBytes > 0);
+            
+            // Finalize the buffer and update metadata
+            var finalizeResult = await AudioInterop.FinalizeAudioBufferAsync(PlayerId);
+            if (!finalizeResult.Success)
+            {
+                throw new Exception($"Failed to finalize audio buffer: {finalizeResult.Error}");
+            }
+            
+            // Update engine state with audio metadata
+            Duration = finalizeResult.Duration;
+            LoadProgress = 1.0;
+            IsLoaded = true;
+            ErrorMessage = null;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error streaming audio: {ex.Message}";
+            LoadProgress = 0;
+            IsLoaded = false;
+            throw;
+        }
     }
 
     public async Task TogglePlayPause()

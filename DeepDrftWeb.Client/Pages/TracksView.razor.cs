@@ -9,8 +9,8 @@ namespace DeepDrftWeb.Client.Pages;
 public partial class TracksView : ComponentBase
 {
     [Inject] public required TracksViewModel ViewModel { get; set; }
-    [Inject] public required AudioPlaybackEngine AudioPlaybackEngine { get; set; }
-
+    [CascadingParameter] public required IPlayerService PlayerService { get; set; }
+    
     private TrackEntity? _selectedTrack = null;
     private int _clickCount = 0;
     private string _lifecycleStatus = "Not initialized";
@@ -26,7 +26,6 @@ public partial class TracksView : ComponentBase
         if (firstRender)
         {
             _lifecycleStatus = "OnAfterRenderAsync called - WebAssembly is active!";
-            await AudioPlaybackEngine.InitializeAudioPlayer();
             StateHasChanged();
         }
     }
@@ -54,12 +53,13 @@ public partial class TracksView : ComponentBase
 
         if (track is null)
         {
-            await AudioPlaybackEngine.Stop();
+            await PlayerService.Stop();
         }
         else
         {
-            await AudioPlaybackEngine.LoadTrack(track);
+            await PlayerService.SelectTrack(track);
         }
-        StateHasChanged();
+        
+        _selectedTrack = track;
     }
 }

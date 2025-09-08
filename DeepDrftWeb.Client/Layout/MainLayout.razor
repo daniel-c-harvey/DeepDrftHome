@@ -1,24 +1,28 @@
-﻿@inherits LayoutComponentBase
+﻿@using DeepDrftWeb.Client.Controls
+@inherits LayoutComponentBase
 
 <MudThemeProvider Theme="@_themeManager.Theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 <MudLayout>
-    @* <MudThemeManagerButton OnClick="@((e) => OpenThemeManager(true))" /> *@
-    <MudThemeManager Open="_themeManagerOpen" OpenChanged="OpenThemeManager" Theme="_themeManager" ThemeChanged="UpdateTheme" />
-    <MudAppBar Elevation="_themeManager.AppBarElevation">
-        <MudAvatar Class="mr-2">
-            <MudImage Src="img/deepdrft-logo.jpg"></MudImage>
-        </MudAvatar>
-        <NavMenu />
-        <MudSpacer/>
-        <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle"/>
-        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End"/>
-    </MudAppBar>
-    <MudMainContent Class="pt-16 pa-4" Style="min-height: 100vh">
-        @Body
-    </MudMainContent>
+    <AudioPlayerService>
+        @* <MudThemeManagerButton OnClick="@((e) => OpenThemeManager(true))" /> *@
+        <MudThemeManager Open="_themeManagerOpen" OpenChanged="OpenThemeManager" Theme="_themeManager" ThemeChanged="UpdateTheme" />
+        <MudAppBar Elevation="_themeManager.AppBarElevation">
+            <MudAvatar Class="mr-2">
+                <MudImage Src="img/deepdrft-logo.jpg"></MudImage>
+            </MudAvatar>
+            <NavMenu />
+            <MudSpacer/>
+            <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle"/>
+            <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End"/>
+        </MudAppBar>
+        <MudMainContent Class="pt-16 pa-4" Style="min-height: 100vh">
+            @Body
+            <AudioPlayerBar />
+        </MudMainContent>
+    </AudioPlayerService>
 </MudLayout>
 
 
