@@ -1,8 +1,6 @@
 ﻿using DeepDrftWeb.Client.Clients;
 using DeepDrftWeb.Client.Services;
 using DeepDrftWeb.Client.ViewModels;
-using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using NetBlocks.Models;
 
 namespace DeepDrftWeb.Client;
 
@@ -31,6 +29,6 @@ public static class Startup
         });
         services.AddScoped<TrackMediaClient>();
         services.AddScoped<AudioInteropService>();
-        services.AddScoped<AudioPlaybackEngine>();
+        services.AddTransient<AudioPlaybackEngine>();
     }
 }

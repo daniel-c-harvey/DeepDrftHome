@@ -1,5 +1,4 @@
 using DeepDrftWeb.Client;
-using DeepDrftWeb.Client.Services;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 
@@ -16,3 +15,5 @@ Startup.ConfigureContentServices(builder.Services, contentApiUrl);
 Startup.ConfigureDomainServices(builder.Services);
 
 var app = builder.Build();
+
+await app.RunAsync();

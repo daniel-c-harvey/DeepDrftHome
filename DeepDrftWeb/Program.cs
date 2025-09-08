@@ -12,8 +12,8 @@ builder.Services.AddMudServices();
 // Add AudioInteropService for both server and client rendering
 builder.Services.AddScoped<AudioInteropService>();
 
-var baseUrl = Startup.GetKestrelUrl(builder);
-var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"] ?? "https://localhost:7001";
+var baseUrl = builder.GetKestrelUrl();
+var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"] ?? throw new Exception("Content API URL is not configured");
 
 Startup.ConfigureDomainServices(builder);
 
@@ -27,6 +27,17 @@ builder.Services.AddControllers();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
+
+// Configure SignalR for better circuit cleanup
+builder.Services.AddSignalR(options =>
+{
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableDetailedErrors = true;
+        options.KeepAliveInterval = TimeSpan.FromSeconds(10);
+        options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+    }
+});
 
 // Configure forwarded headers for reverse proxy support
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -63,11 +74,28 @@ else
 
 app.UseAntiforgery();
 
+// Configure cache headers for Blazor WebAssembly assets
+if (app.Environment.IsDevelopment())
+{
+    app.Use(async (context, next) =>
+    {
+        if (context.Request.Path.StartsWithSegments("/_framework") ||
+            context.Request.Path.StartsWithSegments("/_content"))
+        {
+            context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
+            context.Response.Headers.Pragma = "no-cache";
+            context.Response.Headers.Expires = "0";
+        }
+        await next();
+    });
+}
+
 app.MapStaticAssets();
 app.MapControllers();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(DeepDrftWeb.Client._Imports).Assembly);
+
 
 app.Run();

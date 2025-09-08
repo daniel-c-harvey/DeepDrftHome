@@ -13,6 +13,7 @@ public class AudioPlaybackEngine : IAsyncDisposable
     public required AudioInteropService AudioInterop { get; set; }
 
     public string PlayerId { get; private set; } = Guid.NewGuid().ToString();
+    public bool IsInitialized { get; private set; } = false;
     public bool IsLoaded { get; private set; } = false;
     public bool IsPlaying { get; private set; } = false;
     public bool IsPaused { get; private set; } = false;
@@ -30,6 +31,8 @@ public class AudioPlaybackEngine : IAsyncDisposable
 
     public async Task InitializeAudioPlayer()
     {
+        if (IsInitialized) return;
+
         var result = await AudioInterop.CreatePlayerAsync(PlayerId);
         if (!result.Success)
         {
@@ -42,6 +45,8 @@ public class AudioPlaybackEngine : IAsyncDisposable
         await AudioInterop.SetOnLoadProgressCallbackAsync(PlayerId, OnLoadProgress);
         
         await AudioInterop.SetVolumeAsync(PlayerId, Volume);
+        
+        IsInitialized = true;
     }
 
     public async Task LoadTrack(TrackEntity track)

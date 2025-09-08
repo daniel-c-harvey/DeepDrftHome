@@ -1,9 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Terminal.Gui;
-using DeepDrftWeb.Services.Repositories;
-using DeepDrftContent.Services;
 using DeepDrftModels.Entities;
-using NetBlocks.Models;
 
 namespace DeepDrftCli.Services;
 
@@ -13,7 +10,6 @@ namespace DeepDrftCli.Services;
 public class GuiService
 {
     private readonly ILogger<GuiService> _logger;
-    private readonly TrackRepository _trackRepository;
     private readonly DeepDrftWeb.Services.TrackService _webTrackService;
     private readonly DeepDrftContent.Services.TrackService _contentTrackService;
 
@@ -27,12 +23,10 @@ public class GuiService
 
     public GuiService(
         ILogger<GuiService> logger,
-        TrackRepository trackRepository,
         DeepDrftWeb.Services.TrackService webTrackService,
         DeepDrftContent.Services.TrackService contentTrackService)
     {
         _logger = logger;
-        _trackRepository = trackRepository;
         _webTrackService = webTrackService;
         _contentTrackService = contentTrackService;
     }

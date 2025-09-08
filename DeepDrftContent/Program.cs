@@ -55,15 +55,6 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
-else
-{
-    // Only use HTTPS redirection if not behind a reverse proxy
-    var forwardedProto = app.Services.GetService<IConfiguration>()?["ForwardedHeaders:DisableHttpsRedirection"];
-    if (string.IsNullOrEmpty(forwardedProto) || !bool.Parse(forwardedProto))
-    {
-        app.UseHttpsRedirection();
-    }
-}
 
 app.UseCors("ContentApiPolicy");
 app.UseApiKeyAuthentication(apiKeySettings.ApiKey);

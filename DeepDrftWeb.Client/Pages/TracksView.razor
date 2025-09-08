@@ -1,4 +1,5 @@
-﻿@page "/tracks"
+@page "/tracks"
+@rendermode @(new InteractiveAutoRenderMode(prerender: false))
 
 @using DeepDrftWeb.Client.Controls
 
@@ -19,6 +20,16 @@
                                 SelectedChanged="@SetPage"
                                 BoundaryCount="2"
                                 MiddleCount="3"/>
+                
+                <div class="interactivity-test mt-4">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="TestInteractivity">
+                        Test Interactivity (@_clickCount)
+                    </MudButton>
+                    <MudText Typo="Typo.body2" Class="mt-2">
+                        Lifecycle Status: @_lifecycleStatus
+                    </MudText>
+                </div>
+                
                 <AudioPlayerBar AudioPlaybackEngine="AudioPlaybackEngine" />
             </div>
         }
