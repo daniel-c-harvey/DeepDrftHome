@@ -23,7 +23,14 @@ else
                                             IsLoaded="IsLoaded"
                                             TogglePlayPause="@TogglePlayPause"
                                             Stop="@Stop"/>
-                            
+                            @if (IsLoading)
+                            {
+                                <MudProgressCircular Color="Color.Tertiary"
+                                                     Size="Size.Small"
+                                                     Max="1D"
+                                                     Value="@LoadProgress"
+                                                     Indeterminate="@(LoadProgress == 0)"/>
+                            }
                         </div>
                         <TimestampLabel CurrentTime="CurrentTime" Duration="Duration"/>
                     </div>
