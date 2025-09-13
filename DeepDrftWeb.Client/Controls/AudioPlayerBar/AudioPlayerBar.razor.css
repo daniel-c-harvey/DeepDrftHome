@@ -22,14 +22,15 @@
 /* Player bar with rounded corners and semi-opaque background */
 .deepdrft-audio-player-bar {
     position: relative;
-    background: rgba(var(--mud-palette-surface-rgb), 0.75);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: var(--deepdrft-theme-background-gray);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
     border-radius: 1rem;
-    border: 1px solid rgba(var(--mud-palette-divider-rgb), 0.9);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--deepdrft-theme-primary);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 
+                0 2px 10px var(--deepdrft-theme-secondary);
     transition: all 0.3s ease;
-    color: var(--mud-palette-text-primary);
+    color: #ffffff;
     overflow: hidden;
     margin-bottom: 1rem;
 }
@@ -54,13 +55,13 @@
     justify-content: center;
     align-items: center;
     background: linear-gradient(135deg, 
-        rgba(var(--mud-palette-primary-rgb), 0.95) 0%,
-        rgba(var(--mud-palette-secondary-rgb), 0.9) 50%,
-        rgba(var(--mud-palette-tertiary-rgb), 0.95) 100%
+        var(--deepdrft-theme-primary) 0%,
+        var(--deepdrft-theme-secondary) 50%,
+        var(--deepdrft-theme-tertiary) 100%
     );
     backdrop-filter: blur(15px);
-    border: 2px solid rgba(var(--mud-palette-secondary-rgb), 0.7);
-    box-shadow: 0 4px 20px rgba(var(--mud-palette-primary-rgb), 0.6),
+    border: 2px solid var(--deepdrft-theme-secondary);
+    box-shadow: 0 4px 20px var(--deepdrft-theme-primary),
                 0 2px 10px rgba(0, 0, 0, 0.3);
     transition: all 0.3s ease;
     cursor: pointer;
@@ -109,6 +110,7 @@
     align-items: center;
     gap: 0.75rem;
     margin-top: 0.25rem;
+    justify-items: center;
 }
 
 .deepdrft-audio-volume-section {

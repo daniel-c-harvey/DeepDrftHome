@@ -7,6 +7,7 @@ namespace DeepDrftWeb.Client.Services;
 public class AudioPlaybackEngine : IAsyncDisposable
 {
     public event Events.EventAsync<double>? OnProgressChanged;
+    public event Events.EventAsync<double>? OnLoadChanged;
     public event Events.EventAsync? OnPlaybackEnded;
     
     public required TrackMediaClient Client { get; set; }
@@ -15,6 +16,7 @@ public class AudioPlaybackEngine : IAsyncDisposable
     public string PlayerId { get; private set; } = Guid.NewGuid().ToString();
     public bool IsInitialized { get; private set; } = false;
     public bool IsLoaded { get; private set; } = false;
+    public bool IsLoading { get; private set; } = false;
     public bool IsPlaying { get; private set; } = false;
     public bool IsPaused { get; private set; } = false;
     public double CurrentTime { get; private set; } = 0;
@@ -51,13 +53,26 @@ public class AudioPlaybackEngine : IAsyncDisposable
 
     public async Task LoadTrack(TrackEntity track)
     {
-        if (IsLoaded) return;
-
+        TrackMediaResponse? audio = null;
         try
         {
+            // Immediately reset state to indicate loading has started
             ErrorMessage = null;
             LoadProgress = 0;
-            
+            IsLoaded = false;
+            IsLoading = true;
+            Duration = null;
+            CurrentTime = 0;
+
+            // Trigger load event immediately to show loading state in UI
+            if (OnLoadChanged != null) await OnLoadChanged.Invoke(0);
+
+            if (IsPlaying || IsPaused)
+            {
+                // If we were playing/paused, unload the current track
+                await Unload();
+            }
+
             AudioOperationResult? loadResult = await AudioInterop.InitializeBufferedPlayerAsync(PlayerId);
             if (loadResult?.Success != true)
             {
@@ -65,7 +80,7 @@ public class AudioPlaybackEngine : IAsyncDisposable
                 return;
             }
 
-            var mediaResult =  await Client.GetTrackMedia(track.EntryKey);
+            var mediaResult = await Client.GetTrackMedia(track.EntryKey);
             if (!mediaResult.Success)
             {
                 ErrorMessage = mediaResult.GetMessage();
@@ -77,15 +92,28 @@ public class AudioPlaybackEngine : IAsyncDisposable
                 ErrorMessage = "No audio returned from server";
                 return;
             }
-            
-            TrackMediaResponse audio = mediaResult.Value;
-            await StreamAndPlay(audio);
+            audio = mediaResult.Value;
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error loading audio: {ex.Message}";
             LoadProgress = 0;
             IsLoaded = false;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+
+        try
+        {
+            if (audio == null) return;
+            
+            await StreamAndPlay(audio);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error streaming audio: {ex.Message}";
         }
     }
 
@@ -124,6 +152,7 @@ public class AudioPlaybackEngine : IAsyncDisposable
                     if (audio.ContentLength > 0)
                     {
                         LoadProgress = Math.Min(1.0, (double)totalBytesRead / audio.ContentLength);
+                        if (OnLoadChanged != null) await OnLoadChanged.Invoke(LoadProgress);   
                     }
                 }
             } while (currentBytes > 0);
@@ -140,6 +169,9 @@ public class AudioPlaybackEngine : IAsyncDisposable
             LoadProgress = 1.0;
             IsLoaded = true;
             ErrorMessage = null;
+            
+            // Trigger final load completion event
+            if (OnLoadChanged != null) await OnLoadChanged.Invoke(1.0);
         }
         catch (Exception ex)
         {
@@ -214,6 +246,35 @@ public class AudioPlaybackEngine : IAsyncDisposable
         catch (Exception ex)
         {
             ErrorMessage = $"Error stopping playback: {ex.Message}";
+        }
+    }
+
+    public async Task Unload()
+    {
+        if (!IsLoaded) return;
+        
+        try
+        {
+            await Stop();
+            var result = await AudioInterop.UnloadAsync(PlayerId);
+            if (result.Success)
+            {
+                IsPlaying = false;
+                IsPaused = false;
+                CurrentTime = 0;
+                Duration = null;
+                LoadProgress = 0;
+                IsLoaded = false;
+                ErrorMessage = null;
+            }
+            else
+            {
+                ErrorMessage = $"Unload error: {result.Error}";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error unloading track: {ex.Message}";
         }
     }
 

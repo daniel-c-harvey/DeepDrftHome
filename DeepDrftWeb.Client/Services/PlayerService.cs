@@ -1,4 +1,5 @@
 using DeepDrftModels.Entities;
+using NetBlocks.Models;
 
 namespace DeepDrftWeb.Client.Services;
 
@@ -15,6 +16,7 @@ public class PlayerService : IPlayerService
     // IPlayerService state properties with defensive checks
     public bool IsInitialized => _isInitialized;
     public bool IsLoaded => _isInitialized && _audioEngine?.IsLoaded == true;
+    public bool IsLoading => _isInitialized && _audioEngine?.IsLoading == true;
     public bool IsPlaying => _isInitialized && _audioEngine?.IsPlaying == true;
     public bool IsPaused => _isInitialized && _audioEngine?.IsPaused == true;
     public double CurrentTime => _isInitialized ? _audioEngine?.CurrentTime ?? 0.0 : 0.0;
@@ -24,7 +26,8 @@ public class PlayerService : IPlayerService
     public string? ErrorMessage => _isInitialized ? _audioEngine?.ErrorMessage : null;
     
     public event Action? OnStateChanged;
-    
+    public event Events.EventAsync? OnTrackSelected;
+
     public async Task SelectTrack(TrackEntity track)
     {
         if (!_isInitialized)
@@ -32,9 +35,15 @@ public class PlayerService : IPlayerService
             await EnsureInitializedAsync();
         }
         
+        // Immediately notify UI that track selection is happening
+        OnStateChanged?.Invoke();
+        
+        if (OnTrackSelected != null) await OnTrackSelected.Invoke();
+        
         if (_isInitialized && _audioEngine != null)
         {
             await _audioEngine.LoadTrack(track);
+            // Force a state change to ensure UI reflects final loaded state
             OnStateChanged?.Invoke();
         }
     }
@@ -44,6 +53,14 @@ public class PlayerService : IPlayerService
         if (!_isInitialized || _audioEngine == null) return;
         
         await _audioEngine.Stop();
+        OnStateChanged?.Invoke();
+    }
+
+    public async Task Unload()
+    {
+        if (!_isInitialized || _audioEngine == null) return;
+        
+        await _audioEngine.Unload();
         OnStateChanged?.Invoke();
     }
     
@@ -92,6 +109,7 @@ public class PlayerService : IPlayerService
             // Wire up engine events to trigger state change notifications
             _audioEngine.OnProgressChanged += async _ => OnStateChanged?.Invoke();
             _audioEngine.OnPlaybackEnded += async () => OnStateChanged?.Invoke();
+            _audioEngine.OnLoadChanged += async _ => OnStateChanged?.Invoke();
             
             _isInitialized = true;
             OnStateChanged?.Invoke();

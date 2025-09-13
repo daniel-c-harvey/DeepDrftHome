@@ -1,0 +1,12 @@
+/* TimestampLabel Component Styles */
+
+/* Timestamp display */
+.timestamp-display {
+    min-width: 120px;
+    text-align: center;
+}
+
+/* Time text styling */
+.time-text {
+    font-family: monospace;
+}

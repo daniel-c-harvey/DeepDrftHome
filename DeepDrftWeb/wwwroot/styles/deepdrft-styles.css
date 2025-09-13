@@ -13,6 +13,7 @@
     /* Surface Colors */
     --deepdrft-surface: rgba(255, 255, 255, 1);
     --deepdrft-surface-alpha: rgba(255, 255, 255, 0.9);
+    --deepdrft-theme-background-gray: rgba(26, 26, 26, 0.5);
     
     /* Theme-aware Variables (Light Mode Default) */
     --deepdrft-theme-primary: var(--deepdrft-primary);

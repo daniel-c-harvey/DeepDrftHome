@@ -1,18 +1,17 @@
-﻿using DeepDrftModels.Entities;
-using DeepDrftWeb.Client.Clients;
-using Microsoft.AspNetCore.Components;
 using DeepDrftWeb.Client.Services;
+using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
-namespace DeepDrftWeb.Client.Controls;
+namespace DeepDrftWeb.Client.Controls.AudioPlayerBar;
 
-public partial class AudioPlayerBar : ComponentBase
+public partial class AudioPlayerBar2 : ComponentBase
 {
     [CascadingParameter] public required IPlayerService PlayerService { get; set; }
     [Parameter] public bool ShowLoadProgress { get; set; } = true;
     private bool _isMinimized = true;
     
     private bool IsLoaded => PlayerService.IsLoaded;
+    private bool IsLoading => PlayerService.IsLoading;
     private bool IsPlaying => PlayerService.IsPlaying;
     private bool IsPaused => PlayerService.IsPaused;
     private double CurrentTime => PlayerService.CurrentTime;
@@ -24,22 +23,18 @@ public partial class AudioPlayerBar : ComponentBase
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-
         PlayerService.OnStateChanged += StateHasChanged;
+        PlayerService.OnTrackSelected += Expand;
     }
 
-    private string GetPlayIcon()
+    private async Task Expand()
     {
-        return IsPlaying ? Icons.Material.Filled.Pause : Icons.Material.Filled.PlayArrow;
+        if (_isMinimized)
+        {
+            _isMinimized = false;
+            StateHasChanged();
+        }
     }
-
-    private string GetVolumeIcon()
-    {
-        if (Volume == 0) return Icons.Material.Filled.VolumeOff;
-        if (Volume < 0.5) return Icons.Material.Filled.VolumeDown;
-        return Icons.Material.Filled.VolumeUp;
-    }
-
     private static string FormatTime(double seconds)
     {
         var timeSpan = TimeSpan.FromSeconds(seconds);
@@ -76,5 +71,23 @@ public partial class AudioPlayerBar : ComponentBase
         _isMinimized = !_isMinimized;
         StateHasChanged();
     }
+
+    private async Task Close()
+    {
+        if (PlayerService.IsLoaded)
+        {
+            await PlayerService.Unload();
+        }
+
+        if (!_isMinimized)
+        {
+            _isMinimized = true;
+            StateHasChanged();
+        }
+    }
     
+    private string GetPlayIcon()
+    {
+        return IsPlaying ? Icons.Material.Filled.Pause : Icons.Material.Filled.PlayArrow;
+    }
 }

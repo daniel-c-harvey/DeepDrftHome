@@ -56,6 +56,11 @@ public class AudioInteropService : IAsyncDisposable
         return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.stop", playerId);
     }
 
+    public async Task<AudioOperationResult> UnloadAsync(string playerId)
+    {
+        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.unload", playerId);
+    }
+
     public async Task<AudioOperationResult> SeekAsync(string playerId, double position)
     {
         return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.seek", playerId, position);

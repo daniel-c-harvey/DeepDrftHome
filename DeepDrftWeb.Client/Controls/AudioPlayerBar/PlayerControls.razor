@@ -1,0 +1,12 @@
+﻿<div class="player-buttons">
+    <MudIconButton Icon="@GetPlayIcon()"
+                   Color="Color.Primary"
+                   Size="Size.Large"
+                   OnClick="@TogglePlayPause"
+                   Disabled="!IsLoaded"/>
+    <MudIconButton Icon="@Icons.Material.Filled.Stop"
+                   Color="Color.Primary"
+                   Size="Size.Large"
+                   OnClick="@Stop"
+                   Disabled="!IsLoaded"/>
+</div>

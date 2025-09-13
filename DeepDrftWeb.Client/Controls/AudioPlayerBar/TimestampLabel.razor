@@ -1,0 +1,5 @@
+﻿<div class="timestamp-display">
+    <MudText Typo="Typo.body2" Class="time-text">
+        @FormatTime(CurrentTime) / @(Duration.HasValue ? FormatTime(Duration.Value) : "--:--")
+    </MudText>
+</div>

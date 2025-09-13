@@ -53,7 +53,7 @@ public partial class TracksView : ComponentBase
 
         if (track is null)
         {
-            await PlayerService.Stop();
+            await PlayerService.Unload();
         }
         else
         {

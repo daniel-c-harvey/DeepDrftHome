@@ -33,13 +33,15 @@
       <Folder Include="wwwroot\js\" />
   </ItemGroup>
 
-  <!-- Prevent TypeScript compilation issues during publish -->
+  <!-- TypeScript configuration following Microsoft recommendations -->
   <PropertyGroup>
     <TypeScriptCompileOnSaveEnabled>false</TypeScriptCompileOnSaveEnabled>
     <TypeScriptToolsVersion>Latest</TypeScriptToolsVersion>
+    <TypeScriptESModuleInterop>true</TypeScriptESModuleInterop>
+    <TypeScriptAllowSyntheticDefaultImports>true</TypeScriptAllowSyntheticDefaultImports>
   </PropertyGroup>
 
-  <!-- Only copy tsconfig.json to root output, not nested publish folders -->
+  <!-- Prevent tsconfig.json from being copied to output directories -->
   <ItemGroup>
     <None Update="tsconfig.json">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>

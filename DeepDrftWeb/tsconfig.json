@@ -1,20 +1,24 @@
-﻿{
+{
   "compilerOptions": {
-    "target": "es2016",
-    "module": "ES6", // or "ESNext" 
+    "target": "ESNext",
+    "module": "ESNext",
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
+    "noEmitOnError": true,
+    "removeComments": false,
     "sourceMap": true,
     "outDir": "wwwroot/js"
   },
   "include": [
-    "**/*.ts"
+    "Interop/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "bin/**/*",
-    "obj/**/*"
+    "obj/**/*",
+    "publish/**/*"
   ]
 }

@@ -21,7 +21,6 @@ interface AudioState {
 
 type ProgressCallback = (currentTime: number) => void;
 type EndCallback = () => void;
-type LoadProgressCallback = (progress: number) => void;
 
 interface Window {
     webkitAudioContext?: typeof AudioContext;
@@ -40,7 +39,6 @@ class AudioPlayer {
     private duration: number = 0;
     private onProgressCallback: ProgressCallback | null = null;
     private onEndCallback: EndCallback | null = null;
-    private onLoadProgressCallback: LoadProgressCallback | null = null;
     private progressInterval: number | null = null;
     private bufferChunks: Uint8Array[] = [];
     private expectedSize: number = 0;
@@ -72,12 +70,6 @@ class AudioPlayer {
         try {
             this.bufferChunks.push(audioBlock);
             this.currentSize += audioBlock.length;
-
-            if (this.expectedSize > 0 && this.onLoadProgressCallback) {
-                const progress = (this.currentSize / this.expectedSize) * 100;
-                this.onLoadProgressCallback(Math.min(progress, 100));
-            }
-
             return { success: true };
         } catch (error) {
             return { success: false, error: (error as Error).message };
@@ -100,10 +92,6 @@ class AudioPlayer {
 
             this.bufferChunks = [];
             this.currentSize = 0;
-
-            if (this.onLoadProgressCallback) {
-                this.onLoadProgressCallback(100);
-            }
 
             return {
                 success: true,
@@ -297,8 +285,19 @@ class AudioPlayer {
         this.onEndCallback = callback;
     }
 
-    setOnLoadProgressCallback(callback: LoadProgressCallback): void {
-        this.onLoadProgressCallback = callback;
+    unload(): AudioResult {
+        try {
+            this.stop();
+            this.audioBuffer = null;
+            this.duration = 0;
+            this.bufferChunks = [];
+            this.currentSize = 0;
+            this.expectedSize = 0;
+            
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: (error as Error).message };
+        }
     }
 
     dispose(): void {
@@ -387,6 +386,14 @@ const DeepDrftAudio = {
         return player.stop();
     },
 
+    unload: (playerId: string): AudioResult => {
+        const player = audioPlayers.get(playerId);
+        if (!player) {
+            return { success: false, error: "Player not found" };
+        }
+        return player.unload();
+    },
+
     seek: (playerId: string, position: number): AudioResult => {
         const player = audioPlayers.get(playerId);
         if (!player) {
@@ -440,19 +447,6 @@ const DeepDrftAudio = {
 
         player.setOnEndCallback(() => {
             dotNetObjectReference.invokeMethodAsync(methodName);
-        });
-
-        return { success: true };
-    },
-
-    setOnLoadProgressCallback: (playerId: string, dotNetObjectReference: DotNetObjectReference, methodName: string): AudioResult => {
-        const player = audioPlayers.get(playerId);
-        if (!player) {
-            return { success: false, error: "Player not found" };
-        }
-
-        player.setOnLoadProgressCallback((progress: number) => {
-            dotNetObjectReference.invokeMethodAsync(methodName, progress);
         });
 
         return { success: true };

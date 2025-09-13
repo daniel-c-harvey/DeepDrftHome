@@ -5,7 +5,7 @@ echo "🚀 Starting CLI deployment process..."
 # start SSH agent and add key
 echo "🔑 Starting SSH agent and adding deployment key..."
 eval $(ssh-agent -s)
-ssh-add /c/.ssh/deepdrft_ed25519
+ssh-add /c/.ssh/deepdrft_dch6_ed25519
 echo "✅ SSH agent configured"
 
 CLI_PROJ="DeepDrftCli"
@@ -37,7 +37,7 @@ tar -czf $CLI_APP -C $CLI_PROJ/publish .
 echo "✅ Package created: $CLI_APP"
 
 # Deploy
-REMOTE="deepdrft@dch5.snailbird.net"
+REMOTE="deepdrft@dch6.snailbird.net"
 CLI_APPROOT="/deepdrft/cli"
 
 echo "🌐 Deploying to remote server: $REMOTE"

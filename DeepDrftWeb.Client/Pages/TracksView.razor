@@ -1,5 +1,4 @@
 @page "/tracks"
-@rendermode @(new InteractiveAutoRenderMode(prerender: false))
 
 @using DeepDrftWeb.Client.Controls
 
@@ -20,21 +19,21 @@
                                 SelectedChanged="@SetPage"
                                 BoundaryCount="2"
                                 MiddleCount="3"/>
-                
-                <div class="interactivity-test mt-4">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="TestInteractivity">
-                        Test Interactivity (@_clickCount)
-                    </MudButton>
-                    <MudText Typo="Typo.body2" Class="mt-2">
-                        Lifecycle Status: @_lifecycleStatus
-                    </MudText>
-                </div>
             </div>
         }
         else
         {
             <div class="tracks-content">
-                <MudSkeleton Height="95%" Class="pa-2 ma-6"/>
+                <MudGrid Spacing="3">
+                    @foreach (var i in Enumerable.Range(0, 12))
+                    {
+                        <MudItem xs="12" sm="6" md="4" lg="3" xl="3">
+                            <div class="deepdrft-track-gallery-item-center">
+                                <MudSkeleton Width="240px" Height="240px" SkeletonType="SkeletonType.Rectangle"/>
+                            </div>
+                        </MudItem>
+                    }
+                </MudGrid>
             </div>
             <div class="tracks-footer">
                 <MudSkeleton Height="60px" Width="240px" Class="justify-center"/>

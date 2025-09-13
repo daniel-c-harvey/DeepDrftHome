@@ -1,4 +1,5 @@
 ﻿@using DeepDrftWeb.Client.Controls
+@using DeepDrftWeb.Client.Controls.AudioPlayerBar
 @inherits LayoutComponentBase
 
 <MudThemeProvider Theme="@_themeManager.Theme" IsDarkMode="_isDarkMode" />
@@ -7,8 +8,6 @@
 <MudSnackbarProvider />
 <MudLayout>
     <AudioPlayerService>
-        @* <MudThemeManagerButton OnClick="@((e) => OpenThemeManager(true))" /> *@
-        @* <MudThemeManager Open="_themeManagerOpen" OpenChanged="OpenThemeManager" Theme="_themeManager" ThemeChanged="UpdateTheme" /> *@
         <MudAppBar Elevation="_themeManager.AppBarElevation">
             <MudAvatar Class="mr-2">
                 <MudImage Src="img/deepdrft-logo.jpg"></MudImage>
@@ -16,13 +15,12 @@
             <NavMenu />
             <MudSpacer/>
             <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle"/>
-            @* <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End"/> *@
         </MudAppBar>
         <MudMainContent Class="pt-16 deepdrft-layout-with-overlay-player">
             <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
                 @Body
             </MudContainer>
-            <AudioPlayerBar />
+            <AudioPlayerBar2 />
         </MudMainContent>
     </AudioPlayerService>
 </MudLayout>
@@ -37,7 +35,6 @@
 @code {
     private bool _drawerOpen = true;
     private bool _isDarkMode = true;
-    // private MudTheme? _theme = null;
 
     protected override void OnInitialized()
     {

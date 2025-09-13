@@ -1,0 +1,114 @@
+@if (_isMinimized)
+{
+    <div class="deepdrft-minimized-player-dock">
+        <MudIconButton Icon="@GetPlayIcon()"
+                       Color="Color.Primary" 
+                       Size="Size.Large"
+                       Class="deepdrft-minimized-player-button"
+                       OnClick="@ToggleMinimized" />
+    </div>
+}
+else 
+{
+    @* Full-width outer container *@
+    <div class="deepdrft-player-outer-container">
+        <MudContainer MaxWidth="MaxWidth.Large" Class="deepdrft-player-inner-container">
+            <div class="deepdrft-audio-player-bar">
+                @* Full Screen *@
+                <div class="d-none d-md-block deepdrft-audio-player-content">
+                    <div class="deepdrft-audio-controls-section">
+                        <div class="deepdrft-audio-buttons-row">
+                            <PlayerControls IsPlaying="IsPlaying"
+                                            IsLoaded="IsLoaded"
+                                            TogglePlayPause="@TogglePlayPause"
+                                            Stop="@Stop"/>
+                
+                            @if (!IsLoaded)
+                            {
+                                <MudProgressCircular Color="Color.Tertiary"
+                                                     Max="1D"
+                                                     Value="@LoadProgress"
+                                                     Indeterminate="@(LoadProgress == 0)"/>
+                            }
+                        </div>
+                        <TimestampLabel CurrentTime="CurrentTime"
+                                        Duration="Duration"/>
+                    </div>
+                
+                    @* Seek slider *@
+                    <MudSlider T="double"
+                               Min="0"
+                               Max="@(Duration ?? 0D)"
+                               Step="0.1"
+                               Value="@CurrentTime"
+                               ValueChanged="@OnSeek"
+                               Disabled="!IsLoaded"
+                               Class="deepdrft-audio-seek-slider"/>
+                
+                    <div class="deepdrft-audio-volume-section">
+                        <VolumeControls Volume="@Volume" VolumeChanged="@OnVolumeChange"/>
+                    </div>
+                </div>
+                
+                @* Mobile *@
+                <div class="d-md-none deepdrft-audio-player-content">
+                    <div class="deepdrft-audio-controls-section">
+                        <div class="deepdrft-audio-buttons-row">
+                            <PlayerControls IsPlaying="IsPlaying"
+                                            IsLoaded="IsLoaded"
+                                            TogglePlayPause="@TogglePlayPause"
+                                            Stop="@Stop"/>
+                
+                            <VolumeControls Volume="@Volume"
+                                            VolumeChanged="@OnVolumeChange"/>
+                
+                            @if (!IsLoaded)
+                            {
+                                <MudProgressCircular Color="Color.Tertiary"
+                                                     Max="1D"
+                                                     Value="@LoadProgress"
+                                                     Indeterminate="@(LoadProgress == 0)"/>
+                            }
+                        </div>
+                        <TimestampLabel CurrentTime="CurrentTime"
+                                        Duration="Duration"/>
+                    </div>
+                
+                    @* Seek slider *@
+                    <MudSlider T="double"
+                               Min="0"
+                               Max="@(Duration ?? 0D)"
+                               Step="0.1"
+                               Value="@CurrentTime"
+                               ValueChanged="@OnSeek"
+                               Disabled="!IsLoaded"
+                               Class="deepdrft-audio-seek-slider"/>
+                </div>
+                
+                <div class="deepdrft-audio-minimize-section">
+                    <MudIconButton Icon="@Icons.Material.Filled.Minimize"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   OnClick="@ToggleMinimized"/>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   OnClick="@Close"/>
+                </div>
+            </div>  
+                    
+                
+                
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <MudAlert Severity="Severity.Error" ShowCloseIcon="true" CloseIconClicked="ClearError" Class="ma-2">
+                        @ErrorMessage
+                    </MudAlert>
+                }
+            
+        </MudContainer>
+    </div>
+    
+    @* Spacer div to maintain layout spacing *@
+    <div class="deepdrft-player-spacer"></div>
+}

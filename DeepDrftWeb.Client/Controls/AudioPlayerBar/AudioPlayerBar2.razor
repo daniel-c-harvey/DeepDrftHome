@@ -1,0 +1,103 @@
+@if (_isMinimized)
+{
+    <div class="minimized-dock d-flex align-center justify-center"
+         @onclick="@ToggleMinimized">
+        <MudIconButton Icon="@GetPlayIcon()"
+                       Color="Color.Primary" 
+                       Size="Size.Large"
+                       Class="minimized-button"
+                       OnClick="@ToggleMinimized"/>
+    </div>
+}
+else 
+{
+    <div class="player-outer-container d-flex flex-column">
+        <MudContainer MaxWidth="MaxWidth.Large" Class="player-inner-container">
+            <div class="player-backdrop pa-3">
+            
+                @* Desktop Layout *@
+                <div class="d-none d-md-flex align-center gap-3">
+                    <div class="controls-left d-flex flex-column align-center gap-2">
+                        <div class="d-flex align-center gap-1">
+                            <PlayerControls IsPlaying="IsPlaying"
+                                            IsLoaded="IsLoaded"
+                                            TogglePlayPause="@TogglePlayPause"
+                                            Stop="@Stop"/>
+                            
+                        </div>
+                        <TimestampLabel CurrentTime="CurrentTime" Duration="Duration"/>
+                    </div>
+                    
+                    <div class="seekbar-flex mx-3">
+                        <MudSlider T="double"
+                                   Min="0"
+                                   Max="@(Duration ?? 0D)"
+                                   Step="0.1"
+                                   Value="@CurrentTime"
+                                   ValueChanged="@OnSeek"
+                                   Disabled="!IsLoaded"/>
+                    </div>
+                    
+                    <div class="volume-right">
+                        <VolumeControls Volume="@Volume" VolumeChanged="@OnVolumeChange"/>
+                    </div>
+                </div>
+                
+                @* Mobile Layout *@
+                <div class="d-md-none">
+                    <div class="d-flex align-center justify-space-between mb-3">
+                        <div class="d-flex align-center gap-2">
+                            <PlayerControls IsPlaying="IsPlaying"
+                                            IsLoaded="IsLoaded"
+                                            TogglePlayPause="@TogglePlayPause"
+                                            Stop="@Stop"/>
+                            @if (IsLoading)
+                            {
+                                <MudProgressCircular Color="Color.Tertiary"
+                                                     Size="Size.Small"
+                                                     Max="1D"
+                                                     Value="@LoadProgress"
+                                                     Indeterminate="@(LoadProgress == 0)"/>
+                            }
+                        </div>
+                        <TimestampLabel CurrentTime="CurrentTime" Duration="Duration"/>
+                        <VolumeControls Volume="@Volume" VolumeChanged="@OnVolumeChange"/>
+                    </div>
+                    
+                    <MudSlider T="double"
+                               Min="0"
+                               Max="@(Duration ?? 0D)"
+                               Step="0.1"
+                               Value="@CurrentTime"
+                               ValueChanged="@OnSeek"
+                               Disabled="!IsLoaded"/>
+                </div>
+                
+                    @* Control Buttons - positioned absolutely like original *@
+                <div class="player-controls d-flex align-center justify-center gap-1">
+                    <MudIconButton Icon="@Icons.Material.Filled.Minimize"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   OnClick="@ToggleMinimized"/>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                   Color="Color.Secondary"
+                                   Size="Size.Small"
+                                   OnClick="@Close"/>
+                </div>
+            </div>
+        </MudContainer>
+            
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <MudAlert Severity="Severity.Error" 
+                      ShowCloseIcon="true" 
+                      CloseIconClicked="ClearError" 
+                      Class="ma-2">
+                @ErrorMessage
+            </MudAlert>
+        }
+    </div>
+    
+    @* Spacer to prevent content overlap *@
+    <div class="player-spacer"></div>
+}

@@ -1,0 +1,10 @@
+﻿<div class="volume-controls">
+    <MudIcon Icon="@GetVolumeIcon()" Class="volume-icon"/>
+    <MudSlider T="double"
+               Min="0"
+               Max="1"
+               Step="0.01"
+               Value="@Volume"
+               ValueChanged="@VolumeChanged"
+               Class="volume-slider"/>
+</div>

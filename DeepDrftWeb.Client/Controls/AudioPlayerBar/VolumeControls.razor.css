@@ -1,0 +1,19 @@
+/* VolumeControls Component Styles */
+
+/* Volume control container */
+.volume-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    width: 140px;
+}
+
+/* Volume icon styling */
+.volume-icon {
+    margin-right: 4px;
+}
+
+/* Volume slider styling */
+.volume-slider {
+    width: 100px;
+}

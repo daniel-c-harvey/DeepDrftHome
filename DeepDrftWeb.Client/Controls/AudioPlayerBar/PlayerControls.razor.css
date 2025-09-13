@@ -1,0 +1,8 @@
+/* PlayerControls Component Styles */
+
+/* Button spacing and alignment */
+.player-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
