@@ -3,7 +3,7 @@ using NetBlocks.Models;
 
 namespace DeepDrftWeb.Client.Clients;
 
-public class TrackMediaResponse
+public class TrackMediaResponse : IDisposable
 {
     public Stream Stream { get; }
     public long ContentLength { get; }
@@ -12,6 +12,11 @@ public class TrackMediaResponse
     {
         Stream = stream;
         ContentLength = contentLength;
+    }
+
+    public void Dispose()
+    {
+        Stream?.Dispose();
     }
 }
 

@@ -23,7 +23,9 @@
     <Routes @rendermode="InteractiveAuto" />
     <script src="_framework/blazor.web.js"></script>
     <script src=@Assets["_content/MudBlazor/MudBlazor.min.js"]></script>
-    <script src="js/webaudio.js"></script>
+    <script type="module">
+        import('./js/webaudio.js');
+    </script>
 </body>
 
 </html>

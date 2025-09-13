@@ -1,4 +1,5 @@
 using DeepDrftModels.Entities;
+using Microsoft.AspNetCore.Components;
 using NetBlocks.Models;
 
 namespace DeepDrftWeb.Client.Services;
@@ -18,8 +19,8 @@ public interface IPlayerService
     string? ErrorMessage { get; }
     
     // Events for UI updates
-    event Action? OnStateChanged;
-    event Events.EventAsync OnTrackSelected;
+    EventCallback? OnStateChanged { get; set; }
+    EventCallback? OnTrackSelected { get; set; }
     
     // Control methods
     Task InitializeAsync();
@@ -29,5 +30,17 @@ public interface IPlayerService
     Task TogglePlayPause();
     Task Seek(double position);
     Task SetVolume(double volume);
-    void ClearError();
+    Task ClearError();
+}
+
+public interface IStreamingPlayerService : IPlayerService
+{
+    // Streaming state properties
+    bool IsStreamingMode { get; }
+    bool CanStartStreaming { get; }
+    bool HeaderParsed { get; }
+    int BufferedChunks { get; }
+    
+    // Streaming control methods
+    Task SelectTrackStreaming(TrackEntity track);
 }

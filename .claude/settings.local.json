@@ -45,7 +45,8 @@
       "Read(/F:\\Development\\DeepDrftHome\\DeepDrftTests/**)",
       "Read(/F:\\Development\\DeepDrftHome\\DeepDrftTests/**)",
       "Read(/F:\\Development\\DeepDrftHome\\DeepDrftTests/**)",
-      "Read(//f/Development/NetBlocks/**)"
+      "Read(//f/Development/NetBlocks/**)",
+      "Read(//c/lib/NetBlocks/Models//**)"
     ],
     "deny": [],
     "ask": []

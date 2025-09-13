@@ -40,6 +40,21 @@ public class AudioInteropService : IAsyncDisposable
         return await InvokeJsAsync<AudioLoadResult>("DeepDrftAudio.finalizeAudioBuffer", playerId);
     }
 
+    // Streaming methods
+    public async Task<AudioOperationResult> InitializeStreaming(string playerId)
+    {
+        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.initializeStreaming", playerId);
+    }
+
+    public async Task<StreamingResult> ProcessStreamingChunk(string playerId, byte[] audioChunk)
+    {
+        return await InvokeJsAsync<StreamingResult>("DeepDrftAudio.processStreamingChunk", playerId, audioChunk);
+    }
+
+    public async Task<AudioOperationResult> StartStreamingPlayback(string playerId)
+    {
+        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.startStreamingPlayback", playerId);
+    }
 
     public async Task<AudioOperationResult> PlayAsync(string playerId)
     {
@@ -214,6 +229,13 @@ public class AudioLoadResult : AudioOperationResult
     public int SampleRate { get; set; }
     public int NumberOfChannels { get; set; }
     public double LoadProgress { get; set; }
+}
+
+public class StreamingResult : AudioOperationResult
+{
+    public bool CanStartStreaming { get; set; }
+    public bool HeaderParsed { get; set; }
+    public int BufferCount { get; set; }
 }
 
 public class AudioPlayerState
