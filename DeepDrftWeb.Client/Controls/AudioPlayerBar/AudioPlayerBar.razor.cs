@@ -1,4 +1,4 @@
-﻿using DeepDrftWeb.Client.Services;
+using DeepDrftWeb.Client.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -7,10 +7,11 @@ namespace DeepDrftWeb.Client.Controls.AudioPlayerBar;
 public partial class AudioPlayerBar : ComponentBase
 {
     [CascadingParameter] public required IPlayerService PlayerService { get; set; }
-    [Parameter] public bool ShowLoadProgress { get; set; } = true;
+    
     private bool _isMinimized = true;
     
     private bool IsLoaded => PlayerService.IsLoaded;
+    private bool IsLoading => PlayerService.IsLoading;
     private bool IsPlaying => PlayerService.IsPlaying;
     private bool IsPaused => PlayerService.IsPaused;
     private double CurrentTime => PlayerService.CurrentTime;

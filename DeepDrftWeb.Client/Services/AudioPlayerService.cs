@@ -1,22 +1,17 @@
-﻿// DEPRECATED: This class has been merged into AudioPlayerService
-// TODO: Remove after testing new implementation
-/*
 using DeepDrftModels.Entities;
 using DeepDrftWeb.Client.Clients;
 using NetBlocks.Models;
 
 namespace DeepDrftWeb.Client.Services;
 
-public class AudioPlaybackEngine : IAsyncDisposable
+public class AudioPlayerService : IPlayerService, IAsyncDisposable
 {
-    public event Events.EventAsync<double>? OnProgressChanged;
-    public event Events.EventAsync<double>? OnLoadChanged;
-    public event Events.EventAsync? OnPlaybackEnded;
+    private readonly AudioInteropService _audioInterop;
+    private readonly TrackMediaClient _trackMediaClient;
     
-    public required TrackMediaClient Client { get; set; }
-    public required AudioInteropService AudioInterop { get; set; }
-
     public string PlayerId { get; private set; } = Guid.NewGuid().ToString();
+    
+    // State properties
     public bool IsInitialized { get; private set; } = false;
     public bool IsLoaded { get; private set; } = false;
     public bool IsLoading { get; private set; } = false;
@@ -28,62 +23,88 @@ public class AudioPlaybackEngine : IAsyncDisposable
     public double LoadProgress { get; private set; } = 0;
     public string? ErrorMessage { get; private set; }
 
-    public AudioPlaybackEngine(AudioInteropService audioInterop, TrackMediaClient client)
+    // Events
+    public event Action? OnStateChanged;
+    public event Events.EventAsync? OnTrackSelected;
+
+    public AudioPlayerService(AudioInteropService audioInterop, TrackMediaClient trackMediaClient)
     {
-        AudioInterop = audioInterop;
-        Client = client;
+        _audioInterop = audioInterop;
+        _trackMediaClient = trackMediaClient;
     }
 
-    public async Task InitializeAudioPlayer()
+    public async Task InitializeAsync()
     {
         if (IsInitialized) return;
 
-        var result = await AudioInterop.CreatePlayerAsync(PlayerId);
-        if (!result.Success)
-        {
-            ErrorMessage = $"Failed to initialize audio player: {result.Error}";
-            return;
-        }
-
-        await AudioInterop.SetOnProgressCallbackAsync(PlayerId, OnProgress);
-        await AudioInterop.SetOnEndCallbackAsync(PlayerId, OnPlaybackEnd);
-        await AudioInterop.SetOnLoadProgressCallbackAsync(PlayerId, OnLoadProgress);
-        
-        await AudioInterop.SetVolumeAsync(PlayerId, Volume);
-        
-        IsInitialized = true;
-    }
-
-    public async Task LoadTrack(TrackEntity track)
-    {
-        TrackMediaResponse? audio = null;
         try
         {
-            // Immediately reset state to indicate loading has started
+            var result = await _audioInterop.CreatePlayerAsync(PlayerId);
+            if (!result.Success)
+            {
+                ErrorMessage = $"Failed to initialize audio player: {result.Error}";
+                NotifyStateChanged();
+                return;
+            }
+
+            await _audioInterop.SetOnProgressCallbackAsync(PlayerId, OnProgressCallback);
+            await _audioInterop.SetOnEndCallbackAsync(PlayerId, OnPlaybackEndCallback);
+            await _audioInterop.SetOnLoadProgressCallbackAsync(PlayerId, OnLoadProgressCallback);
+            
+            await _audioInterop.SetVolumeAsync(PlayerId, Volume);
+            
+            IsInitialized = true;
+            ErrorMessage = null;
+            NotifyStateChanged();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to initialize audio player: {ex.Message}";
+            NotifyStateChanged();
+        }
+    }
+
+    public async Task SelectTrack(TrackEntity track)
+    {
+        await EnsureInitializedAsync();
+        
+        NotifyStateChanged();
+        
+        if (OnTrackSelected != null) 
+            await OnTrackSelected.Invoke();
+        
+        await LoadTrack(track);
+        NotifyStateChanged();
+    }
+
+    private async Task LoadTrack(TrackEntity track)
+    {
+        try
+        {
+            if (IsLoading) return;
+            
+            if (IsPlaying || IsPaused)
+            {
+                await Unload();
+            }
+            
+            // Reset state to indicate loading has started
             ErrorMessage = null;
             LoadProgress = 0;
             IsLoaded = false;
             IsLoading = true;
             Duration = null;
             CurrentTime = 0;
+            NotifyStateChanged();
 
-            // Trigger load event immediately to show loading state in UI
-            if (OnLoadChanged != null) await OnLoadChanged.Invoke(0);
-
-            if (IsPlaying || IsPaused)
-            {
-                // If we were playing/paused, unload the current track
-                await Unload();
-            }
-
-            AudioOperationResult? loadResult = await AudioInterop.InitializeBufferedPlayerAsync(PlayerId);
+            var loadResult = await _audioInterop.InitializeBufferedPlayerAsync(PlayerId);
             if (loadResult?.Success != true)
             {
                 ErrorMessage = $"Failed to initialize audio buffer: {loadResult?.Error ?? "Unknown error"}";
                 return;
             }
 
-            var mediaResult = await Client.GetTrackMedia(track.EntryKey);
+            var mediaResult = await _trackMediaClient.GetTrackMedia(track.EntryKey);
             if (!mediaResult.Success)
             {
                 ErrorMessage = mediaResult.GetMessage();
@@ -95,7 +116,9 @@ public class AudioPlaybackEngine : IAsyncDisposable
                 ErrorMessage = "No audio returned from server";
                 return;
             }
-            audio = mediaResult.Value;
+            
+            TrackMediaResponse audio = mediaResult.Value;
+            await StreamAudio(audio);
         }
         catch (Exception ex)
         {
@@ -106,25 +129,15 @@ public class AudioPlaybackEngine : IAsyncDisposable
         finally
         {
             IsLoading = false;
-        }
-
-        try
-        {
-            if (audio == null) return;
-            
-            await StreamAndPlay(audio);
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error streaming audio: {ex.Message}";
+            NotifyStateChanged();
         }
     }
 
-    private async Task StreamAndPlay(TrackMediaResponse audio)
+    private async Task StreamAudio(TrackMediaResponse audio)
     {
         try
         {
-            const int bufferSize = 32 * 1024; // Increased buffer size for better performance
+            const int bufferSize = 32 * 1024;
             long totalBytesRead = 0;
             int currentBytes;
             
@@ -137,7 +150,6 @@ public class AudioPlaybackEngine : IAsyncDisposable
                 {
                     totalBytesRead += currentBytes;
                     
-                    // Resize buffer if we didn't read the full amount
                     if (currentBytes < bufferSize)
                     {
                         var trimmedBuffer = new byte[currentBytes];
@@ -145,42 +157,38 @@ public class AudioPlaybackEngine : IAsyncDisposable
                         buffer = trimmedBuffer;
                     }
                     
-                    var appendResult = await AudioInterop.AppendAudioBlockAsync(PlayerId, buffer);
+                    var appendResult = await _audioInterop.AppendAudioBlockAsync(PlayerId, buffer);
                     if (!appendResult.Success)
                     {
                         throw new Exception($"Failed to append audio block: {appendResult.Error}");
                     }
                     
-                    // Update progress during streaming
                     if (audio.ContentLength > 0)
                     {
                         LoadProgress = Math.Min(1.0, (double)totalBytesRead / audio.ContentLength);
-                        if (OnLoadChanged != null) await OnLoadChanged.Invoke(LoadProgress);   
+                        NotifyStateChanged();
                     }
                 }
             } while (currentBytes > 0);
             
-            // Finalize the buffer and update metadata
-            var finalizeResult = await AudioInterop.FinalizeAudioBufferAsync(PlayerId);
+            var finalizeResult = await _audioInterop.FinalizeAudioBufferAsync(PlayerId);
             if (!finalizeResult.Success)
             {
                 throw new Exception($"Failed to finalize audio buffer: {finalizeResult.Error}");
             }
             
-            // Update engine state with audio metadata
             Duration = finalizeResult.Duration;
             LoadProgress = 1.0;
             IsLoaded = true;
             ErrorMessage = null;
-            
-            // Trigger final load completion event
-            if (OnLoadChanged != null) await OnLoadChanged.Invoke(1.0);
+            NotifyStateChanged();
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error streaming audio: {ex.Message}";
             LoadProgress = 0;
             IsLoaded = false;
+            NotifyStateChanged();
             throw;
         }
     }
@@ -195,7 +203,7 @@ public class AudioPlaybackEngine : IAsyncDisposable
 
             if (IsPlaying)
             {
-                result = await AudioInterop.PauseAsync(PlayerId);
+                result = await _audioInterop.PauseAsync(PlayerId);
                 if (result.Success)
                 {
                     IsPlaying = false;
@@ -204,7 +212,7 @@ public class AudioPlaybackEngine : IAsyncDisposable
             }
             else
             {
-                result = await AudioInterop.PlayAsync(PlayerId);
+                result = await _audioInterop.PlayAsync(PlayerId);
                 if (result.Success)
                 {
                     IsPlaying = true;
@@ -220,10 +228,13 @@ public class AudioPlaybackEngine : IAsyncDisposable
             {
                 ErrorMessage = null;
             }
+            
+            NotifyStateChanged();
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error controlling playback: {ex.Message}";
+            NotifyStateChanged();
         }
     }
 
@@ -233,7 +244,7 @@ public class AudioPlaybackEngine : IAsyncDisposable
 
         try
         {
-            var result = await AudioInterop.StopAsync(PlayerId);
+            var result = await _audioInterop.StopAsync(PlayerId);
             if (result.Success)
             {
                 IsPlaying = false;
@@ -245,10 +256,13 @@ public class AudioPlaybackEngine : IAsyncDisposable
             {
                 ErrorMessage = $"Stop error: {result.Error}";
             }
+            
+            NotifyStateChanged();
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error stopping playback: {ex.Message}";
+            NotifyStateChanged();
         }
     }
 
@@ -259,7 +273,7 @@ public class AudioPlaybackEngine : IAsyncDisposable
         try
         {
             await Stop();
-            var result = await AudioInterop.UnloadAsync(PlayerId);
+            var result = await _audioInterop.UnloadAsync(PlayerId);
             if (result.Success)
             {
                 IsPlaying = false;
@@ -274,20 +288,23 @@ public class AudioPlaybackEngine : IAsyncDisposable
             {
                 ErrorMessage = $"Unload error: {result.Error}";
             }
+            
+            NotifyStateChanged();
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error unloading track: {ex.Message}";
+            NotifyStateChanged();
         }
     }
 
-    public async Task OnSeek(double position)
+    public async Task Seek(double position)
     {
         if (!IsLoaded) return;
 
         try
         {
-            var result = await AudioInterop.SeekAsync(PlayerId, position);
+            var result = await _audioInterop.SeekAsync(PlayerId, position);
             if (result.Success)
             {
                 CurrentTime = position;
@@ -297,14 +314,17 @@ public class AudioPlaybackEngine : IAsyncDisposable
             {
                 ErrorMessage = $"Seek error: {result.Error}";
             }
+            
+            NotifyStateChanged();
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error seeking: {ex.Message}";
+            NotifyStateChanged();
         }
     }
 
-    public async Task OnVolumeChange(double volume)
+    public async Task SetVolume(double volume)
     {
         Volume = volume;
 
@@ -312,10 +332,14 @@ public class AudioPlaybackEngine : IAsyncDisposable
         {
             try
             {
-                var result = await AudioInterop.SetVolumeAsync(PlayerId, volume);
+                var result = await _audioInterop.SetVolumeAsync(PlayerId, volume);
                 if (!result.Success)
                 {
                     ErrorMessage = $"Volume error: {result.Error}";
+                }
+                else
+                {
+                    ErrorMessage = null;
                 }
             }
             catch (Exception ex)
@@ -323,42 +347,54 @@ public class AudioPlaybackEngine : IAsyncDisposable
                 ErrorMessage = $"Error setting volume: {ex.Message}";
             }
         }
+        
+        NotifyStateChanged();
     }
 
-    private async Task OnProgress(double currentTime)
+    public void ClearError()
+    {
+        ErrorMessage = null;
+        NotifyStateChanged();
+    }
+
+    private async Task OnProgressCallback(double currentTime)
     {
         CurrentTime = currentTime;
-        if (OnProgressChanged != null)
-        {
-            await OnProgressChanged(currentTime);
-        }
+        NotifyStateChanged();
     }
 
-    private async Task OnPlaybackEnd()
+    private async Task OnPlaybackEndCallback()
     {
         IsPlaying = false;
         IsPaused = false;
         CurrentTime = 0;
-        
-        if (OnPlaybackEnded != null)
+        NotifyStateChanged();
+    }
+
+    private async Task OnLoadProgressCallback(double progress)
+    {
+        LoadProgress = progress;
+        NotifyStateChanged();
+    }
+
+    private async Task EnsureInitializedAsync()
+    {
+        if (!IsInitialized)
         {
-            await OnPlaybackEnded();
+            await InitializeAsync();
         }
     }
 
-    private async Task OnLoadProgress(double progress)
+    private void NotifyStateChanged()
     {
-        LoadProgress = progress;
-    }
-    
-    public void ClearError()
-    {
-        ErrorMessage = null;
+        OnStateChanged?.Invoke();
     }
 
     public async ValueTask DisposeAsync()
     {
-        await AudioInterop.DisposePlayerAsync(PlayerId);
+        if (IsInitialized)
+        {
+            await _audioInterop.DisposePlayerAsync(PlayerId);
+        }
     }
 }
-*/

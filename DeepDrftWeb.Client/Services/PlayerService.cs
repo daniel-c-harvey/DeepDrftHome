@@ -1,3 +1,6 @@
+// DEPRECATED: This class has been replaced by AudioPlayerService
+// TODO: Remove after testing new implementation
+/*
 using DeepDrftModels.Entities;
 using NetBlocks.Models;
 
@@ -129,3 +132,4 @@ public class PlayerService : IPlayerService
         }
     }
 }
+*/

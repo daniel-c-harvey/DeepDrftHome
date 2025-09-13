@@ -29,6 +29,6 @@ public static class Startup
         });
         services.AddScoped<TrackMediaClient>();
         services.AddScoped<AudioInteropService>();
-        services.AddTransient<AudioPlaybackEngine>();
+        // AudioPlaybackEngine removed - functionality merged into AudioPlayerService
     }
 }

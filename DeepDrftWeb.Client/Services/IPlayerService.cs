@@ -22,6 +22,7 @@ public interface IPlayerService
     event Events.EventAsync OnTrackSelected;
     
     // Control methods
+    Task InitializeAsync();
     Task SelectTrack(TrackEntity track);
     Task Stop();
     Task Unload();
