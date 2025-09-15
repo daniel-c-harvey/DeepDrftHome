@@ -6,12 +6,13 @@ namespace DeepDrftWeb.Client.Controls.AudioPlayerBar;
 
 public partial class AudioPlayerBar : ComponentBase
 {
-    [CascadingParameter] public required IPlayerService PlayerService { get; set; }
+    [CascadingParameter] public required IStreamingPlayerService PlayerService { get; set; }
     
     private bool _isMinimized = true;
     
     private bool IsLoaded => PlayerService.IsLoaded;
     private bool IsLoading => PlayerService.IsLoading;
+    private bool IsStreaming => PlayerService.CanStartStreaming;
     private bool IsPlaying => PlayerService.IsPlaying;
     private bool IsPaused => PlayerService.IsPaused;
     private double CurrentTime => PlayerService.CurrentTime;
@@ -23,8 +24,8 @@ public partial class AudioPlayerBar : ComponentBase
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        PlayerService.OnStateChanged += StateHasChanged;
-        PlayerService.OnTrackSelected += Expand;
+        // Set up EventCallback for track selection
+        PlayerService.OnTrackSelected = new EventCallback(this, Expand);
     }
 
     private async Task Expand()

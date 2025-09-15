@@ -28,18 +28,28 @@ class WavUtils {
         const wave = new TextDecoder().decode(concatenated.slice(8, 12));
         if (wave !== 'WAVE') return null;
 
-        // Find fmt chunk
+        // Find fmt chunk with better alignment handling
         let fmtOffset = 12;
         while (fmtOffset < totalSize - 8) {
             const chunkId = new TextDecoder().decode(concatenated.slice(fmtOffset, fmtOffset + 4));
             const chunkSize = view.getUint32(fmtOffset + 4, true);
             
             if (chunkId === 'fmt ') {
+                // Validate minimum fmt chunk size
+                if (chunkSize < 16) return null;
+                
+                const audioFormat = view.getUint16(fmtOffset + 8, true);
+                if (audioFormat !== 1) return null; // Only PCM supported
+                
                 const channels = view.getUint16(fmtOffset + 10, true);
                 const sampleRate = view.getUint32(fmtOffset + 12, true);
                 const byteRate = view.getUint32(fmtOffset + 16, true);
                 const blockAlign = view.getUint16(fmtOffset + 20, true);
                 const bitsPerSample = view.getUint16(fmtOffset + 22, true);
+                
+                // Basic validation
+                if (channels < 1 || channels > 8) return null;
+                if (blockAlign !== channels * (bitsPerSample / 8)) return null;
                 
                 return {
                     sampleRate,
@@ -52,7 +62,8 @@ class WavUtils {
                 };
             }
             
-            fmtOffset += 8 + chunkSize;
+            // Move to next chunk with proper alignment
+            fmtOffset += 8 + ((chunkSize + 1) & ~1); // Ensure even alignment
         }
 
         return null;
@@ -84,12 +95,15 @@ class WavUtils {
         return new Uint8Array(header);
     }
 
-    static extractAudioData(chunks: Uint8Array[], totalSize: number, headerSize: number, chunkSize: number): Uint8Array {
-        const bufferData = new Uint8Array(chunkSize + headerSize);
-        let dataOffset = headerSize; // Skip header space initially
-        let remainingSize = chunkSize;
+    static copyAudioDataDirect(chunks: Uint8Array[], targetBuffer: Uint8Array, targetOffset: number, headerSize: number, audioDataSize: number): number {
+        // Clear audio data area completely to prevent contamination - KEY FIX
+        for (let i = targetOffset; i < targetOffset + audioDataSize; i++) {
+            targetBuffer[i] = 0;
+        }
         
-        // Fill with audio data, skipping the header from the first chunk
+        // Direct copy of audio data to target buffer, skipping WAV header in first chunk only
+        let targetPos = targetOffset;
+        let remainingSize = audioDataSize;
         let chunkIndex = 0;
         let chunkOffset = headerSize; // Skip WAV header in first chunk
         
@@ -99,8 +113,8 @@ class WavUtils {
             const toCopy = Math.min(availableInChunk, remainingSize);
             
             if (toCopy > 0) {
-                bufferData.set(chunk.slice(chunkOffset, chunkOffset + toCopy), dataOffset);
-                dataOffset += toCopy;
+                targetBuffer.set(chunk.subarray(chunkOffset, chunkOffset + toCopy), targetPos);
+                targetPos += toCopy;
                 remainingSize -= toCopy;
                 chunkOffset += toCopy;
             }
@@ -110,8 +124,38 @@ class WavUtils {
                 chunkOffset = 0; // No header to skip in subsequent chunks
             }
         }
+        
+        return targetPos - targetOffset; // Return actual bytes copied
+    }
 
-        return bufferData.slice(0, dataOffset);
+    static patchHeaderSizes(buffer: Uint8Array, audioDataSize: number): void {
+        // Patch file size (offset 4) and data chunk size (offset 40) - little endian, 4 bytes each
+        const fileSize = 36 + audioDataSize;
+        buffer[4] = fileSize & 0xFF;
+        buffer[5] = (fileSize >> 8) & 0xFF;
+        buffer[6] = (fileSize >> 16) & 0xFF;
+        buffer[7] = (fileSize >> 24) & 0xFF;
+        buffer[40] = audioDataSize & 0xFF;
+        buffer[41] = (audioDataSize >> 8) & 0xFF;
+        buffer[42] = (audioDataSize >> 16) & 0xFF;
+        buffer[43] = (audioDataSize >> 24) & 0xFF;
+    }
+
+    static getSampleAlignedChunkSize(header: WavHeader, maxChunkSize: number, availableDataSize: number): number {
+        const frameSize = header.blockAlign;
+        
+        // Much smaller minimum for streaming - just enough for Web Audio API
+        const minAudioBytes = Math.max(512, frameSize * 10); // At least 512 bytes or 10 frames
+        
+        // If we don't have enough data, return 0 to wait for more
+        if (availableDataSize < minAudioBytes) {
+            return 0;
+        }
+        
+        // Calculate frames for the available data
+        const requestedSize = Math.min(maxChunkSize, availableDataSize);
+        const frames = Math.floor(requestedSize / frameSize);
+        return frames * frameSize;
     }
 }
 

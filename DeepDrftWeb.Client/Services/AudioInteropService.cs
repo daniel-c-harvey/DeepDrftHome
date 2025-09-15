@@ -41,9 +41,9 @@ public class AudioInteropService : IAsyncDisposable
     }
 
     // Streaming methods
-    public async Task<AudioOperationResult> InitializeStreaming(string playerId)
+    public async Task<AudioOperationResult> InitializeStreaming(string playerId, long totalStreamLength)
     {
-        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.initializeStreaming", playerId);
+        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.initializeStreaming", playerId, totalStreamLength);
     }
 
     public async Task<StreamingResult> ProcessStreamingChunk(string playerId, byte[] audioChunk)
@@ -54,6 +54,11 @@ public class AudioInteropService : IAsyncDisposable
     public async Task<AudioOperationResult> StartStreamingPlayback(string playerId)
     {
         return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.startStreamingPlayback", playerId);
+    }
+
+    public async Task<AudioOperationResult> EnsureAudioContextReady(string playerId)
+    {
+        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.ensureAudioContextReady", playerId);
     }
 
     public async Task<AudioOperationResult> PlayAsync(string playerId)
@@ -122,11 +127,6 @@ public class AudioInteropService : IAsyncDisposable
             wrapper => wrapper.OnEnd = callback);
     }
 
-    public async Task<AudioOperationResult> SetOnLoadProgressCallbackAsync(string playerId, Func<double, Task> callback)
-    {
-        return await SetCallbackAsync(playerId, "_loadprogress", "setOnLoadProgressCallback", "OnLoadProgressCallback", 
-            wrapper => wrapper.OnLoadProgress = callback);
-    }
 
     public async Task<AudioOperationResult> DisposePlayerAsync(string playerId)
     {
@@ -146,6 +146,8 @@ public class AudioInteropService : IAsyncDisposable
                 return (T)(object)new AudioOperationResult { Success = false, Error = ex.Message };
             if (typeof(T) == typeof(AudioLoadResult))
                 return (T)(object)new AudioLoadResult { Success = false, Error = ex.Message };
+            if (typeof(T) == typeof(StreamingResult))
+                return (T)(object)new StreamingResult { Success = false, Error = ex.Message };
             throw;
         }
     }
@@ -193,7 +195,6 @@ public class AudioPlayerCallback
 {
     public Func<double, Task>? OnProgress { get; set; }
     public Func<Task>? OnEnd { get; set; }
-    public Func<double, Task>? OnLoadProgress { get; set; }
 
     [JSInvokable]
     public async Task OnProgressCallback(double currentTime)
@@ -207,13 +208,6 @@ public class AudioPlayerCallback
     {
         if (OnEnd != null)
             await OnEnd();
-    }
-
-    [JSInvokable]
-    public async Task OnLoadProgressCallback(double progress)
-    {
-        if (OnLoadProgress != null)
-            await OnLoadProgress(progress);
     }
 }
 

@@ -1,33 +1,34 @@
 using DeepDrftModels.Entities;
 using DeepDrftWeb.Client.Clients;
+using Microsoft.AspNetCore.Components;
 using NetBlocks.Models;
 
 namespace DeepDrftWeb.Client.Services;
 
-public class AudioPlayerService : IPlayerService, IAsyncDisposable
+public abstract class AudioPlayerService : IPlayerService, IAsyncDisposable
 {
-    private readonly AudioInteropService _audioInterop;
-    private readonly TrackMediaClient _trackMediaClient;
+    protected readonly AudioInteropService _audioInterop;
+    protected readonly TrackMediaClient _trackMediaClient;
     
     public string PlayerId { get; private set; } = Guid.NewGuid().ToString();
     
     // State properties
-    public bool IsInitialized { get; private set; } = false;
-    public bool IsLoaded { get; private set; } = false;
-    public bool IsLoading { get; private set; } = false;
-    public bool IsPlaying { get; private set; } = false;
-    public bool IsPaused { get; private set; } = false;
-    public double CurrentTime { get; private set; } = 0;
-    public double? Duration { get; private set; } = null;
-    public double Volume { get; private set; } = 0.8;
-    public double LoadProgress { get; private set; } = 0;
-    public string? ErrorMessage { get; private set; }
+    public bool IsInitialized { get; protected set; } = false;
+    public bool IsLoaded { get; protected set; } = false;
+    public bool IsLoading { get; protected set; } = false;
+    public bool IsPlaying { get; protected set; } = false;
+    public bool IsPaused { get; protected set; } = false;
+    public double CurrentTime { get; protected set; } = 0;
+    public double? Duration { get; protected set; } = null;
+    public double Volume { get; protected set; } = 0.8;
+    public double LoadProgress { get; protected set; } = 0;
+    public string? ErrorMessage { get; protected set; }
 
     // Events
-    public event Action? OnStateChanged;
-    public event Events.EventAsync? OnTrackSelected;
+    public EventCallback? OnStateChanged { get; set; }
+    public EventCallback? OnTrackSelected { get; set; }
 
-    public AudioPlayerService(AudioInteropService audioInterop, TrackMediaClient trackMediaClient)
+    protected AudioPlayerService(AudioInteropService audioInterop, TrackMediaClient trackMediaClient)
     {
         _audioInterop = audioInterop;
         _trackMediaClient = trackMediaClient;
@@ -43,38 +44,37 @@ public class AudioPlayerService : IPlayerService, IAsyncDisposable
             if (!result.Success)
             {
                 ErrorMessage = $"Failed to initialize audio player: {result.Error}";
-                NotifyStateChanged();
+                await NotifyStateChanged();
                 return;
             }
 
             await _audioInterop.SetOnProgressCallbackAsync(PlayerId, OnProgressCallback);
             await _audioInterop.SetOnEndCallbackAsync(PlayerId, OnPlaybackEndCallback);
-            await _audioInterop.SetOnLoadProgressCallbackAsync(PlayerId, OnLoadProgressCallback);
             
             await _audioInterop.SetVolumeAsync(PlayerId, Volume);
             
             IsInitialized = true;
             ErrorMessage = null;
-            NotifyStateChanged();
+            await NotifyStateChanged();
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Failed to initialize audio player: {ex.Message}";
-            NotifyStateChanged();
+            await NotifyStateChanged();
         }
     }
 
-    public async Task SelectTrack(TrackEntity track)
+    public virtual async Task SelectTrack(TrackEntity track)
     {
         await EnsureInitializedAsync();
         
-        NotifyStateChanged();
+        await NotifyStateChanged();
         
-        if (OnTrackSelected != null) 
-            await OnTrackSelected.Invoke();
+        if (OnTrackSelected.HasValue)
+            await OnTrackSelected.Value.InvokeAsync();
         
         await LoadTrack(track);
-        NotifyStateChanged();
+        await NotifyStateChanged();
     }
 
     private async Task LoadTrack(TrackEntity track)
@@ -95,7 +95,7 @@ public class AudioPlayerService : IPlayerService, IAsyncDisposable
             IsLoading = true;
             Duration = null;
             CurrentTime = 0;
-            NotifyStateChanged();
+            await NotifyStateChanged();
 
             var loadResult = await _audioInterop.InitializeBufferedPlayerAsync(PlayerId);
             if (loadResult?.Success != true)
@@ -129,7 +129,7 @@ public class AudioPlayerService : IPlayerService, IAsyncDisposable
         finally
         {
             IsLoading = false;
-            NotifyStateChanged();
+            await NotifyStateChanged();
         }
     }
 
@@ -166,7 +166,7 @@ public class AudioPlayerService : IPlayerService, IAsyncDisposable
                     if (audio.ContentLength > 0)
                     {
                         LoadProgress = Math.Min(1.0, (double)totalBytesRead / audio.ContentLength);
-                        NotifyStateChanged();
+                        await NotifyStateChanged();
                     }
                 }
             } while (currentBytes > 0);
@@ -181,14 +181,14 @@ public class AudioPlayerService : IPlayerService, IAsyncDisposable
             LoadProgress = 1.0;
             IsLoaded = true;
             ErrorMessage = null;
-            NotifyStateChanged();
+            await NotifyStateChanged();
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error streaming audio: {ex.Message}";
             LoadProgress = 0;
             IsLoaded = false;
-            NotifyStateChanged();
+            await NotifyStateChanged();
             throw;
         }
     }
@@ -229,12 +229,12 @@ public class AudioPlayerService : IPlayerService, IAsyncDisposable
                 ErrorMessage = null;
             }
             
-            NotifyStateChanged();
+            await NotifyStateChanged();
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error controlling playback: {ex.Message}";
-            NotifyStateChanged();
+            await NotifyStateChanged();
         }
     }
 
@@ -257,16 +257,16 @@ public class AudioPlayerService : IPlayerService, IAsyncDisposable
                 ErrorMessage = $"Stop error: {result.Error}";
             }
             
-            NotifyStateChanged();
+            await NotifyStateChanged();
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error stopping playback: {ex.Message}";
-            NotifyStateChanged();
+            await NotifyStateChanged();
         }
     }
 
-    public async Task Unload()
+    public virtual async Task Unload()
     {
         if (!IsLoaded) return;
         
@@ -289,12 +289,12 @@ public class AudioPlayerService : IPlayerService, IAsyncDisposable
                 ErrorMessage = $"Unload error: {result.Error}";
             }
             
-            NotifyStateChanged();
+            await NotifyStateChanged();
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error unloading track: {ex.Message}";
-            NotifyStateChanged();
+            await NotifyStateChanged();
         }
     }
 
@@ -315,12 +315,12 @@ public class AudioPlayerService : IPlayerService, IAsyncDisposable
                 ErrorMessage = $"Seek error: {result.Error}";
             }
             
-            NotifyStateChanged();
+            await NotifyStateChanged();
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error seeking: {ex.Message}";
-            NotifyStateChanged();
+            await NotifyStateChanged();
         }
     }
 
@@ -348,19 +348,19 @@ public class AudioPlayerService : IPlayerService, IAsyncDisposable
             }
         }
         
-        NotifyStateChanged();
+        await NotifyStateChanged();
     }
 
-    public void ClearError()
+    public async Task ClearError()
     {
         ErrorMessage = null;
-        NotifyStateChanged();
+        await NotifyStateChanged();
     }
 
     private async Task OnProgressCallback(double currentTime)
     {
         CurrentTime = currentTime;
-        NotifyStateChanged();
+        await NotifyStateChanged();
     }
 
     private async Task OnPlaybackEndCallback()
@@ -368,16 +368,11 @@ public class AudioPlayerService : IPlayerService, IAsyncDisposable
         IsPlaying = false;
         IsPaused = false;
         CurrentTime = 0;
-        NotifyStateChanged();
+        await NotifyStateChanged();
     }
 
-    private async Task OnLoadProgressCallback(double progress)
-    {
-        LoadProgress = progress;
-        NotifyStateChanged();
-    }
 
-    private async Task EnsureInitializedAsync()
+    protected async Task EnsureInitializedAsync()
     {
         if (!IsInitialized)
         {
@@ -385,9 +380,16 @@ public class AudioPlayerService : IPlayerService, IAsyncDisposable
         }
     }
 
-    private void NotifyStateChanged()
+    protected async Task NotifyStateChanged()
     {
-        OnStateChanged?.Invoke();
+        if (OnStateChanged.HasValue)
+            await OnStateChanged.Value.InvokeAsync();
+    }
+
+    protected async Task NotifyTrackSelected()
+    {
+        if (OnTrackSelected.HasValue)
+            await OnTrackSelected.Value.InvokeAsync();
     }
 
     public async ValueTask DisposeAsync()

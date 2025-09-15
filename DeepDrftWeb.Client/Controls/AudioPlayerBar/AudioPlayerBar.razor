@@ -23,7 +23,7 @@ else
                                             IsLoaded="IsLoaded"
                                             TogglePlayPause="@TogglePlayPause"
                                             Stop="@Stop"/>
-                            @if (IsLoading)
+                            @if (IsLoading && !IsStreaming)
                             {
                                 <MudProgressCircular Color="Color.Tertiary"
                                                      Size="Size.Small"
@@ -58,7 +58,7 @@ else
                                             IsLoaded="IsLoaded"
                                             TogglePlayPause="@TogglePlayPause"
                                             Stop="@Stop"/>
-                            @if (IsLoading)
+                            @if (IsLoading  && !IsStreaming)
                             {
                                 <MudProgressCircular Color="Color.Tertiary"
                                                      Size="Size.Small"

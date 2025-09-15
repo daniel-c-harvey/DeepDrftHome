@@ -33,7 +33,8 @@ public class TrackMediaClient
     {
         try
         {
-            var response = await _http.GetAsync($"api/track/{trackId}");
+            // Use HttpCompletionOption.ResponseHeadersRead to get stream immediately
+            var response = await _http.GetAsync($"api/track/{trackId}", HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
         
             var contentLength = response.Content.Headers.ContentLength ?? 0;

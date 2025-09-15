@@ -91,6 +91,18 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapStaticAssets();
+
+// Serve TypeScript source files for debugging in development
+if (app.Environment.IsDevelopment())
+{
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
+            Path.Combine(app.Environment.ContentRootPath, "Interop")),
+        RequestPath = "/Interop"
+    });
+}
+
 app.MapControllers();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
