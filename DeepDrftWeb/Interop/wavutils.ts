@@ -19,8 +19,9 @@ class WavUtils {
             offset += chunk.length;
         }
 
-        const view = new DataView(concatenated.buffer, 0, 44);
-        
+        // Need a DataView that spans the entire buffer for chunk searching
+        const view = new DataView(concatenated.buffer);
+
         // Check RIFF header
         const riff = new TextDecoder().decode(concatenated.slice(0, 4));
         if (riff !== 'RIFF') return null;
@@ -28,45 +29,76 @@ class WavUtils {
         const wave = new TextDecoder().decode(concatenated.slice(8, 12));
         if (wave !== 'WAVE') return null;
 
-        // Find fmt chunk with better alignment handling
-        let fmtOffset = 12;
-        while (fmtOffset < totalSize - 8) {
-            const chunkId = new TextDecoder().decode(concatenated.slice(fmtOffset, fmtOffset + 4));
-            const chunkSize = view.getUint32(fmtOffset + 4, true);
-            
+        // Variables to store parsed header info
+        let sampleRate = 0;
+        let channels = 0;
+        let bitsPerSample = 0;
+        let byteRate = 0;
+        let blockAlign = 0;
+        let dataSize = 0;
+        let headerSize = 0;
+        let foundFmt = false;
+        let foundData = false;
+
+        // Find fmt and data chunks
+        let chunkOffset = 12;
+        while (chunkOffset < totalSize - 8) {
+            const chunkId = new TextDecoder().decode(concatenated.slice(chunkOffset, chunkOffset + 4));
+            const chunkSize = view.getUint32(chunkOffset + 4, true);
+
             if (chunkId === 'fmt ') {
                 // Validate minimum fmt chunk size
                 if (chunkSize < 16) return null;
-                
-                const audioFormat = view.getUint16(fmtOffset + 8, true);
-                if (audioFormat !== 1) return null; // Only PCM supported
-                
-                const channels = view.getUint16(fmtOffset + 10, true);
-                const sampleRate = view.getUint32(fmtOffset + 12, true);
-                const byteRate = view.getUint32(fmtOffset + 16, true);
-                const blockAlign = view.getUint16(fmtOffset + 20, true);
-                const bitsPerSample = view.getUint16(fmtOffset + 22, true);
-                
+
+                const audioFormat = view.getUint16(chunkOffset + 8, true);
+                // Support PCM (1) and IEEE Float (3) formats
+                if (audioFormat !== 1 && audioFormat !== 3) {
+                    console.warn(`Unsupported audio format: ${audioFormat} (only PCM=1 and IEEE Float=3 supported)`);
+                    return null;
+                }
+
+                channels = view.getUint16(chunkOffset + 10, true);
+                sampleRate = view.getUint32(chunkOffset + 12, true);
+                byteRate = view.getUint32(chunkOffset + 16, true);
+                blockAlign = view.getUint16(chunkOffset + 20, true);
+                bitsPerSample = view.getUint16(chunkOffset + 22, true);
+
                 // Basic validation
                 if (channels < 1 || channels > 8) return null;
                 if (blockAlign !== channels * (bitsPerSample / 8)) return null;
-                
-                return {
-                    sampleRate,
-                    channels,
-                    bitsPerSample,
-                    byteRate,
-                    blockAlign,
-                    dataSize: 0, // Will be updated when we find data chunk
-                    headerSize: 44
-                };
+
+                foundFmt = true;
+                console.log(`Found fmt chunk: ${bitsPerSample}-bit, ${channels}ch, ${sampleRate}Hz, format=${audioFormat}`);
             }
-            
-            // Move to next chunk with proper alignment
-            fmtOffset += 8 + ((chunkSize + 1) & ~1); // Ensure even alignment
+            else if (chunkId === 'data') {
+                dataSize = chunkSize;
+                headerSize = chunkOffset + 8; // Audio data starts after 'data' + size (8 bytes)
+                foundData = true;
+                console.log(`Found data chunk at offset ${chunkOffset}, headerSize=${headerSize}, dataSize=${dataSize}`);
+            }
+
+            // Move to next chunk with proper alignment (chunks are word-aligned)
+            chunkOffset += 8 + ((chunkSize + 1) & ~1);
+
+            // If we found both chunks, we're done
+            if (foundFmt && foundData) break;
         }
 
-        return null;
+        // Must have found both fmt and data chunks
+        if (!foundFmt || !foundData) {
+            console.warn(`WAV parsing incomplete: foundFmt=${foundFmt}, foundData=${foundData}`);
+            return null;
+        }
+
+        return {
+            sampleRate,
+            channels,
+            bitsPerSample,
+            byteRate,
+            blockAlign,
+            dataSize,
+            headerSize
+        };
     }
 
     static createHeader(wavHeader: WavHeader, dataSize: number): Uint8Array {

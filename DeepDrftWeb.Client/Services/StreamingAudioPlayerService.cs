@@ -60,40 +60,24 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
 
     private async Task LoadTrackStreaming(TrackEntity track)
     {
-        // Cancel and replace any previous streaming operation atomically
-        var oldCancellation = _streamingCancellation;
+        // Always reset to clean state before loading new track
+        await ResetToIdle();
+
+        // Create new cancellation token for this streaming operation
         _streamingCancellation = new CancellationTokenSource();
-        
-        // Cancel the old operation after we've replaced it
-        oldCancellation?.Cancel();
-        oldCancellation?.Dispose();
-        
+
         try
         {
-            // No need to check IsLoading - we cancel previous operations
-            
-            if (IsPlaying || IsPaused)
-            {
-                await Unload();
-            }
-            
-            // Reset state to indicate streaming has started
+            // Set state to indicate loading has started
             ErrorMessage = null;
             LoadProgress = 0;
-            IsLoaded = false;
             IsLoading = true;
             IsStreamingMode = true;
-            CanStartStreaming = false;
-            HeaderParsed = false;
-            BufferedChunks = 0;
-            _streamingPlaybackStarted = false;
-            Duration = null;
-            CurrentTime = 0;
-            
+
             // Reset adaptive buffer sizing
             _currentBufferSize = DefaultBufferSize;
             _consecutiveSlowReads = 0;
-            
+
             await NotifyStateChanged();
 
             var mediaResult = await _trackMediaClient.GetTrackMedia(track.EntryKey);
@@ -190,6 +174,13 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
                     CanStartStreaming = chunkResult.CanStartStreaming;
                     HeaderParsed = chunkResult.HeaderParsed;
                     BufferedChunks = chunkResult.BufferCount;
+
+                    // Set duration from WAV header when available (only set once)
+                    if (chunkResult.Duration.HasValue && Duration == null)
+                    {
+                        Duration = chunkResult.Duration.Value;
+                        _logger.LogInformation("Duration set from WAV header: {Duration:F2} seconds", Duration);
+                    }
                     
                     // Start playback as soon as we can
                     if (!_streamingPlaybackStarted && CanStartStreaming)
@@ -245,20 +236,63 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
         }
     }
 
+    /// <summary>
+    /// In streaming mode, Stop fully resets to Idle state since audio data is consumed.
+    /// This is equivalent to Unload for streaming playback.
+    /// </summary>
+    public override async Task Stop()
+    {
+        // In streaming mode, Stop = Unload (data is consumed, can't replay)
+        await ResetToIdle();
+    }
+
+    /// <summary>
+    /// Fully resets the player to Idle state, ready for a new track.
+    /// </summary>
     public override async Task Unload()
     {
-        // Cancel any ongoing streaming operation
+        await ResetToIdle();
+    }
+
+    /// <summary>
+    /// Single method to reset all state - called by both Stop and Unload.
+    /// </summary>
+    private async Task ResetToIdle()
+    {
+        // 1. Cancel any ongoing streaming operation
         _streamingCancellation?.Cancel();
         _streamingCancellation?.Dispose();
         _streamingCancellation = null;
-        
+
+        // 2. Tell JS to stop and unload
+        try
+        {
+            await _audioInterop.StopAsync(PlayerId);
+            await _audioInterop.UnloadAsync(PlayerId);
+        }
+        catch
+        {
+            // Ignore JS errors during cleanup
+        }
+
+        // 3. Reset ALL state to Idle
+        IsPlaying = false;
+        IsPaused = false;
+        IsLoaded = false;
+        IsLoading = false;
+        CurrentTime = 0;
+        Duration = null;
+        LoadProgress = 0;
+        ErrorMessage = null;
+
+        // 4. Reset streaming-specific state
         IsStreamingMode = false;
         CanStartStreaming = false;
         HeaderParsed = false;
         BufferedChunks = 0;
         _streamingPlaybackStarted = false;
-        
-        await base.Unload();
+
+        await NotifyStateChanged();
     }
 
     private async Task ThrottledNotifyStateChanged()

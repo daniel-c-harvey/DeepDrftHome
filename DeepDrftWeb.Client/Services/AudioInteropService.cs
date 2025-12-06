@@ -230,6 +230,7 @@ public class StreamingResult : AudioOperationResult
     public bool CanStartStreaming { get; set; }
     public bool HeaderParsed { get; set; }
     public int BufferCount { get; set; }
+    public double? Duration { get; set; } // Duration in seconds calculated from WAV header
 }
 
 public class AudioPlayerState

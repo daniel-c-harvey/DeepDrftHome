@@ -238,7 +238,7 @@ public abstract class AudioPlayerService : IPlayerService, IAsyncDisposable
         }
     }
 
-    public async Task Stop()
+    public virtual async Task Stop()
     {
         if (!IsLoaded) return;
 

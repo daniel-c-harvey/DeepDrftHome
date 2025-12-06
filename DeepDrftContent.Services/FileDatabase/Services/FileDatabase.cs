@@ -1,6 +1,5 @@
 using DeepDrftContent.Services.FileDatabase.Models;
 using DeepDrftContent.Services.FileDatabase.Utils;
-using IndexType = DeepDrftContent.Services.FileDatabase.Services.IndexType;
 
 namespace DeepDrftContent.Services.FileDatabase.Services;
 
@@ -21,7 +20,7 @@ public class FileDatabase : DirectoryIndexDirectory
 
         if (rootIndex != null)
         {
-            var db = new FileDatabase(rootPath, (DirectoryIndex)rootIndex);
+            var db = new FileDatabase(rootPath, rootIndex);
             await db.InitVaultsAsync();
             return db;
         }
@@ -29,7 +28,7 @@ public class FileDatabase : DirectoryIndexDirectory
         return null;
     }
 
-    private FileDatabase(string rootPath, DirectoryIndex index) : base(rootPath, index)
+    private FileDatabase(string rootPath, IDirectoryIndex index) : base(rootPath, index)
     {
         _vaults = new StructuralMap<string, MediaVault>();
     }

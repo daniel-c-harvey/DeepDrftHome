@@ -13,6 +13,7 @@ public partial class AudioPlayerBar : ComponentBase
     private bool IsLoaded => PlayerService.IsLoaded;
     private bool IsLoading => PlayerService.IsLoading;
     private bool IsStreaming => PlayerService.CanStartStreaming;
+    private bool IsStreamingMode => PlayerService.IsStreamingMode;
     private bool IsPlaying => PlayerService.IsPlaying;
     private bool IsPaused => PlayerService.IsPaused;
     private double CurrentTime => PlayerService.CurrentTime;
@@ -26,6 +27,21 @@ public partial class AudioPlayerBar : ComponentBase
         await base.OnInitializedAsync();
         // Set up EventCallback for track selection
         PlayerService.OnTrackSelected = new EventCallback(this, Expand);
+
+        // Store the original OnStateChanged callback set by the provider
+        var originalOnStateChanged = PlayerService.OnStateChanged;
+
+        // Set up a wrapper that calls both the original callback and our StateHasChanged
+        PlayerService.OnStateChanged = new EventCallback(this, async () =>
+        {
+            // Invoke the original callback (AudioPlayerProvider's StateHasChanged)
+            if (originalOnStateChanged.HasValue)
+            {
+                await originalOnStateChanged.Value.InvokeAsync();
+            }
+            // Also trigger our own re-render
+            await InvokeAsync(StateHasChanged);
+        });
     }
 
     private async Task Expand()

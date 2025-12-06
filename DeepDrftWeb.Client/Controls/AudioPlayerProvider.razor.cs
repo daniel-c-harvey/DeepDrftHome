@@ -19,9 +19,10 @@ public partial class AudioPlayerProvider : ComponentBase
     {
         // Create the service immediately (but don't initialize yet)
         _audioPlayerService = new StreamingAudioPlayerService(AudioInterop, TrackMediaClient, Logger);
-        
+
         // Set up EventCallback to properly marshal UI updates back to UI thread
-        _audioPlayerService.OnStateChanged = new EventCallback(this, StateHasChanged);
+        // Use InvokeAsync to ensure proper Blazor render cycle triggering
+        _audioPlayerService.OnStateChanged = new EventCallback(this, () => InvokeAsync(StateHasChanged));
         // OnTrackSelected will be set by individual child components that need it
     }
     
