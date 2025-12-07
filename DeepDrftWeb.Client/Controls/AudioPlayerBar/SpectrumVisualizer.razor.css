@@ -26,9 +26,20 @@
     min-width: 4px;
     height: var(--bar-height, 2%);
     min-height: 2px;
-    background: var(--deepdrft-theme-secondary, #8A2BE2);
+    background: var(--deepdrft-theme-secondary);
     border-radius: 2px 2px 0 0;
     transition: height 0.05s ease-out;
+}
+
+/* Charleston (Light Mode) - Iron to gold colored bars */
+:global(.deepdrft-theme-light) .spectrum-bar {
+    background: linear-gradient(to top, #1C1C1C 0%, #B8848C 50%, #C9A962 100%);
+}
+
+/* Lowcountry (Dark Mode) - Coral to gold bars with warm glow */
+:global(.deepdrft-theme-dark) .spectrum-bar {
+    background: linear-gradient(to top, #E07A5F 0%, #E9C46A 100%);
+    box-shadow: 0 0 4px rgba(233, 196, 106, 0.4);
 }
 
 /* Responsive adjustments */

@@ -6,36 +6,36 @@
     
     @* Hero Section *@
     <MudPaper Elevation="0" Class="pa-8 mb-6 text-center deepdrft-gradient-hero deepdrft-hero-container">
-        
+
         <MudGrid Justify="Justify.Center">
             <MudItem xs="12" md="8">
-                <MudText Typo="Typo.h1" Color="Color.Surface" 
-                         Class="mb-4 deepdrft-text-hero">
+                <MudText Typo="Typo.h1"
+                         Class="mb-4 deepdrft-text-hero deepdrft-hero-title">
                     DEEPDRFT
                 </MudText>
-                
-                <MudText Typo="Typo.h4" Color="Color.Surface" 
-                         Class="mb-6 deepdrft-text-subtitle">
+
+                <MudText Typo="Typo.h4"
+                         Class="mb-6 deepdrft-text-subtitle deepdrft-hero-subtitle">
                     ELECTRONIC MUSIC COLLECTIVE
                 </MudText>
-                
-                <MudText Typo="Typo.h6" Color="Color.Surface" 
-                         Class="mb-8 deepdrft-text-description deepdrft-hero-text-container">
+
+                <MudText Typo="Typo.h6"
+                         Class="mb-8 deepdrft-text-description deepdrft-hero-text-container deepdrft-hero-description">
                     Live electronic music from Charleston, SC featuring house, techno, trance, and IDM crafted with synthesizers and grooveboxes
                 </MudText>
-                
-                <MudButton Variant="Variant.Filled" 
-                           Color="Color.Surface" 
-                           Size="Size.Large" 
-                           Class="mr-4 mb-2 deepdrft-button-primary">
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Size="Size.Large"
+                           Class="mr-4 mb-2 deepdrft-hero-button-filled">
                     <MudIcon Icon="@Icons.Material.Filled.PlayArrow" Class="mr-2" />
                     START STREAMING
                 </MudButton>
-                
-                <MudButton Variant="Variant.Outlined" 
-                           Color="Color.Surface" 
+
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Primary"
                            Size="Size.Large"
-                           Class="mb-2 deepdrft-button-outlined">
+                           Class="mb-2 deepdrft-hero-button-outlined">
                     <MudIcon Icon="@Icons.Material.Filled.LibraryMusic" Class="mr-2" />
                     BROWSE TRACKS
                 </MudButton>
@@ -199,22 +199,24 @@
 
     @* Call to Action *@
     <MudPaper Elevation="8" Class="pa-8 deepdrft-gradient-primary deepdrft-cta-container">
-        <MudText Typo="Typo.h3" Color="Color.Surface" Class="mb-4 deepdrft-text-bold">
+        <MudText Typo="Typo.h3" Class="mb-4 deepdrft-text-bold deepdrft-hero-title">
             Ready to Dive Deep?
         </MudText>
-        <MudText Typo="Typo.h6" Color="Color.Surface" Class="mb-6 deepdrft-text-description">
+        <MudText Typo="Typo.h6" Class="mb-6 deepdrft-text-description deepdrft-hero-description">
             Immerse yourself in the electronic soundscapes of DeepDrft
         </MudText>
         <MudButtonGroup Size="Size.Large" Class="deepdrft-cta-buttons">
-            <MudButton Variant="Variant.Filled" 
-                       Color="Color.Surface" 
-                       Class="deepdrft-button-primary deepdrft-button-spaced">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Large"
+                       Class="deepdrft-hero-button-filled deepdrft-button-spaced">
                 <MudIcon Icon="@Icons.Material.Filled.PlayCircle" Class="mr-2" />
                 EXPLORE MUSIC
             </MudButton>
-            <MudButton Variant="Variant.Outlined" 
-                       Color="Color.Surface" 
-                       Class="deepdrft-button-outlined deepdrft-button-spaced">
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       Size="Size.Large"
+                       Class="deepdrft-hero-button-outlined deepdrft-button-spaced">
                 <MudIcon Icon="@Icons.Material.Filled.Schedule" Class="mr-2" />
                 LIVE SCHEDULE
             </MudButton>

@@ -6,24 +6,26 @@
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
-<MudLayout Style="display: flex; flex-direction: column; min-height: 100vh">
-    <AudioPlayerProvider>
-        <MudAppBar Elevation="_themeManager.AppBarElevation">
-            <MudAvatar Class="mr-2">
-                <MudImage Src="img/deepdrft-logo.jpg"></MudImage>
-            </MudAvatar>
-            <NavMenu />
-            <MudSpacer/>
-            <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle"/>
-        </MudAppBar>
-        <MudMainContent Class="flex-grow-1 pt-16 pb-8">
-            <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
-                @Body
-            </MudContainer>
-            <AudioPlayerBar />
-        </MudMainContent>
-    </AudioPlayerProvider>
-</MudLayout>
+<div class="@ThemeWrapperClass">
+    <MudLayout Style="display: flex; flex-direction: column; min-height: 100vh">
+        <AudioPlayerProvider>
+            <MudAppBar Elevation="_themeManager.AppBarElevation">
+                <MudAvatar Class="mr-2">
+                    <MudImage Src="img/deepdrft-logo.jpg"></MudImage>
+                </MudAvatar>
+                <NavMenu />
+                <MudSpacer/>
+                <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle"/>
+            </MudAppBar>
+            <MudMainContent Class="flex-grow-1 pt-16 pb-8">
+                <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+                    @Body
+                </MudContainer>
+                <AudioPlayerBar />
+            </MudMainContent>
+        </AudioPlayerProvider>
+    </MudLayout>
+</div>
 
 
 <div id="blazor-error-ui" data-nosnippet>
@@ -49,35 +51,35 @@
                 {
                     Default = new DefaultTypography()
                     {
-                        FontFamily = new[] {"Electrolize", "sans-serif"}
+                        FontFamily = new[] {"Source Serif 4", "serif"}
                     },
                     H1 = new H1Typography()
                     {
-                        FontFamily = new[] {"Audiowide", "sans-serif"}
+                        FontFamily = new[] {"Playfair Display", "serif"}
                     },
                     H2 = new H2Typography()
                     {
-                        FontFamily = new[] {"Michroma", "sans-serif"}
+                        FontFamily = new[] {"Cormorant Garamond", "serif"}
                     },
                     H3 = new H3Typography()
                     {
-                        FontFamily = new[] {"Michroma", "sans-serif"}
+                        FontFamily = new[] {"Cormorant Garamond", "serif"}
                     },
                     H4 = new H4Typography()
                     {
-                        FontFamily = new[] {"Michroma", "sans-serif"}
+                        FontFamily = new[] {"Cormorant Garamond", "serif"}
                     },
                     H5 = new H5Typography()
                     {
-                        FontFamily = new[] {"Michroma", "sans-serif"}
+                        FontFamily = new[] {"Cormorant Garamond", "serif"}
                     },
                     H6 = new H6Typography()
                     {
-                        FontFamily = new[] {"Michroma", "sans-serif"}
+                        FontFamily = new[] {"Cormorant Garamond", "serif"}
                     },
                     Button = new ButtonTypography()
                     {
-                        FontFamily = new[] {"Michroma", "sans-serif"}
+                        FontFamily = new[] {"Cormorant Garamond", "serif"}
                     }
                 }
             }
@@ -110,66 +112,70 @@
         StateHasChanged();
     }
 
+    // Charleston in the Day - Light Theme
+    // Inspired by Charleston's historic architecture: white stucco, black wrought iron gates, elegant accents
     private readonly PaletteLight _lightPalette = new()
     {
-        Primary = "#8A2BE2",           // BlueViolet - main DeepDrft purple
-        Secondary = "#FF1493",         // DeepPink - main DeepDrft pink
-        Tertiary = "#4B0082",          // Indigo - DeepDrft deep purple
-        Info = "#9370DB",             // MediumPurple - DeepDrft accent purple
-        Success = "#98FB98",          // PaleGreen - soft success
-        Warning = "#FFEAA7",          // Light peach - soft warning
-        Error = "#FFB6C1",            // LightPink - soft error
-        Black = "#2F2F2F",            // Dark gray for text
-        White = "#FFFFFF",            // Pure white
-        Surface = "#FFFAF0",          // FloralWhite - creamy surface
-        Background = "#FAF0E6",       // Linen - warm cream background
-        AppbarText = "#2F2F2F",       // Dark text on light appbar
-        AppbarBackground = "rgba(138,43,226,0.85)", // Translucent DeepDrft primary
-        DrawerBackground = "rgba(138,43,226,0.1)", // Very light DeepDrft primary
-        TextPrimary = "#2F2F2F",      // Dark primary text
-        TextSecondary = "#6B6B6B",    // Medium gray secondary text
-        GrayLight = "rgba(138,43,226,0.1)",        // Light DeepDrft tint
-        GrayLighter = "rgba(138,43,226,0.05)",     // Very light DeepDrft tint
-        GrayDefault = "rgba(138,43,226,0.2)",      // Medium DeepDrft tint
-        GrayDark = "rgba(138,43,226,0.4)",         // Darker DeepDrft tint
-        Divider = "rgba(138,43,226,0.15)",         // Soft DeepDrft divider lines
-        TableLines = "rgba(138,43,226,0.15)",      // Soft DeepDrft table lines
+        Primary = "#1C1C1C",           // Wrought iron black - strong, elegant
+        Secondary = "#B8848C",         // Dusty rose - elegant accent
+        Tertiary = "#C9A962",          // Antique gold - replaces brown
+        Info = "#2196F3",              // MudBlazor default blue (semantic)
+        Success = "#4CAF50",           // MudBlazor default green (semantic)
+        Warning = "#FF9800",           // MudBlazor default amber (semantic)
+        Error = "#F44336",             // MudBlazor default red (semantic)
+        Black = "#1C1C1C",             // Wrought iron black
+        White = "#FDFBF7",             // Cream white (stucco)
+        Surface = "#FDFBF7",           // Cream stucco surface
+        Background = "#F5F2EC",        // Warm linen background
+        AppbarText = "#FDFBF7",        // Cream text on dark appbar (FIX)
+        AppbarBackground = "#1C1C1C",  // Solid wrought iron appbar
+        DrawerBackground = "#F5F2EC",  // Linen drawer
+        TextPrimary = "#1C1C1C",       // Wrought iron text
+        TextSecondary = "#4A4A4A",     // Softer iron text
+        GrayLight = "rgba(28,28,28,0.08)",         // Light iron tint
+        GrayLighter = "rgba(28,28,28,0.04)",       // Very light iron tint
+        GrayDefault = "rgba(28,28,28,0.15)",       // Medium iron tint
+        GrayDark = "rgba(28,28,28,0.25)",          // Darker iron tint
+        Divider = "rgba(28,28,28,0.12)",           // Subtle divider lines
+        TableLines = "rgba(28,28,28,0.12)",        // Table borders
     };
 
+    // Lowcountry Summer Nights - Dark Theme
+    // Inspired by warm sunsets over marshes, fireflies, Spanish moss, lamplight
     private readonly PaletteDark _darkPalette = new()
     {
-        Primary = "#FF1493",          // DeepPink - main DeepDrft pink for dark mode
-        Secondary = "#8A2BE2",        // BlueViolet - main DeepDrft purple
-        Tertiary = "#9370DB",         // MediumPurple - DeepDrft accent
-        Info = "#4B0082",            // Indigo - DeepDrft deep purple
-        Success = "#00A86B",         // Jade - true jade green success color
-        Warning = "#FF8C00",         // DarkOrange - orange warning color
-        Error = "#FF6347",           // Tomato - error color
-        Black = "#000000",           // Pure black
-        White = "#FFFFFF",           // Pure white
-        Surface = "rgba(75,0,130,0.2)",         // Dark DeepDrft indigo tint
-        Background = "#0A0A0A",      // Very dark background
-        BackgroundGray = "#1A1A1A",  // Very dark gray
-        AppbarText = "#FFFFFF",      // White text on dark appbar
-        AppbarBackground = "rgba(75,0,130,0.95)", // Translucent DeepDrft indigo
-        DrawerBackground = "rgba(75,0,130,0.15)", // Dark DeepDrft indigo tint
-        DrawerIcon = "#E0E0E0",      // Light gray icons
-        DrawerText = "#E0E0E0",      // Light gray drawer text
-        ActionDefault = "#BDBDBD",   // Light gray for actions
-        ActionDisabled = "#757575",  // Medium gray for disabled
-        ActionDisabledBackground = "#2F2F2F", // Dark gray background
-        TextPrimary = "#FFFFFF",     // White primary text
-        TextSecondary = "#E0E0E0",   // Light gray secondary text
-        TextDisabled = "#757575",    // Disabled text
-        GrayLight = "rgba(255,20,147,0.15)",       // Light DeepDrft pink tint
-        GrayLighter = "rgba(255,20,147,0.08)",     // Lighter DeepDrft pink tint
-        GrayDefault = "rgba(255,20,147,0.25)",     // Default DeepDrft pink tint
-        GrayDark = "rgba(255,20,147,0.4)",        // Darker DeepDrft pink tint
-        Divider = "rgba(255,20,147,0.2)",         // DeepDrft pink divider lines
-        LinesDefault = "rgba(255,20,147,0.2)",    // DeepDrft pink lines
-        TableLines = "rgba(255,20,147,0.2)",      // DeepDrft pink table lines
-        OverlayLight = "rgba(0,0,0,0.7)", // Dark overlay
-        OverlayDark = "rgba(255,255,255,0.1)", // Light overlay for dark mode
+        Primary = "#E07A5F",           // Sunset coral - warm, not neon
+        Secondary = "#7B6D8D",         // Twilight purple - muted
+        Tertiary = "#E9C46A",          // Firefly gold - lamplight
+        Info = "#2196F3",              // MudBlazor default blue (semantic)
+        Success = "#4CAF50",           // MudBlazor default green (semantic)
+        Warning = "#FF9800",           // MudBlazor default amber (semantic)
+        Error = "#F44336",             // MudBlazor default red (semantic)
+        Black = "#0A0A0F",             // Deep night black
+        White = "#F5F0E6",             // Warm moonlight white
+        Surface = "rgba(123,109,141,0.12)",        // Twilight-tinted surface
+        Background = "#0D0D12",        // Deep twilight background
+        BackgroundGray = "#141420",    // Slightly lighter night
+        AppbarText = "#F5F0E6",        // Warm moonlight text
+        AppbarBackground = "rgba(13,13,18,0.95)",  // Translucent night
+        DrawerBackground = "rgba(123,109,141,0.08)", // Subtle twilight tint
+        DrawerIcon = "#E0E0E0",        // Light icons
+        DrawerText = "#E0E0E0",        // Light drawer text
+        ActionDefault = "#BDBDBD",     // Default action color
+        ActionDisabled = "#757575",    // Disabled state
+        ActionDisabledBackground = "#1A1A2E",     // Disabled background
+        TextPrimary = "#F5F0E6",       // Warm white primary text
+        TextSecondary = "#B8B0C4",     // Lavender gray secondary text
+        TextDisabled = "#757575",      // Disabled text
+        GrayLight = "rgba(224,122,95,0.15)",       // Coral tint light
+        GrayLighter = "rgba(224,122,95,0.08)",     // Coral tint lighter
+        GrayDefault = "rgba(224,122,95,0.22)",     // Coral tint default
+        GrayDark = "rgba(224,122,95,0.35)",        // Coral tint dark
+        Divider = "rgba(224,122,95,0.18)",         // Coral divider
+        LinesDefault = "rgba(224,122,95,0.18)",    // Coral lines
+        TableLines = "rgba(224,122,95,0.18)",      // Coral table lines
+        OverlayLight = "rgba(0,0,0,0.7)",          // Dark overlay
+        OverlayDark = "rgba(255,255,255,0.08)",    // Light overlay
     };
 
     public string DarkLightModeButtonIcon => _isDarkMode switch
@@ -177,6 +183,9 @@
         true => Icons.Material.Rounded.AutoMode,
         false => Icons.Material.Outlined.DarkMode,
     };
+
+    // Theme wrapper class for CSS targeting
+    private string ThemeWrapperClass => _isDarkMode ? "deepdrft-theme-dark" : "deepdrft-theme-light";
 }
 
 
