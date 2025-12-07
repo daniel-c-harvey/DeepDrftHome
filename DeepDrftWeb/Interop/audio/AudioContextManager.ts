@@ -2,10 +2,20 @@
  * AudioContextManager - Manages the Web Audio API AudioContext and GainNode.
  *
  * Single Responsibility: AudioContext lifecycle and audio routing.
+ *
+ * Audio chain: Source → GainNode → AnalyserNode → destination
  */
+
+import { SpectrumAnalyzer } from './SpectrumAnalyzer.js';
+
 export class AudioContextManager {
     private audioContext: AudioContext | null = null;
     private gainNode: GainNode | null = null;
+    private spectrumAnalyzer: SpectrumAnalyzer;
+
+    constructor() {
+        this.spectrumAnalyzer = new SpectrumAnalyzer();
+    }
 
     async initialize(sampleRate: number = 44100): Promise<void> {
         const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -15,7 +25,12 @@ export class AudioContextManager {
 
         this.audioContext = new AudioContextClass({ sampleRate });
         this.gainNode = this.audioContext.createGain();
-        this.gainNode.connect(this.audioContext.destination);
+
+        // Initialize spectrum analyzer and insert into chain
+        // Chain: Source → GainNode → AnalyserNode → destination
+        const analyserNode = this.spectrumAnalyzer.initialize(this.audioContext);
+        this.gainNode.connect(analyserNode);
+        analyserNode.connect(this.audioContext.destination);
 
         console.log(`AudioContext initialized: sampleRate=${this.audioContext.sampleRate}Hz, state=${this.audioContext.state}`);
     }
@@ -88,7 +103,12 @@ export class AudioContextManager {
         return this.audioContext.decodeAudioData(buffer);
     }
 
+    getSpectrumAnalyzer(): SpectrumAnalyzer {
+        return this.spectrumAnalyzer;
+    }
+
     dispose(): void {
+        this.spectrumAnalyzer.dispose();
         if (this.audioContext && this.audioContext.state !== 'closed') {
             this.audioContext.close();
         }

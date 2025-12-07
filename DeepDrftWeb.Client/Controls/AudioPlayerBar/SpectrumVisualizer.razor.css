@@ -1,0 +1,48 @@
+.spectrum-container {
+    width: 100%;
+    height: 40px;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    overflow: hidden;
+}
+
+.spectrum-container.hidden {
+    opacity: 0;
+}
+
+.spectrum-bars {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    height: 100%;
+    gap: 2px;
+    padding: 0 4px;
+}
+
+.spectrum-bar {
+    flex: 1;
+    margin: 0 auto;
+    max-width: 8px;
+    min-width: 4px;
+    height: var(--bar-height, 2%);
+    min-height: 2px;
+    background: var(--deepdrft-theme-secondary, #8A2BE2);
+    border-radius: 2px 2px 0 0;
+    transition: height 0.05s ease-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .spectrum-container {
+        height: 32px;
+    }
+
+    .spectrum-bars {
+        gap: 1px;
+    }
+
+    .spectrum-bar {
+        max-width: 8px;
+        min-width: 3px;
+    }
+}

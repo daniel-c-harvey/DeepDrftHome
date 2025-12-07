@@ -294,29 +294,6 @@ body, p, span, div,
     justify-content: center;
 }
 
-
-/* Layout with overlay audio player - Global layout class */
-/*.deepdrft-layout-with-overlay-player {*/
-/*    position: relative;*/
-/*    min-height: calc(100vh - 64px);*/
-/*    padding-bottom: 160px; !* Increased space for overlay player *!*/
-/*}*/
-
-/*!* Audio player overlay positioning - Global positioning *!*/
-/*.deepdrft-layout-with-overlay-player > .AudioPlayerBar,*/
-/*.deepdrft-layout-with-overlay-player > *:last-child {*/
-/*    position: fixed;*/
-/*    bottom: 0;*/
-/*    left: 0;*/
-/*    right: 0;*/
-/*    z-index: 1000;*/
-/*    pointer-events: none;*/
-/*}*/
-
-/*.deepdrft-layout-with-overlay-player > *:last-child > * {*/
-/*    pointer-events: auto;*/
-/*}*/
-
 /* Responsive Utilities */
 @media (max-width: 768px) {
     .deepdrft-hero-text {

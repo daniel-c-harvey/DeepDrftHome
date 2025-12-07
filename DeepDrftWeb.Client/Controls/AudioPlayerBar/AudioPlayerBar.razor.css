@@ -93,6 +93,12 @@
     min-width: 200px;
 }
 
+.seekbar-visualizer-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
 .seekbar-flex {
     flex: 1;
 }

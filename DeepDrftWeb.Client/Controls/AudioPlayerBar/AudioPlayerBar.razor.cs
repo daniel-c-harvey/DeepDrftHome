@@ -1,16 +1,20 @@
 using DeepDrftWeb.Client.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using MudBlazor.Services;
 
 namespace DeepDrftWeb.Client.Controls.AudioPlayerBar;
 
-public partial class AudioPlayerBar : ComponentBase
+public partial class AudioPlayerBar : ComponentBase, IAsyncDisposable
 {
     [CascadingParameter] public required IStreamingPlayerService PlayerService { get; set; }
+    [Inject] private IBrowserViewportService BrowserViewportService { get; set; } = default!;
 
     private bool _isMinimized = true;
     private bool _isSeeking = false;
     private double _seekPosition = 0;
+    private bool _isDesktop = true;
+    private Guid _viewportSubscriptionId;
 
     private bool IsLoaded => PlayerService.IsLoaded;
     private bool IsLoading => PlayerService.IsLoading;
@@ -131,5 +135,32 @@ public partial class AudioPlayerBar : ComponentBase
     private string GetPlayIcon()
     {
         return IsPlaying ? Icons.Material.Filled.Pause : Icons.Material.Filled.PlayArrow;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var breakpoint = await BrowserViewportService.GetCurrentBreakpointAsync();
+            _isDesktop = breakpoint >= Breakpoint.Sm;
+
+            _viewportSubscriptionId = Guid.NewGuid();
+            await BrowserViewportService.SubscribeAsync(
+                _viewportSubscriptionId,
+                args =>
+                {
+                    _isDesktop = args.Breakpoint >= Breakpoint.Sm;
+                    InvokeAsync(StateHasChanged);
+                },
+                new ResizeOptions { NotifyOnBreakpointOnly = true },
+                fireImmediately: true);
+
+            StateHasChanged();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await BrowserViewportService.UnsubscribeAsync(_viewportSubscriptionId);
     }
 }

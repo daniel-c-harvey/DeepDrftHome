@@ -5,7 +5,7 @@ namespace DeepDrftWeb.Client.Services;
 public class AudioInteropService : IAsyncDisposable
 {
     private readonly IJSRuntime _jsRuntime;
-    private readonly Dictionary<string, DotNetObjectReference<AudioPlayerCallback>> _callbacks = new();
+    private readonly Dictionary<string, IDisposable> _callbacks = new();
 
     public AudioInteropService(IJSRuntime jsRuntime)
     {
@@ -153,10 +153,66 @@ public class AudioInteropService : IAsyncDisposable
 
     public async Task<AudioOperationResult> SetOnEndCallbackAsync(string playerId, Func<Task> callback)
     {
-        return await SetCallbackAsync(playerId, "_end", "setOnEndCallback", "OnEndCallback", 
+        return await SetCallbackAsync(playerId, "_end", "setOnEndCallback", "OnEndCallback",
             wrapper => wrapper.OnEnd = callback);
     }
 
+    // Spectrum analyzer methods
+    public async Task<double[]?> GetSpectrumDataAsync(string playerId)
+    {
+        try
+        {
+            return await _jsRuntime.InvokeAsync<double[]>("DeepDrftAudio.getSpectrumData", playerId);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<AudioOperationResult> SetSpectrumHighPassAsync(string playerId, double freq)
+    {
+        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.setSpectrumHighPass", playerId, freq);
+    }
+
+    public async Task<AudioOperationResult> SetSpectrumLowPassAsync(string playerId, double freq)
+    {
+        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.setSpectrumLowPass", playerId, freq);
+    }
+
+    public async Task<AudioOperationResult> SetSpectrumSlopeAsync(string playerId, double dbPerDecade)
+    {
+        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.setSpectrumSlope", playerId, dbPerDecade);
+    }
+
+    public async Task<AudioOperationResult> StartSpectrumAnimationAsync(string playerId, string callbackId, Func<double[], Task> callback)
+    {
+        try
+        {
+            var callbackWrapper = new SpectrumCallback { OnData = callback };
+            var dotNetObjectRef = DotNetObjectReference.Create(callbackWrapper);
+            _callbacks[playerId + "_spectrum_" + callbackId] = dotNetObjectRef;
+
+            return await _jsRuntime.InvokeAsync<AudioOperationResult>(
+                "DeepDrftAudio.startSpectrumAnimation",
+                playerId, callbackId, dotNetObjectRef, "OnSpectrumDataCallback");
+        }
+        catch (Exception ex)
+        {
+            return new AudioOperationResult { Success = false, Error = ex.Message };
+        }
+    }
+
+    public async Task<AudioOperationResult> StopSpectrumAnimationAsync(string playerId, string callbackId)
+    {
+        var key = playerId + "_spectrum_" + callbackId;
+        if (_callbacks.TryGetValue(key, out var callback))
+        {
+            callback?.Dispose();
+            _callbacks.Remove(key);
+        }
+        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.stopSpectrumAnimation", playerId, callbackId);
+    }
 
     public async Task<AudioOperationResult> DisposePlayerAsync(string playerId)
     {
@@ -240,6 +296,18 @@ public class AudioPlayerCallback
     {
         if (OnEnd != null)
             await OnEnd();
+    }
+}
+
+public class SpectrumCallback
+{
+    public Func<double[], Task>? OnData { get; set; }
+
+    [JSInvokable]
+    public async Task OnSpectrumDataCallback(double[] data)
+    {
+        if (OnData != null)
+            await OnData(data);
     }
 }
 

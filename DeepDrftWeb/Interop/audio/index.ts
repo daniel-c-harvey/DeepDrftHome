@@ -142,6 +142,52 @@ const DeepDrftAudio = {
         return { success: true };
     },
 
+    // Spectrum analyzer methods
+    getSpectrumData: (playerId: string): number[] | null => {
+        const player = audioPlayers.get(playerId);
+        return player?.getSpectrumData() ?? null;
+    },
+
+    setSpectrumHighPass: (playerId: string, freq: number): AudioResult => {
+        const player = audioPlayers.get(playerId);
+        if (!player) return { success: false, error: 'Player not found' };
+        return player.setSpectrumHighPass(freq);
+    },
+
+    setSpectrumLowPass: (playerId: string, freq: number): AudioResult => {
+        const player = audioPlayers.get(playerId);
+        if (!player) return { success: false, error: 'Player not found' };
+        return player.setSpectrumLowPass(freq);
+    },
+
+    setSpectrumSlope: (playerId: string, dbPerDecade: number): AudioResult => {
+        const player = audioPlayers.get(playerId);
+        if (!player) return { success: false, error: 'Player not found' };
+        return player.setSpectrumSlope(dbPerDecade);
+    },
+
+    startSpectrumAnimation: (
+        playerId: string,
+        callbackId: string,
+        dotNetRef: DotNetObjectReference,
+        methodName: string
+    ): AudioResult => {
+        const player = audioPlayers.get(playerId);
+        if (!player) return { success: false, error: 'Player not found' };
+
+        player.startSpectrumAnimation(callbackId, (data: number[]) => {
+            dotNetRef.invokeMethodAsync(methodName, data);
+        });
+        return { success: true };
+    },
+
+    stopSpectrumAnimation: (playerId: string, callbackId: string): AudioResult => {
+        const player = audioPlayers.get(playerId);
+        if (!player) return { success: false, error: 'Player not found' };
+        player.stopSpectrumAnimation(callbackId);
+        return { success: true };
+    },
+
     disposePlayer: (playerId: string): AudioResult => {
         const player = audioPlayers.get(playerId);
         if (player) {

@@ -389,6 +389,47 @@ export class AudioPlayer {
         this.onEndCallback = callback;
     }
 
+    // ==================== Spectrum Analysis ====================
+
+    getSpectrumData(): number[] {
+        return this.contextManager.getSpectrumAnalyzer().getFrequencyData();
+    }
+
+    setSpectrumHighPass(freq: number): AudioResult {
+        try {
+            this.contextManager.getSpectrumAnalyzer().setHighPass(freq);
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: (error as Error).message };
+        }
+    }
+
+    setSpectrumLowPass(freq: number): AudioResult {
+        try {
+            this.contextManager.getSpectrumAnalyzer().setLowPass(freq);
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: (error as Error).message };
+        }
+    }
+
+    setSpectrumSlope(dbPerDecade: number): AudioResult {
+        try {
+            this.contextManager.getSpectrumAnalyzer().setSlopeCorrection(dbPerDecade);
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: (error as Error).message };
+        }
+    }
+
+    startSpectrumAnimation(callbackId: string, callback: (data: number[]) => void): void {
+        this.contextManager.getSpectrumAnalyzer().addCallback(callbackId, callback);
+    }
+
+    stopSpectrumAnimation(callbackId: string): void {
+        this.contextManager.getSpectrumAnalyzer().removeCallback(callbackId);
+    }
+
     // ==================== Private Methods ====================
 
     private resetState(): void {

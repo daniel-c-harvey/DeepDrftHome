@@ -1,0 +1,12 @@
+@namespace DeepDrftWeb.Client.Controls.AudioPlayerBar
+
+<div class="spectrum-container @(IsVisible ? "" : "hidden")">
+    <div class="spectrum-bars">
+        @for (int i = 0; i < BucketCount; i++)
+        {
+            var index = i;
+            var height = GetBarHeight(index);
+            <div class="spectrum-bar" style="--bar-height: @(height.ToString("F1"))%;"></div>
+        }
+    </div>
+</div>

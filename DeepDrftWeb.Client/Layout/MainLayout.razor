@@ -6,7 +6,7 @@
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
-<MudLayout>
+<MudLayout Style="display: flex; flex-direction: column; min-height: 100vh">
     <AudioPlayerProvider>
         <MudAppBar Elevation="_themeManager.AppBarElevation">
             <MudAvatar Class="mr-2">
@@ -16,7 +16,7 @@
             <MudSpacer/>
             <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle"/>
         </MudAppBar>
-        <MudMainContent Class="pt-16 deepdrft-layout-with-overlay-player">
+        <MudMainContent Class="flex-grow-1 pt-16 pb-8">
             <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
                 @Body
             </MudContainer>
