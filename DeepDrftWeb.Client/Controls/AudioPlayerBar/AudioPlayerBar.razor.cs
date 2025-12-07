@@ -7,20 +7,26 @@ namespace DeepDrftWeb.Client.Controls.AudioPlayerBar;
 public partial class AudioPlayerBar : ComponentBase
 {
     [CascadingParameter] public required IStreamingPlayerService PlayerService { get; set; }
-    
+
     private bool _isMinimized = true;
-    
+    private bool _isSeeking = false;
+    private double _seekPosition = 0;
+
     private bool IsLoaded => PlayerService.IsLoaded;
     private bool IsLoading => PlayerService.IsLoading;
     private bool IsStreaming => PlayerService.CanStartStreaming;
     private bool IsStreamingMode => PlayerService.IsStreamingMode;
     private bool IsPlaying => PlayerService.IsPlaying;
     private bool IsPaused => PlayerService.IsPaused;
-    private double CurrentTime => PlayerService.CurrentTime;
     private double? Duration => PlayerService.Duration;
     private double Volume => PlayerService.Volume;
     private double LoadProgress => PlayerService.LoadProgress;
     private string? ErrorMessage => PlayerService.ErrorMessage;
+
+    /// <summary>
+    /// Display time - shows seek position while dragging, otherwise current playback time.
+    /// </summary>
+    private double DisplayTime => _isSeeking ? _seekPosition : PlayerService.CurrentTime;
 
     /// <summary>
     /// Seek is enabled once track is loaded AND duration is known (from WAV header).
@@ -74,8 +80,21 @@ public partial class AudioPlayerBar : ComponentBase
         await PlayerService.Stop();
     }
 
-    private async Task OnSeek(double position)
+    private void OnSeekStart()
     {
+        _isSeeking = true;
+        _seekPosition = PlayerService.CurrentTime;
+    }
+
+    private void OnSeekChange(double position)
+    {
+        _seekPosition = position;
+        StateHasChanged();
+    }
+
+    private async Task OnSeekEnd(double position)
+    {
+        _isSeeking = false;
         await PlayerService.Seek(position);
     }
 

@@ -32,16 +32,20 @@ else
                                                      Indeterminate="@(LoadProgress == 0)"/>
                             }
                         </div>
-                        <TimestampLabel CurrentTime="CurrentTime" Duration="Duration"/>
+                        <TimestampLabel CurrentTime="DisplayTime" Duration="Duration"/>
                     </div>
-                    
-                    <div class="seekbar-flex mx-3">
+
+                    <div class="seekbar-flex mx-3"
+                         @onpointerdown="OnSeekStart"
+                         @onpointerup="@(() => OnSeekEnd(_seekPosition))"
+                         @onpointerleave="@(() => { if (_isSeeking) OnSeekEnd(_seekPosition); })">
                         <MudSlider T="double"
                                    Min="0"
                                    Max="@(Duration ?? 0D)"
                                    Step="0.1"
-                                   Value="@CurrentTime"
-                                   ValueChanged="@OnSeek"
+                                   Value="@DisplayTime"
+                                   ValueChanged="@OnSeekChange"
+                                   Immediate="true"
                                    Disabled="@(!CanSeek)"/>
                     </div>
                     
@@ -67,19 +71,24 @@ else
                                                      Indeterminate="@(LoadProgress == 0)"/>
                             }
                         </div>
-                        <TimestampLabel CurrentTime="CurrentTime" Duration="Duration"/>
+                        <TimestampLabel CurrentTime="DisplayTime" Duration="Duration"/>
                         <VolumeControls Volume="@Volume" VolumeChanged="@OnVolumeChange"/>
                     </div>
                     
-                    <MudSlider T="double"
-                               Min="0"
-                               Max="@(Duration ?? 0D)"
-                               Step="0.1"
-                               Value="@CurrentTime"
-                               ValueChanged="@OnSeek"
-                               Disabled="@(!CanSeek)"/>
+                    <div @onpointerdown="OnSeekStart"
+                         @onpointerup="@(() => OnSeekEnd(_seekPosition))"
+                         @onpointerleave="@(() => { if (_isSeeking) OnSeekEnd(_seekPosition); })">
+                        <MudSlider T="double"
+                                   Min="0"
+                                   Max="@(Duration ?? 0D)"
+                                   Step="0.1"
+                                   Value="@DisplayTime"
+                                   ValueChanged="@OnSeekChange"
+                                   Immediate="true"
+                                   Disabled="@(!CanSeek)"/>
+                    </div>
                 </div>
-                
+
                     @* Control Buttons - positioned absolutely like original *@
                 <div class="player-controls d-flex align-center justify-center gap-1">
                     <MudIconButton Icon="@Icons.Material.Filled.Minimize"
