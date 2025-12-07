@@ -42,7 +42,7 @@ else
                                    Step="0.1"
                                    Value="@CurrentTime"
                                    ValueChanged="@OnSeek"
-                                   Disabled="@(!IsLoaded || IsStreamingMode)"/>
+                                   Disabled="@(!CanSeek)"/>
                     </div>
                     
                     <div class="volume-right">
@@ -77,7 +77,7 @@ else
                                Step="0.1"
                                Value="@CurrentTime"
                                ValueChanged="@OnSeek"
-                               Disabled="@(!IsLoaded || IsStreamingMode)"/>
+                               Disabled="@(!CanSeek)"/>
                 </div>
                 
                     @* Control Buttons - positioned absolutely like original *@

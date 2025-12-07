@@ -203,6 +203,25 @@ export class StreamDecoder {
     }
 
     /**
+     * Get the WAV header info for byte offset calculation
+     */
+    getWavHeader(): WavHeader | null {
+        return this.wavHeader;
+    }
+
+    /**
+     * Calculate byte offset from a time position (in seconds)
+     * Returns block-aligned byte offset for clean audio
+     */
+    calculateByteOffset(positionSeconds: number): number {
+        if (!this.wavHeader || this.wavHeader.byteRate <= 0) return 0;
+
+        const rawOffset = Math.floor(positionSeconds * this.wavHeader.byteRate);
+        // Align to block boundary for clean audio
+        return Math.floor(rawOffset / this.wavHeader.blockAlign) * this.wavHeader.blockAlign;
+    }
+
+    /**
      * Reset decoder state
      */
     reset(): void {
@@ -212,5 +231,21 @@ export class StreamDecoder {
         this.processedBytes = 0;
         this.isFirstChunk = true;
         this.totalStreamLength = 0;
+    }
+
+    /**
+     * Reinitialize for offset streaming - preserves header format knowledge
+     * Called when seeking beyond buffer to prepare for new stream from server
+     */
+    reinitializeForOffset(totalStreamLength: number): void {
+        // Reset data state but we'll get a fresh header from the offset stream
+        this.rawChunks = [];
+        this.totalRawBytes = 0;
+        this.processedBytes = 0;
+        this.isFirstChunk = true;
+        this.totalStreamLength = totalStreamLength;
+        // wavHeader will be reparsed from the new stream (server sends fresh header)
+        this.wavHeader = null;
+        console.log(`StreamDecoder reinitialized for offset: expecting ${totalStreamLength} bytes`);
     }
 }

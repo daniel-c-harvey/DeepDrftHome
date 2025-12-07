@@ -23,11 +23,13 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
     public bool CanStartStreaming { get; private set; } = false;
     public bool HeaderParsed { get; private set; } = false;
     public int BufferedChunks { get; private set; } = 0;
-    
+    public bool IsSeekingBeyondBuffer { get; private set; } = false;
+
     private bool _streamingPlaybackStarted = false;
     private CancellationTokenSource? _streamingCancellation;
     private DateTime _lastNotification = DateTime.MinValue;
     private readonly ILogger<StreamingAudioPlayerService> _logger;
+    private string? _currentTrackId;
 
     public StreamingAudioPlayerService(
         AudioInteropService audioInterop, 
@@ -62,6 +64,9 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
     {
         // Always reset to clean state before loading new track
         await ResetToIdle();
+
+        // Save track ID for seek operations
+        _currentTrackId = track.EntryKey;
 
         // Create new cancellation token for this streaming operation
         _streamingCancellation = new CancellationTokenSource();
@@ -255,6 +260,121 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
     }
 
     /// <summary>
+    /// Override Seek to handle seek-beyond-buffer for streaming mode.
+    /// </summary>
+    public override async Task Seek(double position)
+    {
+        if (!IsLoaded || !IsStreamingMode) return;
+
+        try
+        {
+            var result = await _audioInterop.SeekAsync(PlayerId, position);
+
+            if (result.Success)
+            {
+                if (result.SeekBeyondBuffer && result.ByteOffset > 0)
+                {
+                    // Need to load new stream from offset
+                    _logger.LogInformation("Seeking beyond buffer to {Position:F2}s, byte offset: {ByteOffset}",
+                        position, result.ByteOffset);
+                    await SeekBeyondBuffer(position, result.ByteOffset);
+                }
+                else
+                {
+                    // Seek within buffer succeeded
+                    CurrentTime = position;
+                    ErrorMessage = null;
+                    await NotifyStateChanged();
+                }
+            }
+            else
+            {
+                ErrorMessage = $"Seek error: {result.Error}";
+                await NotifyStateChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error seeking to position {Position}", position);
+            ErrorMessage = $"Error seeking: {ex.Message}";
+            await NotifyStateChanged();
+        }
+    }
+
+    /// <summary>
+    /// Handle seeking beyond the currently buffered content by requesting a new stream from offset.
+    /// </summary>
+    private async Task SeekBeyondBuffer(double seekPosition, long byteOffset)
+    {
+        if (string.IsNullOrEmpty(_currentTrackId))
+        {
+            ErrorMessage = "Cannot seek - no track loaded";
+            return;
+        }
+
+        IsSeekingBeyondBuffer = true;
+
+        // Cancel current streaming
+        _streamingCancellation?.Cancel();
+        _streamingCancellation?.Dispose();
+        _streamingCancellation = new CancellationTokenSource();
+
+        try
+        {
+            // Update UI immediately
+            CurrentTime = seekPosition;
+            await NotifyStateChanged();
+
+            // Request new stream from offset
+            var mediaResult = await _trackMediaClient.GetTrackMedia(_currentTrackId, byteOffset);
+            if (!mediaResult.Success || mediaResult.Value == null)
+            {
+                var technicalError = mediaResult.GetMessage() ?? "Failed to load audio from position";
+                _logger.LogError("Failed to get track media from offset {Offset}: {Error}", byteOffset, technicalError);
+                ErrorMessage = StreamingErrorHandler.GetUserFriendlyMessage(technicalError);
+                IsSeekingBeyondBuffer = false;
+                return;
+            }
+
+            using var audio = mediaResult.Value;
+
+            // Reinitialize JS player for offset streaming
+            var reinitResult = await _audioInterop.ReinitializeFromOffset(PlayerId, audio.ContentLength, seekPosition);
+            if (!reinitResult.Success)
+            {
+                _logger.LogError("Failed to reinitialize for offset streaming: {Error}", reinitResult.Error);
+                ErrorMessage = "Failed to seek to position";
+                IsSeekingBeyondBuffer = false;
+                return;
+            }
+
+            // Reset streaming state for new stream
+            _streamingPlaybackStarted = false;
+            CanStartStreaming = false;
+            HeaderParsed = false;
+            BufferedChunks = 0;
+
+            // Stream audio from offset
+            await StreamAudioWithEarlyPlayback(audio, _streamingCancellation.Token);
+
+            IsSeekingBeyondBuffer = false;
+        }
+        catch (OperationCanceledException)
+        {
+            // Another seek or stop interrupted this one
+            _logger.LogDebug("Seek beyond buffer cancelled");
+            IsSeekingBeyondBuffer = false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during seek beyond buffer to position {Position}", seekPosition);
+            ErrorMessage = StreamingErrorHandler.GetUserFriendlyMessage(ex.Message);
+            IsSeekingBeyondBuffer = false;
+            await NotifyStateChanged();
+        }
+    }
+
+    /// <summary>
     /// Single method to reset all state - called by both Stop and Unload.
     /// </summary>
     private async Task ResetToIdle()
@@ -291,6 +411,8 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
         HeaderParsed = false;
         BufferedChunks = 0;
         _streamingPlaybackStarted = false;
+        IsSeekingBeyondBuffer = false;
+        _currentTrackId = null;
 
         await NotifyStateChanged();
     }

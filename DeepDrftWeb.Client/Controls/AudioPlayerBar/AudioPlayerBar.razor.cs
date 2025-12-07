@@ -22,6 +22,12 @@ public partial class AudioPlayerBar : ComponentBase
     private double LoadProgress => PlayerService.LoadProgress;
     private string? ErrorMessage => PlayerService.ErrorMessage;
 
+    /// <summary>
+    /// Seek is enabled once track is loaded AND duration is known (from WAV header).
+    /// This allows seeking even during streaming, including seeking beyond buffered content.
+    /// </summary>
+    private bool CanSeek => IsLoaded && Duration.HasValue && Duration.Value > 0;
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();

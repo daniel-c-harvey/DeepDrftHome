@@ -81,9 +81,39 @@ public class AudioInteropService : IAsyncDisposable
         return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.unload", playerId);
     }
 
-    public async Task<AudioOperationResult> SeekAsync(string playerId, double position)
+    public async Task<SeekResult> SeekAsync(string playerId, double position)
     {
-        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.seek", playerId, position);
+        return await InvokeJsAsync<SeekResult>("DeepDrftAudio.seek", playerId, position);
+    }
+
+    // New methods for seek-beyond-buffer support
+    public async Task<double> GetBufferedDuration(string playerId)
+    {
+        try
+        {
+            return await _jsRuntime.InvokeAsync<double>("DeepDrftAudio.getBufferedDuration", playerId);
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    public async Task<long> CalculateByteOffset(string playerId, double positionSeconds)
+    {
+        try
+        {
+            return (long)await _jsRuntime.InvokeAsync<double>("DeepDrftAudio.calculateByteOffset", playerId, positionSeconds);
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    public async Task<AudioOperationResult> ReinitializeFromOffset(string playerId, long totalStreamLength, double seekPosition)
+    {
+        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.reinitializeFromOffset", playerId, totalStreamLength, seekPosition);
     }
 
     public async Task<AudioOperationResult> SetVolumeAsync(string playerId, double volume)
@@ -148,6 +178,8 @@ public class AudioInteropService : IAsyncDisposable
                 return (T)(object)new AudioLoadResult { Success = false, Error = ex.Message };
             if (typeof(T) == typeof(StreamingResult))
                 return (T)(object)new StreamingResult { Success = false, Error = ex.Message };
+            if (typeof(T) == typeof(SeekResult))
+                return (T)(object)new SeekResult { Success = false, Error = ex.Message };
             throw;
         }
     }
@@ -215,6 +247,12 @@ public class AudioOperationResult
 {
     public bool Success { get; set; }
     public string? Error { get; set; }
+}
+
+public class SeekResult : AudioOperationResult
+{
+    public bool SeekBeyondBuffer { get; set; }
+    public long ByteOffset { get; set; }
 }
 
 public class AudioLoadResult : AudioOperationResult

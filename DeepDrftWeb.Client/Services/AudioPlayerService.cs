@@ -298,7 +298,7 @@ public abstract class AudioPlayerService : IPlayerService, IAsyncDisposable
         }
     }
 
-    public async Task Seek(double position)
+    public virtual async Task Seek(double position)
     {
         if (!IsLoaded) return;
 
@@ -314,7 +314,7 @@ public abstract class AudioPlayerService : IPlayerService, IAsyncDisposable
             {
                 ErrorMessage = $"Seek error: {result.Error}";
             }
-            
+
             await NotifyStateChanged();
         }
         catch (Exception ex)

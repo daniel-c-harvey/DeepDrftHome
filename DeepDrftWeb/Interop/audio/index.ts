@@ -81,6 +81,23 @@ const DeepDrftAudio = {
         return player.seek(position);
     },
 
+    // New methods for seek-beyond-buffer support
+    getBufferedDuration: (playerId: string): number => {
+        const player = audioPlayers.get(playerId);
+        return player?.getBufferedDuration() ?? 0;
+    },
+
+    calculateByteOffset: (playerId: string, positionSeconds: number): number => {
+        const player = audioPlayers.get(playerId);
+        return player?.calculateByteOffset(positionSeconds) ?? 0;
+    },
+
+    reinitializeFromOffset: (playerId: string, totalStreamLength: number, seekPosition: number): AudioResult => {
+        const player = audioPlayers.get(playerId);
+        if (!player) return { success: false, error: 'Player not found' };
+        return player.reinitializeFromOffset(totalStreamLength, seekPosition);
+    },
+
     setVolume: (playerId: string, volume: number): AudioResult => {
         const player = audioPlayers.get(playerId);
         if (!player) return { success: false, error: 'Player not found' };

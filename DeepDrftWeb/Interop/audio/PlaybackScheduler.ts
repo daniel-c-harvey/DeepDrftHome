@@ -26,6 +26,11 @@ export class PlaybackScheduler {
     private nextScheduleTime: number = 0;        // AudioContext time for next buffer
     private isActive_: boolean = false;          // Prevents scheduling during pause/stop
 
+    // Offset for seek-beyond-buffer scenarios
+    // When seeking to position T beyond buffers, we clear buffers and set playbackOffset = T
+    // The new stream starts at T, so buffer positions are relative to T
+    private playbackOffset: number = 0;
+
     // Callbacks
     public onPlaybackEnded: (() => void) | null = null;
 
@@ -56,14 +61,30 @@ export class PlaybackScheduler {
     }
 
     /**
-     * Get current playback position in seconds
+     * Get current playback position in seconds (includes playbackOffset for seek-beyond-buffer)
      */
     getCurrentPosition(): number {
         if (this.playbackAnchorTime === 0) {
-            return this.playbackAnchorPosition;
+            return this.playbackAnchorPosition + this.playbackOffset;
         }
         const elapsed = this.contextManager.currentTime - this.playbackAnchorTime;
-        return Math.min(this.playbackAnchorPosition + elapsed, this.getTotalDuration());
+        return Math.min(this.playbackAnchorPosition + this.playbackOffset + elapsed, this.getTotalDuration() + this.playbackOffset);
+    }
+
+    /**
+     * Set the playback offset for seek-beyond-buffer scenarios
+     * This represents the absolute time position where the current buffers start
+     */
+    setPlaybackOffset(offset: number): void {
+        this.playbackOffset = offset;
+        console.log(`📍 Playback offset set to ${offset.toFixed(3)}s`);
+    }
+
+    /**
+     * Get the current playback offset
+     */
+    getPlaybackOffset(): number {
+        return this.playbackOffset;
     }
 
     /**
@@ -244,7 +265,7 @@ export class PlaybackScheduler {
     }
 
     /**
-     * Full reset - clears all buffers
+     * Full reset - clears all buffers and resets offset
      */
     clear(): void {
         this.isActive_ = false;
@@ -254,7 +275,23 @@ export class PlaybackScheduler {
         this.playbackAnchorTime = 0;
         this.nextBufferIndex = 0;
         this.nextScheduleTime = 0;
+        this.playbackOffset = 0;
         console.log('🗑️ Scheduler cleared');
+    }
+
+    /**
+     * Clear buffers but keep offset - for seek-beyond-buffer scenarios
+     */
+    clearForSeek(): void {
+        this.isActive_ = false;
+        this.stopAllSources();
+        this.buffers = [];
+        this.playbackAnchorPosition = 0;
+        this.playbackAnchorTime = 0;
+        this.nextBufferIndex = 0;
+        this.nextScheduleTime = 0;
+        // Note: playbackOffset is NOT reset - it will be set by the caller
+        console.log('🗑️ Scheduler cleared for seek (offset preserved)');
     }
 
     /**
