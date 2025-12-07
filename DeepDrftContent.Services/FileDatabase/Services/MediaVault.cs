@@ -62,25 +62,24 @@ public abstract class MediaVault : VaultIndexDirectory
     {
         // Infer MediaVaultType from the generic type T
         var vaultType = MediaVaultTypeMap.GetVaultType<T>();
-        
+
+        // Use thread-safe method from VaultIndexDirectory
         if (!HasIndexEntry(entryId))
             return null;
 
-        if (Index is not VaultIndex vaultIndex)
-            return null;
-
-        var metaData = vaultIndex.GetEntry(entryId);
+        // Use thread-safe metadata retrieval
+        var metaData = GetEntryMetadata(entryId);
         if (metaData == null)
             return null;
 
         var mediaPath = GetMediaPathFromEntryKey(metaData.MediaKey, metaData.Extension);
-        
+
         if (!FileUtils.FileExists(mediaPath))
             return null;
 
         var fileBinary = await FileUtils.FetchFileAsync(mediaPath);
         var parameters = MediaParamsFactory.Create(vaultType, fileBinary, metaData);
-        
+
         var result = FileBinaryFactory.Create(vaultType, parameters);
         return (T)result;
     }

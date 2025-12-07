@@ -14,6 +14,8 @@ import { PlaybackScheduler } from './PlaybackScheduler.js';
 export interface AudioResult {
     success: boolean;
     error?: string;
+    seekBeyondBuffer?: boolean;
+    byteOffset?: number;
 }
 
 export interface StreamingResult extends AudioResult {
@@ -89,7 +91,13 @@ export class AudioPlayer {
 
     initializeStreaming(totalStreamLength: number): AudioResult {
         try {
+            // Full cleanup before starting new stream
+            this.stopProgressTracking();
+            this.scheduler.clear();
+            this.streamDecoder.reset();
             this.resetState();
+
+            // Initialize new stream
             this.isStreamingMode = true;
             this.streamDecoder.initialize(totalStreamLength);
             console.log(`Streaming initialized: ${totalStreamLength} bytes expected`);
@@ -236,16 +244,105 @@ export class AudioPlayer {
             return { success: false, error: 'Invalid seek position' };
         }
 
+        // Get buffered duration (accounting for playback offset)
+        const bufferedDuration = this.scheduler.getTotalDuration() + this.scheduler.getPlaybackOffset();
+
+        // Check if seeking within buffered content
+        if (position <= bufferedDuration) {
+            return this.seekWithinBuffer(position);
+        } else {
+            // Seeking beyond buffer - signal C# to fetch new stream
+            return this.seekBeyondBuffer(position);
+        }
+    }
+
+    /**
+     * Seek within currently buffered content
+     */
+    private seekWithinBuffer(position: number): AudioResult {
         try {
             const wasPlaying = this.isPlaying;
             this.scheduler.stopAllSources();
+
+            // Adjust position relative to buffer start (subtract playback offset)
+            const bufferRelativePosition = position - this.scheduler.getPlaybackOffset();
             this.pausePosition = position;
 
             if (wasPlaying) {
-                this.scheduler.playFromPosition(position);
+                this.scheduler.playFromPosition(Math.max(0, bufferRelativePosition));
             }
 
-            console.log(`🔍 Seeked to ${position.toFixed(3)}s`);
+            console.log(`🔍 Seeked within buffer to ${position.toFixed(3)}s (buffer-relative: ${bufferRelativePosition.toFixed(3)}s)`);
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: (error as Error).message };
+        }
+    }
+
+    /**
+     * Seek beyond buffered content - calculate byte offset for server request
+     */
+    private seekBeyondBuffer(position: number): AudioResult {
+        try {
+            const byteOffset = this.streamDecoder.calculateByteOffset(position);
+            if (byteOffset <= 0) {
+                return { success: false, error: 'Cannot calculate byte offset' };
+            }
+
+            console.log(`🔍 Seek beyond buffer to ${position.toFixed(3)}s requires byte offset ${byteOffset}`);
+
+            // Signal that C# needs to request new stream from offset
+            return {
+                success: true,
+                seekBeyondBuffer: true,
+                byteOffset: byteOffset
+            };
+        } catch (error) {
+            return { success: false, error: (error as Error).message };
+        }
+    }
+
+    /**
+     * Get the total buffered duration (for C# to check if seek is within buffer)
+     */
+    getBufferedDuration(): number {
+        return this.scheduler.getTotalDuration() + this.scheduler.getPlaybackOffset();
+    }
+
+    /**
+     * Calculate byte offset for a time position (for C# layer)
+     */
+    calculateByteOffset(positionSeconds: number): number {
+        return this.streamDecoder.calculateByteOffset(positionSeconds);
+    }
+
+    /**
+     * Reinitialize for offset streaming after seek-beyond-buffer
+     * Called by C# after receiving new stream from server
+     */
+    reinitializeFromOffset(totalStreamLength: number, seekPosition: number): AudioResult {
+        try {
+            console.log(`\n=== Reinitializing for offset stream ===`);
+            console.log(`Seek position: ${seekPosition.toFixed(3)}s, Stream length: ${totalStreamLength}`);
+
+            // Stop current playback
+            this.stopProgressTracking();
+            const wasPlaying = this.isPlaying;
+            this.isPlaying = false;
+
+            // Clear buffers and set new offset
+            this.scheduler.clearForSeek();
+            this.scheduler.setPlaybackOffset(seekPosition);
+
+            // Reinitialize decoder for new stream
+            this.streamDecoder.reinitializeForOffset(totalStreamLength);
+
+            // Update state
+            this.pausePosition = seekPosition;
+            this.streamingStarted = false; // Will restart when new buffers arrive
+            this.streamingCompleted = false;
+
+            console.log(`✅ Reinitialized for offset, was playing: ${wasPlaying}`);
             return { success: true };
         } catch (error) {
             return { success: false, error: (error as Error).message };

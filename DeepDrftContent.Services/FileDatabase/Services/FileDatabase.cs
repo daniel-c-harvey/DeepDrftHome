@@ -4,11 +4,14 @@ using DeepDrftContent.Services.FileDatabase.Utils;
 namespace DeepDrftContent.Services.FileDatabase.Services;
 
 /// <summary>
-/// Main file database class that orchestrates multiple media vaults
+/// Main file database class that orchestrates multiple media vaults.
+/// Includes file watching for automatic index reloading when modified by external processes.
 /// </summary>
-public class FileDatabase : DirectoryIndexDirectory
+public class FileDatabase : DirectoryIndexDirectory, IDisposable
 {
     private readonly StructuralMap<string, MediaVault> _vaults;
+    private readonly IndexWatcher _indexWatcher;
+    private bool _disposed;
 
     /// <summary>
     /// Factory method to create a FileDatabase instance
@@ -31,6 +34,7 @@ public class FileDatabase : DirectoryIndexDirectory
     private FileDatabase(string rootPath, IDirectoryIndex index) : base(rootPath, index)
     {
         _vaults = new StructuralMap<string, MediaVault>();
+        _indexWatcher = new IndexWatcher();
     }
 
     /// <summary>
@@ -49,7 +53,7 @@ public class FileDatabase : DirectoryIndexDirectory
     }
 
     /// <summary>
-    /// Initializes a specific vault
+    /// Initializes a specific vault and sets up file watching for its index
     /// </summary>
     private async Task InitVaultAsync(string vaultId, MediaVaultType vaultType)
     {
@@ -59,6 +63,13 @@ public class FileDatabase : DirectoryIndexDirectory
         if (directoryVault != null)
         {
             _vaults.Set(vaultId, directoryVault);
+
+            // Watch the vault's index file for external modifications
+            _indexWatcher.Watch(path, () =>
+            {
+                // Reload the index asynchronously when file changes
+                _ = directoryVault.ReloadIndexAsync();
+            });
         }
     }
 
@@ -186,4 +197,15 @@ public class FileDatabase : DirectoryIndexDirectory
         return _vaults.Size;
     }
 
+    /// <summary>
+    /// Disposes the file database and stops all file watchers
+    /// </summary>
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        _indexWatcher.Dispose();
+        GC.SuppressFinalize(this);
+    }
 }
