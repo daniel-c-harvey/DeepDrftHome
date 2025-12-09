@@ -1,4 +1,5 @@
-﻿<!DOCTYPE html>
+﻿@using DeepDrftWeb.Services
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -8,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500;6..96,600;6..96,700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="_@Assets["content/MudBlazor.ThemeManager/MudBlazorThemeManager.css"]" rel="stylesheet" />
     <link href=@Assets["_content/MudBlazor/MudBlazor.min.css"] rel="stylesheet" />
@@ -20,12 +21,23 @@
 </head>
 
 <body>
-    <Routes @rendermode="InteractiveAuto" />
-    <script src="_framework/blazor.web.js"></script>
-    <script src=@Assets["_content/MudBlazor/MudBlazor.min.js"]></script>
-    <script type="module">
+<Routes @rendermode="InteractiveAuto" />
+<script src="_framework/blazor.web.js"></script>
+<script src=@Assets["_content/MudBlazor/MudBlazor.min.js"]></script>
+<script type="module">
         import('./js/audio/index.js');
     </script>
 </body>
-
 </html>
+
+@code {
+
+    [Inject] public required DarkModeService DarkModeService { get; set; }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        DarkModeService.CheckDarkMode();
+    }
+
+}

@@ -4,16 +4,16 @@
 
 /* Color Variables - Charleston in the Day (Light Mode Default) */
 :root {
-    /* Charleston Theme Colors */
-    --deepdrft-primary: #1C1C1C;        /* Wrought iron black */
-    --deepdrft-secondary: #B8848C;      /* Dusty rose - elegant accent */
-    --deepdrft-tertiary: #C9A962;       /* Antique gold - replaces brown */
-    --deepdrft-accent: #7D9B8C;         /* Sage green */
+    /* Charleston Theme Colors - Elegant Ironwork & Lowcountry */
+    --deepdrft-primary: #1A1A1A;        /* Wrought iron black */
+    --deepdrft-secondary: #B8623D;      /* Burnished copper - warm orange bronze */
+    --deepdrft-tertiary: #2A7B8C;       /* Atlantic turquoise */
+    --deepdrft-accent: #2A7B8C;         /* Atlantic turquoise */
 
     /* Extended Palette - Light Theme (Charleston) */
-    --deepdrft-quaternary: #7D9B8C;     /* Sage green */
-    --deepdrft-quinary: #6B7D8A;        /* Slate blue */
-    --deepdrft-senary: #C4967A;         /* Warm terracotta */
+    --deepdrft-quaternary: #D4A556;     /* Lamplight orange/yellow */
+    --deepdrft-quinary: #3D5A47;        /* Swampy elegant green */
+    --deepdrft-senary: #6B4C6A;         /* Sunset purple */
     --deepdrft-septenary: #8A7A96;      /* Soft plum */
 
     /* Surface Colors */
@@ -32,17 +32,19 @@
     --deepdrft-theme-septenary: var(--deepdrft-septenary);
 
     /* Charleston-specific accent colors */
-    --charleston-iron: #1C1C1C;
+    --charleston-iron: #1A1A1A;
     --charleston-iron-soft: #4A4A4A;
     --charleston-cream: #FDFBF7;
-    --charleston-rose: #B8848C;
-    --charleston-gold: #C9A962;
-    --charleston-sage: #7D9B8C;
+    --charleston-bronze: #B8623D;
+    --charleston-turquoise: #2A7B8C;
+    --charleston-lamplight: #D4A556;
+    --charleston-swamp: #3D5A47;
+    --charleston-sunset: #6B4C6A;
 
     /* Font Hierarchy - DRY font definitions */
-    /* Upscale steakhouse aesthetic - refined, modern luxury */
+    /* Upscale Charleston aesthetic - tall decorative ironwork elegance */
     --deepdrft-font-largest-headers: "Bodoni Moda", serif;        /* h1, hero text - high-fashion editorial */
-    --deepdrft-font-headers: "EB Garamond", serif;                /* h2-h6 - elegant serif headers */
+    --deepdrft-font-headers: "Cormorant", serif;                   /* h2-h6 - elegant readable serif */
     --deepdrft-font-body: "DM Sans", sans-serif;                  /* body, buttons, UI - clean modern */
 }
 
@@ -111,13 +113,13 @@
 .deepdrft-theme-light .deepdrft-gradient-soft-primary {
     background: linear-gradient(45deg,
         color-mix(in srgb, var(--charleston-iron) 4%, transparent) 0%,
-        color-mix(in srgb, var(--charleston-rose) 6%, transparent) 100%);
+        color-mix(in srgb, var(--charleston-bronze) 6%, transparent) 100%);
 }
 
 .deepdrft-theme-light .mud-paper.deepdrft-gradient-soft-secondary,
 .deepdrft-theme-light .deepdrft-gradient-soft-secondary {
     background: linear-gradient(45deg,
-        color-mix(in srgb, var(--charleston-gold) 6%, transparent) 0%,
+        color-mix(in srgb, var(--charleston-lamplight) 6%, transparent) 0%,
         color-mix(in srgb, var(--charleston-iron) 4%, transparent) 100%);
 }
 
@@ -125,13 +127,13 @@
 .deepdrft-theme-light .deepdrft-gradient-soft-accent {
     background: linear-gradient(135deg,
         color-mix(in srgb, var(--charleston-iron) 3%, transparent) 0%,
-        color-mix(in srgb, var(--charleston-gold) 5%, transparent) 100%);
+        color-mix(in srgb, var(--charleston-lamplight) 5%, transparent) 100%);
 }
 
 .deepdrft-theme-light .mud-paper.deepdrft-gradient-soft-tertiary,
 .deepdrft-theme-light .deepdrft-gradient-soft-tertiary {
     background: linear-gradient(135deg,
-        color-mix(in srgb, var(--charleston-rose) 5%, transparent) 0%,
+        color-mix(in srgb, var(--charleston-bronze) 5%, transparent) 0%,
         color-mix(in srgb, var(--charleston-iron) 3%, transparent) 100%);
 }
 
@@ -139,7 +141,7 @@
 .deepdrft-theme-light .deepdrft-gradient-features {
     background: linear-gradient(to right,
         color-mix(in srgb, var(--charleston-iron) 2%, transparent) 0%,
-        color-mix(in srgb, var(--charleston-rose) 3%, transparent) 100%);
+        color-mix(in srgb, var(--charleston-bronze) 3%, transparent) 100%);
 }
 
 /* Lowcountry Gradient Overrides (Dark Mode) */
@@ -204,17 +206,13 @@ h1, .deepdrft-text-hero, .deepdrft-heading-primary {
     text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
 }
 
-.deepdrft-text-hero {
-    font-size: clamp(2rem, 8vw, 4rem);
-}
-
 /* Hero Section Theme-Aware Text Colors */
 /* Light mode (cream background): dark text */
 .deepdrft-theme-light .deepdrft-hero-container .deepdrft-hero-title {
     color: var(--charleston-iron);
 }
 .deepdrft-theme-light .deepdrft-hero-container .deepdrft-hero-subtitle {
-    color: var(--charleston-rose);
+    color: var(--charleston-bronze);
 }
 .deepdrft-theme-light .deepdrft-hero-container .deepdrft-hero-description {
     color: var(--charleston-iron-soft);
@@ -351,6 +349,18 @@ body, p, span, div,
     border-top: 4px solid var(--deepdrft-theme-tertiary);
 }
 
+.deepdrft-border-top-quaternary {
+    border-top: 4px solid var(--deepdrft-theme-quaternary);
+}
+
+.deepdrft-border-top-quinary {
+    border-top: 4px solid var(--deepdrft-theme-quinary);
+}
+
+.deepdrft-border-top-senary {
+    border-top: 4px solid var(--deepdrft-theme-senary);
+}
+
 /* Buttons */
 .deepdrft-button-primary {
     color: var(--deepdrft-theme-primary);
@@ -382,7 +392,7 @@ body, p, span, div,
 
 .deepdrft-theme-light .mud-card.deepdrft-card-pink-tint,
 .deepdrft-theme-light .mud-paper.deepdrft-card-pink-tint {
-    background: color-mix(in srgb, var(--charleston-rose) 10%, transparent);
+    background: color-mix(in srgb, var(--charleston-bronze) 10%, transparent);
 }
 .deepdrft-theme-dark .mud-card.deepdrft-card-pink-tint,
 .deepdrft-theme-dark .mud-paper.deepdrft-card-pink-tint {
@@ -400,7 +410,7 @@ body, p, span, div,
 
 .deepdrft-theme-light .mud-card.deepdrft-card-lavender-tint,
 .deepdrft-theme-light .mud-paper.deepdrft-card-lavender-tint {
-    background: color-mix(in srgb, var(--charleston-sage) 10%, transparent);
+    background: color-mix(in srgb, var(--charleston-swamp) 10%, transparent);
 }
 .deepdrft-theme-dark .mud-card.deepdrft-card-lavender-tint,
 .deepdrft-theme-dark .mud-paper.deepdrft-card-lavender-tint {
@@ -419,7 +429,7 @@ body, p, span, div,
 
 .deepdrft-theme-light .mud-card.deepdrft-card-secondary-tint,
 .deepdrft-theme-light .mud-paper.deepdrft-card-secondary-tint {
-    background: color-mix(in srgb, var(--charleston-rose) 8%, transparent);
+    background: color-mix(in srgb, var(--charleston-bronze) 8%, transparent);
 }
 .deepdrft-theme-dark .mud-card.deepdrft-card-secondary-tint,
 .deepdrft-theme-dark .mud-paper.deepdrft-card-secondary-tint {
@@ -428,7 +438,7 @@ body, p, span, div,
 
 .deepdrft-theme-light .mud-card.deepdrft-card-tertiary-tint,
 .deepdrft-theme-light .mud-paper.deepdrft-card-tertiary-tint {
-    background: color-mix(in srgb, var(--charleston-gold) 8%, transparent);
+    background: color-mix(in srgb, var(--charleston-lamplight) 8%, transparent);
 }
 .deepdrft-theme-dark .mud-card.deepdrft-card-tertiary-tint,
 .deepdrft-theme-dark .mud-paper.deepdrft-card-tertiary-tint {
@@ -483,7 +493,7 @@ body, p, span, div,
 
 .deepdrft-hero-text-container {
     max-width: 600px;
-    margin: 0 auto;
+    /*margin: 0 auto;*/
 }
 
 /* Feature Cards Layout */
@@ -606,27 +616,27 @@ body, p, span, div,
     box-shadow: inset 0 0 20px rgba(28,28,28,0.03);
 }
 
-/* Gold Accent */
-.charleston-gold-accent {
-    border-bottom: 2px solid var(--charleston-gold, #C9A962);
+/* Lamplight Accent */
+.charleston-lamplight-accent {
+    border-bottom: 2px solid var(--charleston-lamplight, #D4A556);
 }
 
-.charleston-gold-border {
-    border: 1px solid var(--charleston-gold, #C9A962);
+.charleston-lamplight-border {
+    border: 1px solid var(--charleston-lamplight, #D4A556);
 }
 
-/* Rose Accent */
-.charleston-rose-accent {
-    border-bottom: 2px solid var(--charleston-rose, #B8848C);
+/* Bronze Accent */
+.charleston-bronze-accent {
+    border-bottom: 2px solid var(--charleston-bronze, #B8623D);
 }
 
-.charleston-rose-border {
-    border: 1px solid var(--charleston-rose, #B8848C);
+.charleston-bronze-border {
+    border: 1px solid var(--charleston-bronze, #B8623D);
 }
 
 /* Garden Card (subtle green tint) */
 .charleston-garden-tint {
-    background: color-mix(in srgb, var(--charleston-sage) 8%, transparent);
+    background: color-mix(in srgb, var(--charleston-swamp) 8%, transparent);
 }
 
 /* Iron Gate Pattern Overlay */

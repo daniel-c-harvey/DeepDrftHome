@@ -1,4 +1,4 @@
-﻿using DeepDrftWeb.Services.Data;
+using DeepDrftWeb.Services.Data;
 using DeepDrftWeb.Services.Repositories;
 using DeepDrftWeb.Services;
 using Microsoft.EntityFrameworkCore;
@@ -13,9 +13,16 @@ public static class Startup
         builder.Services.AddDbContext<DeepDrftContext>(options =>
             options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+        // Add Server Prerendering Theming Support
+        // DarkModeSettings is registered in DeepDrftWeb.Client.Startup.ConfigureDomainServices
+        builder.Services
+            .AddHttpContextAccessor()
+            .AddScoped<DarkModeService>();
+        
         // Add Track services
-        builder.Services.AddScoped<TrackRepository>();
-        builder.Services.AddScoped<TrackService>();
+        builder.Services
+            .AddScoped<TrackRepository>()
+            .AddScoped<TrackService>();
     }
     
     public static string GetKestrelUrl(this WebApplicationBuilder builder)

@@ -1,6 +1,6 @@
 ﻿@page "/"
 
-<PageTitle>DeepDrft - Electronic Music Collective</PageTitle>
+<PageTitle>Deep DRFT- Electronic Music Collective</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-0">
     
@@ -11,17 +11,17 @@
             <MudItem xs="12" md="8">
                 <MudText Typo="Typo.h1"
                          Class="mb-4 deepdrft-text-hero deepdrft-hero-title">
-                    DEEPDRFT
+                    DEEP DRFT
                 </MudText>
 
-                <MudText Typo="Typo.h4"
+                <MudText Typo="Typo.h2"
                          Class="mb-6 deepdrft-text-subtitle deepdrft-hero-subtitle">
                     ELECTRONIC MUSIC COLLECTIVE
                 </MudText>
 
-                <MudText Typo="Typo.h6"
+                <MudText Typo="Typo.h3"
                          Class="mb-8 deepdrft-text-description deepdrft-hero-text-container deepdrft-hero-description">
-                    Live electronic music from Charleston, SC featuring house, techno, trance, and IDM crafted with synthesizers and grooveboxes
+                    Live electronic music from Charleston, South Carolina
                 </MudText>
 
                 <MudButton Variant="Variant.Filled"
@@ -32,7 +32,8 @@
                     START STREAMING
                 </MudButton>
 
-                <MudButton Variant="Variant.Outlined"
+                <MudButton Href="/tracks" 
+                           Variant="Variant.Outlined"
                            Color="Color.Primary"
                            Size="Size.Large"
                            Class="mb-2 deepdrft-hero-button-outlined">
@@ -46,8 +47,8 @@
     @* About Section *@
     <MudGrid Class="mb-8" Spacing="6">
         <MudItem xs="12" md="6">
-            <MudPaper Elevation="4" Class="pa-6 deepdrft-gradient-soft-primary deepdrft-border-left-primary deepdrft-about-card">
-                <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-4 deepdrft-text-bold">
+            <MudPaper Elevation="4" Class="pa-6 deepdrft-gradient-soft-primary deepdrft-border-left-secondary deepdrft-about-card">
+                <MudText Typo="Typo.h4" Color="Color.Secondary" Class="mb-4 deepdrft-text-bold">
                     <MudIcon Icon="@Icons.Material.Filled.Group" Class="mr-2" />
                     The Collective
                 </MudText>
@@ -65,8 +66,8 @@
         </MudItem>
         
         <MudItem xs="12" md="6">
-            <MudPaper Elevation="4" Class="pa-6 deepdrft-gradient-soft-secondary deepdrft-border-left-secondary deepdrft-about-card">
-                <MudText Typo="Typo.h4" Color="Color.Secondary" Class="mb-4 deepdrft-text-bold">
+            <MudPaper Elevation="4" Class="pa-6 deepdrft-gradient-soft-secondary deepdrft-border-left-tertiary deepdrft-about-card">
+                <MudText Typo="Typo.h4" Color="Color.Tertiary" Class="mb-4 deepdrft-text-bold">
                     <MudIcon Icon="@Icons.Material.Filled.MusicNote" Class="mr-2" />
                     Our Sound
                 </MudText>
@@ -96,11 +97,11 @@
         <MudGrid Spacing="6">
             <MudItem xs="12" sm="6" md="3">
                 <MudCard Elevation="8" Class="pa-4 deepdrft-feature-card deepdrft-feature-icon-container deepdrft-card-purple-tint">
-                    <MudIcon Icon="@Icons.Material.Filled.Headphones" 
-                             Size="Size.Large" 
-                             Color="Color.Primary" 
+                    <MudIcon Icon="@Icons.Material.Filled.Headphones"
+                             Size="Size.Large"
+                             Color="Color.Secondary"
                              Class="mb-3 deepdrft-icon-large" />
-                    <MudText Typo="Typo.h6" Color="Color.Primary" Class="mb-2 deepdrft-text-bold">
+                    <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mb-2 deepdrft-text-bold">
                         High-Quality Streaming
                     </MudText>
                     <MudText Typo="Typo.body2">
@@ -111,9 +112,9 @@
             
             <MudItem xs="12" sm="6" md="3">
                 <MudCard Elevation="8" Class="pa-4 deepdrft-feature-card deepdrft-feature-icon-container deepdrft-card-pink-tint">
-                    <MudIcon Icon="@Icons.Material.Filled.LiveTv" 
-                             Size="Size.Large" 
-                             Color="Color.Tertiary" 
+                    <MudIcon Icon="@Icons.Material.Filled.LiveTv"
+                             Size="Size.Large"
+                             Color="Color.Tertiary"
                              Class="mb-3 deepdrft-icon-large" />
                     <MudText Typo="Typo.h6" Color="Color.Tertiary" Class="mb-2 deepdrft-text-bold">
                         Live Sessions
@@ -126,11 +127,10 @@
             
             <MudItem xs="12" sm="6" md="3">
                 <MudCard Elevation="8" Class="pa-4 deepdrft-feature-card deepdrft-feature-icon-container deepdrft-card-indigo-tint">
-                    <MudIcon Icon="@Icons.Material.Filled.VideoLibrary" 
-                             Size="Size.Large" 
-                             Color="Color.Secondary" 
-                             Class="mb-3 deepdrft-icon-large" />
-                    <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mb-2 deepdrft-text-bold">
+                    <MudIcon Icon="@Icons.Material.Filled.VideoLibrary"
+                             Size="Size.Large"
+                             Class="mb-3 deepdrft-icon-large deepdrft-text-quaternary" />
+                    <MudText Typo="Typo.h6" Class="mb-2 deepdrft-text-bold deepdrft-text-quaternary">
                         Video Content
                     </MudText>
                     <MudText Typo="Typo.body2">
@@ -143,8 +143,8 @@
                 <MudCard Elevation="8" Class="pa-4 deepdrft-feature-card deepdrft-feature-icon-container deepdrft-card-lavender-tint">
                     <MudIcon Icon="@Icons.Material.Filled.Archive"
                              Size="Size.Large"
-                             Class="mb-3 deepdrft-icon-large deepdrft-text-quaternary" />
-                    <MudText Typo="Typo.h6" Class="mb-2 deepdrft-text-bold deepdrft-text-quaternary">
+                             Class="mb-3 deepdrft-icon-large deepdrft-text-quinary" />
+                    <MudText Typo="Typo.h6" Class="mb-2 deepdrft-text-bold deepdrft-text-quinary">
                         Growing Archive
                     </MudText>
                     <MudText Typo="Typo.body2">
@@ -158,8 +158,8 @@
     @* Location & Connect Section *@
     <MudGrid Class="mb-8" Spacing="6">
         <MudItem xs="12" md="6">
-            <MudPaper Elevation="4" Class="pa-6 deepdrft-gradient-soft-accent deepdrft-border-top-primary">
-                <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-4 deepdrft-text-bold">
+            <MudPaper Elevation="4" Class="pa-6 deepdrft-gradient-soft-accent deepdrft-border-top-quaternary">
+                <MudText Typo="Typo.h4" Class="mb-4 deepdrft-text-bold deepdrft-text-quaternary">
                     <MudIcon Icon="@Icons.Material.Filled.LocationOn" Class="mr-2" />
                     Charleston, SC
                 </MudText>
@@ -175,8 +175,8 @@
         </MudItem>
         
         <MudItem xs="12" md="6">
-            <MudPaper Elevation="4" Class="pa-6 deepdrft-gradient-soft-tertiary deepdrft-border-top-secondary">
-                <MudText Typo="Typo.h4" Color="Color.Tertiary" Class="mb-4 deepdrft-text-bold">
+            <MudPaper Elevation="4" Class="pa-6 deepdrft-gradient-soft-tertiary deepdrft-border-top-senary">
+                <MudText Typo="Typo.h4" Class="mb-4 deepdrft-text-bold deepdrft-text-senary">
                     <MudIcon Icon="@Icons.Material.Filled.ConnectWithoutContact" Class="mr-2" />
                     Connect With Us
                 </MudText>

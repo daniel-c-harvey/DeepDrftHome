@@ -1,6 +1,8 @@
 ﻿using DeepDrftWeb.Client.Clients;
+using DeepDrftWeb.Client.Common;
 using DeepDrftWeb.Client.Services;
 using DeepDrftWeb.Client.ViewModels;
+using Microsoft.AspNetCore.Http;
 
 namespace DeepDrftWeb.Client;
 
@@ -8,6 +10,10 @@ public static class Startup
 {
     public static void ConfigureDomainServices(IServiceCollection services)
     {
+        // Theme Support
+        services.AddScoped<DarkModeSettings>();
+        services.AddScoped<DarkModeCookieService>();
+
         // Track Client
         services.AddScoped<TrackClient>();
         services.AddScoped<TracksViewModel>();
@@ -29,6 +35,5 @@ public static class Startup
         });
         services.AddScoped<TrackMediaClient>();
         services.AddScoped<AudioInteropService>();
-        // AudioPlaybackEngine removed - functionality merged into AudioPlayerService
     }
 }

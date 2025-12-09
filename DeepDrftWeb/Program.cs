@@ -1,5 +1,4 @@
 using DeepDrftWeb;
-using DeepDrftWeb.Client.Services;
 using MudBlazor.Services;
 using DeepDrftWeb.Components;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -10,16 +9,16 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMudServices();
 
 // Add AudioInteropService for both server and client rendering
-builder.Services.AddScoped<AudioInteropService>();
+// builder.Services.AddScoped<AudioInteropService>();
 
 var baseUrl = builder.GetKestrelUrl();
 var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"] ?? throw new Exception("Content API URL is not configured");
 
-Startup.ConfigureDomainServices(builder);
-
 DeepDrftWeb.Client.Startup.ConfigureApiHttpClient(builder.Services, baseUrl);
 DeepDrftWeb.Client.Startup.ConfigureDomainServices(builder.Services);
 DeepDrftWeb.Client.Startup.ConfigureContentServices(builder.Services, contentApiUrl);
+
+Startup.ConfigureDomainServices(builder);
 
 builder.Services.AddControllers();
 

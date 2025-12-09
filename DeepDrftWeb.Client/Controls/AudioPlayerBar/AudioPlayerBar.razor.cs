@@ -8,7 +8,7 @@ namespace DeepDrftWeb.Client.Controls.AudioPlayerBar;
 public partial class AudioPlayerBar : ComponentBase, IAsyncDisposable
 {
     [CascadingParameter] public required IStreamingPlayerService PlayerService { get; set; }
-    [Inject] private IBrowserViewportService BrowserViewportService { get; set; } = default!;
+    [Inject] public required IBrowserViewportService BrowserViewportService { get; set; }
 
     private bool _isMinimized = true;
     private bool _isSeeking = false;
