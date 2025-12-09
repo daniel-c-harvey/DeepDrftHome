@@ -33,13 +33,13 @@
 
 /* Charleston (Light Mode) - Iron to gold colored bars */
 :global(.deepdrft-theme-light) .spectrum-bar {
-    background: linear-gradient(to top, #1C1C1C 0%, #B8848C 50%, #C9A962 100%);
+    background: linear-gradient(to top, var(--charleston-iron) 0%, var(--charleston-rose) 50%, var(--charleston-gold) 100%);
 }
 
 /* Lowcountry (Dark Mode) - Coral to gold bars with warm glow */
 :global(.deepdrft-theme-dark) .spectrum-bar {
-    background: linear-gradient(to top, #E07A5F 0%, #E9C46A 100%);
-    box-shadow: 0 0 4px rgba(233, 196, 106, 0.4);
+    background: linear-gradient(to top, var(--lowcountry-coral) 0%, var(--lowcountry-gold) 100%);
+    box-shadow: 0 0 4px color-mix(in srgb, var(--lowcountry-gold) 40%, transparent);
 }
 
 /* Responsive adjustments */

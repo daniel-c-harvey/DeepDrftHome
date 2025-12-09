@@ -26,7 +26,7 @@
     border-radius: 1rem;
     border: 2px solid var(--deepdrft-theme-primary);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    color: #ffffff;
+    color: inherit;
     transition: all 0.3s ease;
     overflow: hidden;
     margin-bottom: 1rem;
@@ -34,21 +34,21 @@
 
 /* Charleston (Light Mode) - Iron frame effect */
 :global(.deepdrft-theme-light) .player-backdrop {
-    background: rgba(253, 251, 247, 0.92);
-    border: 2px solid #1C1C1C;
-    box-shadow: 0 4px 20px rgba(28, 28, 28, 0.2),
-                inset 0 0 0 1px rgba(28, 28, 28, 0.05);
-    color: #1C1C1C;
+    background: color-mix(in srgb, var(--charleston-cream) 92%, transparent);
+    border: 2px solid var(--charleston-iron);
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--charleston-iron) 20%, transparent),
+                inset 0 0 0 1px color-mix(in srgb, var(--charleston-iron) 5%, transparent);
+    color: var(--charleston-iron);
 }
 
 /* Lowcountry (Dark Mode) - Warm sunset glow effect */
 :global(.deepdrft-theme-dark) .player-backdrop {
-    background: rgba(20, 20, 32, 0.88);
-    border: 1px solid rgba(224, 122, 95, 0.5);
-    box-shadow: 0 0 20px rgba(224, 122, 95, 0.25),
-                0 0 40px rgba(123, 109, 141, 0.15),
+    background: color-mix(in srgb, var(--lowcountry-night) 88%, transparent);
+    border: 1px solid color-mix(in srgb, var(--lowcountry-coral) 50%, transparent);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--lowcountry-coral) 25%, transparent),
+                0 0 40px color-mix(in srgb, var(--lowcountry-twilight) 15%, transparent),
                 0 4px 20px rgba(0, 0, 0, 0.4);
-    color: #F5F0E6;
+    color: var(--lowcountry-moonlight);
 }
 
 /* Control buttons positioning */
@@ -82,17 +82,17 @@
 
 /* Charleston (Light Mode) - Iron dock */
 :global(.deepdrft-theme-light) .minimized-dock {
-    background: linear-gradient(135deg, #1C1C1C 0%, #B8848C 50%, #C9A962 100%);
-    border: 2px solid #1C1C1C;
-    box-shadow: 0 4px 15px rgba(28, 28, 28, 0.4);
+    background: linear-gradient(135deg, var(--charleston-iron) 0%, var(--charleston-rose) 50%, var(--charleston-gold) 100%);
+    border: 2px solid var(--charleston-iron);
+    box-shadow: 0 4px 15px color-mix(in srgb, var(--charleston-iron) 40%, transparent);
 }
 
 /* Lowcountry (Dark Mode) - Warm sunset dock */
 :global(.deepdrft-theme-dark) .minimized-dock {
-    background: linear-gradient(135deg, #E07A5F 0%, #7B6D8D 50%, #E9C46A 100%);
-    border: 2px solid rgba(224, 122, 95, 0.6);
-    box-shadow: 0 0 20px rgba(224, 122, 95, 0.4),
-                0 0 40px rgba(123, 109, 141, 0.2);
+    background: linear-gradient(135deg, var(--lowcountry-coral) 0%, var(--lowcountry-twilight) 50%, var(--lowcountry-gold) 100%);
+    border: 2px solid color-mix(in srgb, var(--lowcountry-coral) 60%, transparent);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--lowcountry-coral) 40%, transparent),
+                0 0 40px color-mix(in srgb, var(--lowcountry-twilight) 20%, transparent);
 }
 
 .minimized-dock:hover {
@@ -100,12 +100,12 @@
 }
 
 :global(.deepdrft-theme-light) .minimized-dock:hover {
-    box-shadow: 0 6px 20px rgba(28, 28, 28, 0.5);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--charleston-iron) 50%, transparent);
 }
 
 :global(.deepdrft-theme-dark) .minimized-dock:hover {
-    box-shadow: 0 0 30px rgba(224, 122, 95, 0.5),
-                0 0 50px rgba(123, 109, 141, 0.3);
+    box-shadow: 0 0 30px color-mix(in srgb, var(--lowcountry-coral) 50%, transparent),
+                0 0 50px color-mix(in srgb, var(--lowcountry-twilight) 30%, transparent);
 }
 
 /* Minimized button styles */

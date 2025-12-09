@@ -42,23 +42,23 @@
 
 /* Charleston (Light Mode) - Gold hover tint */
 :global(.deepdrft-theme-light) .nav-menu-item:hover {
-    background-color: rgba(201, 169, 98, 0.1);
-    color: #1C1C1C;
+    background-color: color-mix(in srgb, var(--charleston-gold) 10%, transparent);
+    color: var(--charleston-iron);
 }
 
 :global(.deepdrft-theme-light) .nav-menu-item:hover .nav-item-content {
-    color: #B8848C;
+    color: var(--charleston-rose);
 }
 
 /* Lowcountry (Dark Mode) - Coral glow hover */
 :global(.deepdrft-theme-dark) .nav-menu-item:hover {
-    background-color: rgba(224, 122, 95, 0.12);
-    color: #E07A5F;
-    box-shadow: 0 0 10px rgba(224, 122, 95, 0.15);
+    background-color: color-mix(in srgb, var(--lowcountry-coral) 12%, transparent);
+    color: var(--lowcountry-coral);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--lowcountry-coral) 15%, transparent);
 }
 
 :global(.deepdrft-theme-dark) .nav-menu-item:hover .nav-item-content {
-    color: #E07A5F;
+    color: var(--lowcountry-coral);
 }
 
 /* === ACTIVE STATES === */
@@ -82,37 +82,37 @@
 
 /* Charleston (Light Mode) - Iron left border */
 :global(.deepdrft-theme-light) .nav-menu-item.active {
-    background-color: rgba(28, 28, 28, 0.08);
-    color: #1C1C1C;
-    border-left: 4px solid #1C1C1C;
+    background-color: color-mix(in srgb, var(--charleston-iron) 8%, transparent);
+    color: var(--charleston-iron);
+    border-left: 4px solid var(--charleston-iron);
 }
 
 :global(.deepdrft-theme-light) .nav-menu-item.active .nav-item-content {
-    color: #1C1C1C;
+    color: var(--charleston-iron);
 }
 
 /* Lowcountry (Dark Mode) - Gold active indicator */
 :global(.deepdrft-theme-dark) .nav-menu-item.active {
-    background-color: rgba(233, 196, 106, 0.12);
-    color: #E9C46A;
-    border-left: 4px solid #E9C46A;
-    box-shadow: 0 0 12px rgba(233, 196, 106, 0.2);
+    background-color: color-mix(in srgb, var(--lowcountry-gold) 12%, transparent);
+    color: var(--lowcountry-gold);
+    border-left: 4px solid var(--lowcountry-gold);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--lowcountry-gold) 20%, transparent);
 }
 
 :global(.deepdrft-theme-dark) .nav-menu-item.active .nav-item-content {
-    color: #E9C46A;
+    color: var(--lowcountry-gold);
 }
 
 /* === FOCUS STATES === */
 
 /* Charleston (Light Mode) - Iron focus outline */
 :global(.deepdrft-theme-light) .nav-menu-item:focus {
-    outline: 2px solid #1C1C1C;
+    outline: 2px solid var(--charleston-iron);
     outline-offset: 2px;
 }
 
 /* Lowcountry (Dark Mode) - Coral focus outline */
 :global(.deepdrft-theme-dark) .nav-menu-item:focus {
-    outline: 2px solid #E07A5F;
+    outline: 2px solid var(--lowcountry-coral);
     outline-offset: 2px;
 }
