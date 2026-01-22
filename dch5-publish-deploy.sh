@@ -9,8 +9,8 @@ CONTENT_APP="deepdrft-content.tar.gz"
 WEB_APP="deepdrft-web.tar.gz"
 
 # Restore and Publish
-dotnet publish $CONTENT_PROJ -c Release -f net9.0 -o $CONTENT_PROJ/publish -r linux-x64 -p:Platform="Any CPU" --verbosity normal
-dotnet publish $WEB_PROJ -c Release -f net9.0 -o $WEB_PROJ/publish -r linux-x64 -p:Platform="Any CPU" --verbosity normal
+dotnet publish $CONTENT_PROJ -c Release -f net10.0 -o $CONTENT_PROJ/publish -r linux-x64 -p:Platform="Any CPU" --verbosity normal
+dotnet publish $WEB_PROJ -c Release -f net10.0 -o $WEB_PROJ/publish -r linux-x64 -p:Platform="Any CPU" --verbosity normal
 
 # Check if migrations are needed
 WEB_MIG="deepdrft-migrations.sql"

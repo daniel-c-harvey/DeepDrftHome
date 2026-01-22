@@ -1,262 +1,135 @@
-/* DeepDrft Global Styles - Aesthetic and Structural Classes */
+/* DeepDrft Global Styles - Simplified & Maintainable */
 
-/* === AESTHETIC STYLES (Reusable across components) === */
+/* =============================================================================
+   1. CSS VARIABLES - Theme System
+   ============================================================================= */
 
-/* Color Variables - Charleston in the Day (Light Mode Default) */
+/* Light Theme (Charleston in the Day) */
 :root {
-    /* Charleston Theme Colors - Elegant Ironwork & Lowcountry */
-    --deepdrft-primary: #1A1A1A;        /* Wrought iron black */
-    --deepdrft-secondary: #B8623D;      /* Burnished copper - warm orange bronze */
-    --deepdrft-tertiary: #2A7B8C;       /* Atlantic turquoise */
-    --deepdrft-accent: #2A7B8C;         /* Atlantic turquoise */
+    /* Core Palette */
+    --deepdrft-primary: #1A1A1A;
+    --deepdrft-secondary: #B8623D;
+    --deepdrft-tertiary: #2A7B8C;
+    --deepdrft-quaternary: #D4A556;
+    --deepdrft-quinary: #3D5A47;
+    --deepdrft-senary: #6B4C6A;
 
-    /* Extended Palette - Light Theme (Charleston) */
-    --deepdrft-quaternary: #D4A556;     /* Lamplight orange/yellow */
-    --deepdrft-quinary: #3D5A47;        /* Swampy elegant green */
-    --deepdrft-senary: #6B4C6A;         /* Sunset purple */
-    --deepdrft-septenary: #8A7A96;      /* Soft plum */
-
-    /* Surface Colors */
+    /* Surfaces */
     --deepdrft-surface: #FDFBF7;
-    --deepdrft-surface-alpha: rgba(253, 251, 247, 0.9);
     --deepdrft-background: #F5F2EC;
-    --deepdrft-theme-background-gray: rgba(245, 242, 236, 0.9);
+    --deepdrft-surface-alpha: rgba(253, 251, 247, 0.9);
 
-    /* Theme-aware Variables */
-    --deepdrft-theme-primary: var(--deepdrft-primary);
-    --deepdrft-theme-secondary: var(--deepdrft-secondary);
-    --deepdrft-theme-tertiary: var(--deepdrft-tertiary);
-    --deepdrft-theme-quaternary: var(--deepdrft-quaternary);
-    --deepdrft-theme-quinary: var(--deepdrft-quinary);
-    --deepdrft-theme-senary: var(--deepdrft-senary);
-    --deepdrft-theme-septenary: var(--deepdrft-septenary);
+    /* Theme-aware aliases */
+    --theme-primary: var(--deepdrft-primary);
+    --theme-secondary: var(--deepdrft-secondary);
+    --theme-tertiary: var(--deepdrft-tertiary);
+    --theme-quaternary: var(--deepdrft-quaternary);
+    --theme-quinary: var(--deepdrft-quinary);
+    --theme-senary: var(--deepdrft-senary);
+    --theme-surface: var(--deepdrft-surface);
+    --theme-surface-soft: #4A4A4A;
 
-    /* Charleston-specific accent colors */
-    --charleston-iron: #1A1A1A;
-    --charleston-iron-soft: #4A4A4A;
-    --charleston-cream: #FDFBF7;
-    --charleston-bronze: #B8623D;
-    --charleston-turquoise: #2A7B8C;
-    --charleston-lamplight: #D4A556;
-    --charleston-swamp: #3D5A47;
-    --charleston-sunset: #6B4C6A;
+    /* Gradient colors */
+    --gradient-base: #FDFBF7;
+    --gradient-accent: #1A1A1A;
+    --gradient-warm: #B8623D;
+    --gradient-light: #D4A556;
 
-    /* Font Hierarchy - DRY font definitions */
-    /* Upscale Charleston aesthetic - tall decorative ironwork elegance */
-    --deepdrft-font-largest-headers: "Bodoni Moda", serif;        /* h1, hero text - high-fashion editorial */
-    --deepdrft-font-headers: "Cormorant", serif;                   /* h2-h6 - elegant readable serif */
-    --deepdrft-font-body: "DM Sans", sans-serif;                  /* body, buttons, UI - clean modern */
+    /* Fonts */
+    --font-hero: "Bodoni Moda", serif;
+    --font-headers: "Cormorant", serif;
+    --font-body: "DM Sans", sans-serif;
 }
 
-/* Lowcountry Summer Nights (Dark Mode) */
-/* Use our custom theme class for reliable CSS targeting */
+/* Dark Theme (Lowcountry Summer Nights) */
 .deepdrft-theme-dark {
-    --deepdrft-primary: #D4654A;        /* Deep sunset coral - richer, distinct */
-    --deepdrft-secondary: #7B6D8D;      /* Twilight purple - muted */
-    --deepdrft-tertiary: #E9C46A;       /* Firefly gold - lamplight */
-    --deepdrft-accent: #5E8B9C;         /* Marsh blue */
+    /* Core Palette */
+    --deepdrft-primary: #D4654A;
+    --deepdrft-secondary: #7B6D8D;
+    --deepdrft-tertiary: #E9C46A;
+    --deepdrft-quaternary: #8AA39B;
+    --deepdrft-quinary: #9EB8C4;
+    --deepdrft-senary: #D4845A;
 
-    /* Extended Palette - Dark Theme (Lowcountry) */
-    --deepdrft-quaternary: #8AA39B;     /* Spanish moss */
-    --deepdrft-quinary: #9EB8C4;        /* Silver marsh - cool, distinct from primary */
-    --deepdrft-senary: #D4845A;         /* Ember orange */
-    --deepdrft-septenary: #6A5A7C;      /* Night violet */
-
-    /* Surface Colors - Dark */
+    /* Surfaces */
     --deepdrft-surface: rgba(123,109,141,0.12);
-    --deepdrft-surface-alpha: rgba(13, 13, 18, 0.95);
     --deepdrft-background: #0D0D12;
-    --deepdrft-theme-background-gray: rgba(20, 20, 32, 0.85);
+    --deepdrft-surface-alpha: rgba(13, 13, 18, 0.95);
 
-    /* Theme-aware Variables */
-    --deepdrft-theme-primary: var(--deepdrft-primary);
-    --deepdrft-theme-secondary: var(--deepdrft-secondary);
-    --deepdrft-theme-tertiary: var(--deepdrft-tertiary);
-    --deepdrft-theme-quaternary: var(--deepdrft-quaternary);
-    --deepdrft-theme-quinary: var(--deepdrft-quinary);
-    --deepdrft-theme-senary: var(--deepdrft-senary);
-    --deepdrft-theme-septenary: var(--deepdrft-septenary);
+    /* Theme-aware aliases */
+    --theme-primary: var(--deepdrft-primary);
+    --theme-secondary: var(--deepdrft-secondary);
+    --theme-tertiary: var(--deepdrft-tertiary);
+    --theme-quaternary: var(--deepdrft-quaternary);
+    --theme-quinary: var(--deepdrft-quinary);
+    --theme-senary: var(--deepdrft-senary);
+    --theme-surface: #F5F0E6;
+    --theme-surface-soft: #B8B0C4;
 
-    /* Lowcountry-specific accent colors */
-    --lowcountry-coral: #D4654A;
-    --lowcountry-twilight: #7B6D8D;
-    --lowcountry-gold: #E9C46A;
-    --lowcountry-marsh: #5E8B9C;
-    --lowcountry-moss: #8AA39B;
-    --lowcountry-ember: #D4845A;
-    --lowcountry-moonlight: #F5F0E6;
-    --lowcountry-lavender: #B8B0C4;
-    --lowcountry-night: #0D0D12;
-    --lowcountry-violet: #6A5A7C;
+    /* Gradient colors */
+    --gradient-base: #0D0D12;
+    --gradient-accent: #7B6D8D;
+    --gradient-warm: #D4654A;
+    --gradient-light: #E9C46A;
 }
 
-/* Primary Gradient Backgrounds - Charleston (Light Mode Default) */
-/* Light mode: subtle cream background with dark text on top */
-/* Using .mud-paper for specificity to avoid !important */
-.deepdrft-theme-light .mud-paper.deepdrft-gradient-primary,
-.deepdrft-theme-light .deepdrft-gradient-primary {
+/* =============================================================================
+   2. GRADIENTS
+   ============================================================================= */
+
+.deepdrft-gradient-primary,
+.deepdrft-gradient-hero {
     background: linear-gradient(135deg,
-        var(--charleston-cream) 0%,
-        color-mix(in srgb, var(--charleston-cream) 90%, var(--charleston-iron) 10%) 50%,
-        color-mix(in srgb, var(--charleston-cream) 80%, var(--charleston-iron) 20%) 100%);
+        var(--gradient-base) 0%,
+        color-mix(in srgb, var(--gradient-base) 90%, var(--gradient-accent) 10%) 50%,
+        color-mix(in srgb, var(--gradient-base) 80%, var(--gradient-accent) 20%) 100%);
 }
 
-.deepdrft-theme-light .mud-paper.deepdrft-gradient-hero,
-.deepdrft-theme-light .deepdrft-gradient-hero {
-    background: linear-gradient(135deg,
-        var(--charleston-cream) 0%,
-        color-mix(in srgb, var(--charleston-cream) 90%, var(--charleston-iron) 10%) 50%,
-        color-mix(in srgb, var(--charleston-cream) 80%, var(--charleston-iron) 20%) 100%);
-}
-
-.deepdrft-theme-light .mud-paper.deepdrft-gradient-soft-primary,
-.deepdrft-theme-light .deepdrft-gradient-soft-primary {
+.deepdrft-gradient-soft-primary {
     background: linear-gradient(45deg,
-        color-mix(in srgb, var(--charleston-iron) 4%, transparent) 0%,
-        color-mix(in srgb, var(--charleston-bronze) 6%, transparent) 100%);
+        color-mix(in srgb, var(--gradient-accent) 4%, transparent) 0%,
+        color-mix(in srgb, var(--gradient-warm) 6%, transparent) 100%);
 }
 
-.deepdrft-theme-light .mud-paper.deepdrft-gradient-soft-secondary,
-.deepdrft-theme-light .deepdrft-gradient-soft-secondary {
+.deepdrft-gradient-soft-secondary {
     background: linear-gradient(45deg,
-        color-mix(in srgb, var(--charleston-lamplight) 6%, transparent) 0%,
-        color-mix(in srgb, var(--charleston-iron) 4%, transparent) 100%);
+        color-mix(in srgb, var(--gradient-light) 6%, transparent) 0%,
+        color-mix(in srgb, var(--gradient-accent) 4%, transparent) 100%);
 }
 
-.deepdrft-theme-light .mud-paper.deepdrft-gradient-soft-accent,
-.deepdrft-theme-light .deepdrft-gradient-soft-accent {
+.deepdrft-gradient-soft-accent {
     background: linear-gradient(135deg,
-        color-mix(in srgb, var(--charleston-iron) 3%, transparent) 0%,
-        color-mix(in srgb, var(--charleston-lamplight) 5%, transparent) 100%);
+        color-mix(in srgb, var(--gradient-accent) 3%, transparent) 0%,
+        color-mix(in srgb, var(--gradient-light) 5%, transparent) 100%);
 }
 
-.deepdrft-theme-light .mud-paper.deepdrft-gradient-soft-tertiary,
-.deepdrft-theme-light .deepdrft-gradient-soft-tertiary {
+.deepdrft-gradient-soft-tertiary {
     background: linear-gradient(135deg,
-        color-mix(in srgb, var(--charleston-bronze) 5%, transparent) 0%,
-        color-mix(in srgb, var(--charleston-iron) 3%, transparent) 100%);
+        color-mix(in srgb, var(--gradient-warm) 5%, transparent) 0%,
+        color-mix(in srgb, var(--gradient-accent) 3%, transparent) 100%);
 }
 
-.deepdrft-theme-light .mud-paper.deepdrft-gradient-features,
-.deepdrft-theme-light .deepdrft-gradient-features {
+.deepdrft-gradient-features {
     background: linear-gradient(to right,
-        color-mix(in srgb, var(--charleston-iron) 2%, transparent) 0%,
-        color-mix(in srgb, var(--charleston-bronze) 3%, transparent) 100%);
+        color-mix(in srgb, var(--gradient-accent) 2%, transparent) 0%,
+        color-mix(in srgb, var(--gradient-warm) 3%, transparent) 100%);
 }
 
-/* Lowcountry Gradient Overrides (Dark Mode) */
-/* Dark mode: warm sunset gradient with light text on top */
-.deepdrft-theme-dark .mud-paper.deepdrft-gradient-primary,
-.deepdrft-theme-dark .deepdrft-gradient-primary {
-    background: linear-gradient(135deg,
-        var(--lowcountry-night) 0%,
-        var(--lowcountry-twilight) 50%,
-        var(--lowcountry-coral) 100%);
-}
+/* =============================================================================
+   3. TYPOGRAPHY
+   ============================================================================= */
 
-.deepdrft-theme-dark .mud-paper.deepdrft-gradient-hero,
-.deepdrft-theme-dark .deepdrft-gradient-hero {
-    background: linear-gradient(135deg,
-        var(--lowcountry-night) 0%,
-        var(--lowcountry-twilight) 50%,
-        var(--lowcountry-coral) 100%);
-}
-
-.deepdrft-theme-dark .mud-paper.deepdrft-gradient-soft-primary,
-.deepdrft-theme-dark .deepdrft-gradient-soft-primary {
-    background: linear-gradient(45deg,
-        color-mix(in srgb, var(--lowcountry-coral) 12%, transparent) 0%,
-        color-mix(in srgb, var(--lowcountry-twilight) 12%, transparent) 100%);
-}
-
-.deepdrft-theme-dark .mud-paper.deepdrft-gradient-soft-secondary,
-.deepdrft-theme-dark .deepdrft-gradient-soft-secondary {
-    background: linear-gradient(45deg,
-        color-mix(in srgb, var(--lowcountry-gold) 10%, transparent) 0%,
-        color-mix(in srgb, var(--lowcountry-coral) 10%, transparent) 100%);
-}
-
-.deepdrft-theme-dark .mud-paper.deepdrft-gradient-soft-accent,
-.deepdrft-theme-dark .deepdrft-gradient-soft-accent {
-    background: linear-gradient(135deg,
-        color-mix(in srgb, var(--lowcountry-coral) 8%, transparent) 0%,
-        color-mix(in srgb, var(--lowcountry-violet) 8%, transparent) 100%);
-}
-
-.deepdrft-theme-dark .mud-paper.deepdrft-gradient-soft-tertiary,
-.deepdrft-theme-dark .deepdrft-gradient-soft-tertiary {
-    background: linear-gradient(135deg,
-        color-mix(in srgb, var(--lowcountry-twilight) 10%, transparent) 0%,
-        color-mix(in srgb, var(--lowcountry-coral) 10%, transparent) 100%);
-}
-
-.deepdrft-theme-dark .mud-paper.deepdrft-gradient-features,
-.deepdrft-theme-dark .deepdrft-gradient-features {
-    background: linear-gradient(to right,
-        color-mix(in srgb, var(--lowcountry-coral) 5%, transparent) 0%,
-        color-mix(in srgb, var(--lowcountry-twilight) 5%, transparent) 100%);
-}
-
-/* Font Hierarchy Styles - DRY Typography System */
-
-/* Largest Headers - Turret Road */
-h1, .deepdrft-text-hero, .deepdrft-heading-primary {
-    font-family: var(--deepdrft-font-largest-headers);
+/* Hero text */
+h1, .deepdrft-text-hero {
+    font-family: var(--font-hero);
     font-weight: bold;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
 }
 
-/* Hero Section Theme-Aware Text Colors */
-/* Light mode (cream background): dark text */
-.deepdrft-theme-light .deepdrft-hero-container .deepdrft-hero-title {
-    color: var(--charleston-iron);
-}
-.deepdrft-theme-light .deepdrft-hero-container .deepdrft-hero-subtitle {
-    color: var(--charleston-bronze);
-}
-.deepdrft-theme-light .deepdrft-hero-container .deepdrft-hero-description {
-    color: var(--charleston-iron-soft);
-}
-
-/* Dark mode (sunset gradient background): light text */
-.deepdrft-theme-dark .deepdrft-hero-container .deepdrft-hero-title {
-    color: var(--lowcountry-moonlight);
-}
-.deepdrft-theme-dark .deepdrft-hero-container .deepdrft-hero-subtitle {
-    color: var(--lowcountry-gold);
-}
-.deepdrft-theme-dark .deepdrft-hero-container .deepdrft-hero-description {
-    color: var(--lowcountry-lavender);
-}
-
-/* Hero Button Overrides for Light Mode */
-.deepdrft-theme-light .deepdrft-hero-button-filled.mud-button-filled {
-    background-color: var(--charleston-iron);
-    color: var(--charleston-cream);
-}
-.deepdrft-theme-light .deepdrft-hero-button-outlined.mud-button-outlined {
-    border-color: var(--charleston-iron);
-    color: var(--charleston-iron);
-}
-
-/* Hero Button Overrides for Dark Mode */
-.deepdrft-theme-dark .deepdrft-hero-button-filled.mud-button-filled {
-    background-color: var(--lowcountry-coral);
-    color: var(--lowcountry-night);
-}
-.deepdrft-theme-dark .deepdrft-hero-button-outlined.mud-button-outlined {
-    border-color: var(--lowcountry-moonlight);
-    color: var(--lowcountry-moonlight);
-}
-
-/* Headers and Visual Components - Michroma */
-h2, h3, h4, h5, h6, 
-.deepdrft-heading-secondary, 
-.deepdrft-text-subtitle, 
-.deepdrft-button-text,
-.deepdrft-nav-text,
-.deepdrft-visual-text {
-    font-family: var(--deepdrft-font-headers);
+/* Headers */
+h2, h3, h4, h5, h6,
+.deepdrft-text-subtitle {
+    font-family: var(--font-headers);
 }
 
 .deepdrft-text-subtitle {
@@ -264,13 +137,11 @@ h2, h3, h4, h5, h6,
     text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
 }
 
-/* Body Text and Smaller Elements - Electrolize */
-body, p, span, div, 
-.deepdrft-text-body,
-.deepdrft-text-description, 
-.deepdrft-text-readable,
-.deepdrft-small-text {
-    font-family: var(--deepdrft-font-body);
+/* Body */
+body, p, span, div,
+.deepdrft-text-description,
+.deepdrft-text-readable {
+    font-family: var(--font-body);
 }
 
 .deepdrft-text-description {
@@ -278,174 +149,119 @@ body, p, span, div,
     opacity: 0.9;
 }
 
-.deepdrft-text-bold {
-    font-weight: bold;
-}
+.deepdrft-text-bold { font-weight: bold; }
+.deepdrft-text-readable { line-height: 1.6; }
 
-.deepdrft-text-readable {
-    line-height: 1.6;
-}
-
-/* MudBlazor Component Overrides - Apply font hierarchy to MudBlazor components */
-.mud-typography-h1 {
-    font-family: var(--deepdrft-font-largest-headers) !important;
-}
-
-.mud-typography-h2, .mud-typography-h3, .mud-typography-h4, 
+/* MudBlazor font overrides */
+.mud-typography-h1 { font-family: var(--font-hero) !important; }
+.mud-typography-h2, .mud-typography-h3, .mud-typography-h4,
 .mud-typography-h5, .mud-typography-h6,
 .mud-button-text, .mud-navlink-text, .mud-appbar-content {
-    font-family: var(--deepdrft-font-headers) !important;
+    font-family: var(--font-headers) !important;
 }
-
 .mud-typography-body1, .mud-typography-body2,
 .mud-typography-caption, .mud-typography-overline,
 .mud-input-text, .mud-select-text, .mud-form-label {
-    font-family: var(--deepdrft-font-body) !important;
+    font-family: var(--font-body) !important;
 }
 
-/* === AppBar Text Color Fix === */
-/* Light mode: Cream text on iron black appbar */
+/* =============================================================================
+   4. HERO SECTION
+   ============================================================================= */
+
+.deepdrft-hero-container {
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.deepdrft-hero-text-container {
+    max-width: 600px;
+}
+
+/* Light mode hero text */
+.deepdrft-theme-light .deepdrft-hero-title { color: var(--deepdrft-primary); }
+.deepdrft-theme-light .deepdrft-hero-subtitle { color: var(--deepdrft-secondary); }
+.deepdrft-theme-light .deepdrft-hero-description { color: var(--theme-surface-soft); }
+
+/* Dark mode hero text */
+.deepdrft-theme-dark .deepdrft-hero-title { color: var(--theme-surface); }
+.deepdrft-theme-dark .deepdrft-hero-subtitle { color: var(--deepdrft-tertiary); }
+.deepdrft-theme-dark .deepdrft-hero-description { color: var(--theme-surface-soft); }
+
+/* Hero buttons - Light */
+.deepdrft-theme-light .deepdrft-hero-button-filled.mud-button-filled {
+    background-color: var(--deepdrft-primary);
+    color: var(--gradient-base);
+}
+.deepdrft-theme-light .deepdrft-hero-button-outlined.mud-button-outlined {
+    border-color: var(--deepdrft-primary);
+    color: var(--deepdrft-primary);
+}
+
+/* Hero buttons - Dark */
+.deepdrft-theme-dark .deepdrft-hero-button-filled.mud-button-filled {
+    background-color: var(--deepdrft-primary);
+    color: var(--gradient-base);
+}
+.deepdrft-theme-dark .deepdrft-hero-button-outlined.mud-button-outlined {
+    border-color: var(--theme-surface);
+    color: var(--theme-surface);
+}
+
+/* =============================================================================
+   5. APPBAR
+   ============================================================================= */
+
 .deepdrft-theme-light .mud-appbar,
-.deepdrft-theme-light .mud-appbar * {
-    color: var(--charleston-cream);
-}
-
+.deepdrft-theme-light .mud-appbar *,
 .deepdrft-theme-light .mud-appbar .mud-icon-button {
-    color: var(--charleston-cream);
+    color: var(--gradient-base);
 }
 
-/* Dark mode: Moonlight text (already inherited but explicit for safety) */
 .deepdrft-theme-dark .mud-appbar,
-.deepdrft-theme-dark .mud-appbar * {
-    color: var(--lowcountry-moonlight);
-}
-
+.deepdrft-theme-dark .mud-appbar *,
 .deepdrft-theme-dark .mud-appbar .mud-icon-button {
-    color: var(--lowcountry-moonlight);
+    color: var(--theme-surface);
 }
 
-/* Border Accents - Theme Aware */
-.deepdrft-border-left-primary {
-    border-left: 4px solid var(--deepdrft-theme-primary);
+/* =============================================================================
+   6. BORDERS (Only used variants)
+   ============================================================================= */
+
+.deepdrft-border-left-secondary { border-left: 4px solid var(--theme-secondary); }
+.deepdrft-border-left-tertiary { border-left: 4px solid var(--theme-tertiary); }
+.deepdrft-border-top-quaternary { border-top: 4px solid var(--theme-quaternary); }
+.deepdrft-border-top-senary { border-top: 4px solid var(--theme-senary); }
+
+/* =============================================================================
+   7. CARDS & TINTS (Only used variants)
+   ============================================================================= */
+
+.deepdrft-feature-card,
+.deepdrft-about-card { height: 100%; }
+
+.deepdrft-feature-icon-container { text-align: center; }
+
+/* Card tints - using theme variables */
+.deepdrft-card-purple-tint { background: color-mix(in srgb, var(--deepdrft-secondary) 10%, transparent); }
+.deepdrft-card-pink-tint { background: color-mix(in srgb, var(--gradient-warm) 10%, transparent); }
+.deepdrft-card-indigo-tint { background: color-mix(in srgb, var(--gradient-accent) 8%, transparent); }
+.deepdrft-card-lavender-tint { background: color-mix(in srgb, var(--theme-quinary) 10%, transparent); }
+
+/* =============================================================================
+   8. TRACK CARDS
+   ============================================================================= */
+
+.deepdrft-track-card-container {
+    width: 250px;
+    height: 250px;
+    min-width: 250px;
+    position: relative;
+    overflow: hidden;
 }
 
-.deepdrft-border-left-secondary {
-    border-left: 4px solid var(--deepdrft-theme-secondary);
-}
-
-.deepdrft-border-left-tertiary {
-    border-left: 4px solid var(--deepdrft-theme-tertiary);
-}
-
-.deepdrft-border-top-primary {
-    border-top: 4px solid var(--deepdrft-theme-primary);
-}
-
-.deepdrft-border-top-secondary {
-    border-top: 4px solid var(--deepdrft-theme-secondary);
-}
-
-.deepdrft-border-top-tertiary {
-    border-top: 4px solid var(--deepdrft-theme-tertiary);
-}
-
-.deepdrft-border-top-quaternary {
-    border-top: 4px solid var(--deepdrft-theme-quaternary);
-}
-
-.deepdrft-border-top-quinary {
-    border-top: 4px solid var(--deepdrft-theme-quinary);
-}
-
-.deepdrft-border-top-senary {
-    border-top: 4px solid var(--deepdrft-theme-senary);
-}
-
-/* Buttons */
-.deepdrft-button-primary {
-    color: var(--deepdrft-theme-primary);
-    font-weight: bold;
-    padding: 10px 24px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-}
-
-.deepdrft-button-outlined {
-    border: 2px solid rgba(255,255,255,0.8);
-}
-
-.deepdrft-button-spaced {
-    margin: 8px;
-}
-
-/* Card Aesthetics - Theme Aware */
-/* Charleston (Light): iron, rose, gold, sage tints */
-/* Lowcountry (Dark): coral, twilight, gold, moss tints */
-/* Using .mud-card/.mud-paper for specificity to avoid !important */
-.deepdrft-theme-light .mud-card.deepdrft-card-purple-tint,
-.deepdrft-theme-light .mud-paper.deepdrft-card-purple-tint {
-    background: color-mix(in srgb, var(--deepdrft-septenary) 10%, transparent);
-}
-.deepdrft-theme-dark .mud-card.deepdrft-card-purple-tint,
-.deepdrft-theme-dark .mud-paper.deepdrft-card-purple-tint {
-    background: color-mix(in srgb, var(--lowcountry-twilight) 12%, transparent);
-}
-
-.deepdrft-theme-light .mud-card.deepdrft-card-pink-tint,
-.deepdrft-theme-light .mud-paper.deepdrft-card-pink-tint {
-    background: color-mix(in srgb, var(--charleston-bronze) 10%, transparent);
-}
-.deepdrft-theme-dark .mud-card.deepdrft-card-pink-tint,
-.deepdrft-theme-dark .mud-paper.deepdrft-card-pink-tint {
-    background: color-mix(in srgb, var(--lowcountry-coral) 12%, transparent);
-}
-
-.deepdrft-theme-light .mud-card.deepdrft-card-indigo-tint,
-.deepdrft-theme-light .mud-paper.deepdrft-card-indigo-tint {
-    background: color-mix(in srgb, var(--charleston-iron) 8%, transparent);
-}
-.deepdrft-theme-dark .mud-card.deepdrft-card-indigo-tint,
-.deepdrft-theme-dark .mud-paper.deepdrft-card-indigo-tint {
-    background: color-mix(in srgb, var(--lowcountry-violet) 12%, transparent);
-}
-
-.deepdrft-theme-light .mud-card.deepdrft-card-lavender-tint,
-.deepdrft-theme-light .mud-paper.deepdrft-card-lavender-tint {
-    background: color-mix(in srgb, var(--charleston-swamp) 10%, transparent);
-}
-.deepdrft-theme-dark .mud-card.deepdrft-card-lavender-tint,
-.deepdrft-theme-dark .mud-paper.deepdrft-card-lavender-tint {
-    background: color-mix(in srgb, var(--lowcountry-moss) 10%, transparent);
-}
-
-/* Additional theme-specific card tints */
-.deepdrft-theme-light .mud-card.deepdrft-card-primary-tint,
-.deepdrft-theme-light .mud-paper.deepdrft-card-primary-tint {
-    background: color-mix(in srgb, var(--charleston-iron) 6%, transparent);
-}
-.deepdrft-theme-dark .mud-card.deepdrft-card-primary-tint,
-.deepdrft-theme-dark .mud-paper.deepdrft-card-primary-tint {
-    background: color-mix(in srgb, var(--lowcountry-coral) 10%, transparent);
-}
-
-.deepdrft-theme-light .mud-card.deepdrft-card-secondary-tint,
-.deepdrft-theme-light .mud-paper.deepdrft-card-secondary-tint {
-    background: color-mix(in srgb, var(--charleston-bronze) 8%, transparent);
-}
-.deepdrft-theme-dark .mud-card.deepdrft-card-secondary-tint,
-.deepdrft-theme-dark .mud-paper.deepdrft-card-secondary-tint {
-    background: color-mix(in srgb, var(--lowcountry-twilight) 10%, transparent);
-}
-
-.deepdrft-theme-light .mud-card.deepdrft-card-tertiary-tint,
-.deepdrft-theme-light .mud-paper.deepdrft-card-tertiary-tint {
-    background: color-mix(in srgb, var(--charleston-lamplight) 8%, transparent);
-}
-.deepdrft-theme-dark .mud-card.deepdrft-card-tertiary-tint,
-.deepdrft-theme-dark .mud-paper.deepdrft-card-tertiary-tint {
-    background: color-mix(in srgb, var(--lowcountry-gold) 10%, transparent);
-}
-
-/* Track Card Specific */
 .deepdrft-track-card-bg {
     position: absolute;
     top: 0;
@@ -467,68 +283,6 @@ body, p, span, div,
     padding: 16px;
 }
 
-.deepdrft-genre-chip {
-    opacity: 0.9;
-    margin-top: 4px;
-}
-
-.deepdrft-chip-spacing {
-    margin: 2px;
-}
-
-/* Icons */
-.deepdrft-icon-large {
-    font-size: 3rem;
-}
-
-/* === STRUCTURAL STYLES (Layout and positioning) === */
-
-/* Hero Section Layout */
-.deepdrft-hero-container {
-    min-height: 60vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
-.deepdrft-hero-text-container {
-    max-width: 600px;
-    /*margin: 0 auto;*/
-}
-
-/* Feature Cards Layout */
-.deepdrft-feature-card {
-    height: 100%;
-}
-
-.deepdrft-feature-icon-container {
-    text-align: center;
-}
-
-/* About Section Layout */
-.deepdrft-about-card {
-    height: 100%;
-}
-
-/* CTA Section Layout */
-.deepdrft-cta-container {
-    border-radius: 16px;
-    text-align: center;
-}
-
-.deepdrft-cta-buttons {
-    margin-bottom: 16px;
-}
-
-/* Track Card Layout */
-.deepdrft-track-card-container {
-    width: 250px;
-    height: 250px;
-    min-width: 250px;
-    position: relative;
-    overflow: hidden;
-}
-
 .deepdrft-track-card-fallback {
     position: absolute;
     top: 0;
@@ -537,20 +291,12 @@ body, p, span, div,
     height: 100%;
 }
 
-.deepdrft-track-info-top {
-    /* Used for track name and artist at top */
-}
-
-.deepdrft-track-info-middle {
-    margin: 8px 0;
-    /* Used for album and genre in middle */
-}
+.deepdrft-track-info-middle { margin: 8px 0; }
 
 .deepdrft-track-info-bottom {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    /* Used for year and play button at bottom */
 }
 
 .deepdrft-track-gallery-item-center {
@@ -558,12 +304,61 @@ body, p, span, div,
     justify-content: center;
 }
 
-/* Responsive Utilities */
+/* =============================================================================
+   9. CHIPS & BUTTONS
+   ============================================================================= */
+
+.deepdrft-chip-spacing { margin: 2px; }
+.deepdrft-genre-chip { opacity: 0.9; margin-top: 4px; }
+.deepdrft-button-spaced { margin: 8px; }
+
+/* Extended palette chips */
+.mud-chip.deepdrft-chip-quaternary {
+    background-color: var(--theme-quaternary);
+    color: white;
+}
+.mud-chip.deepdrft-chip-quinary {
+    background-color: var(--theme-quinary);
+    color: white;
+}
+.mud-chip.deepdrft-chip-senary {
+    background-color: var(--theme-senary);
+    color: white;
+}
+
+/* =============================================================================
+   10. EXTENDED PALETTE TEXT COLORS (Only used variants)
+   ============================================================================= */
+
+.deepdrft-text-quaternary { color: var(--theme-quaternary); }
+.deepdrft-text-quinary { color: var(--theme-quinary); }
+.deepdrft-text-senary { color: var(--theme-senary); }
+
+/* =============================================================================
+   11. CTA SECTION
+   ============================================================================= */
+
+.deepdrft-cta-container {
+    border-radius: 16px;
+    text-align: center;
+}
+
+.deepdrft-cta-buttons { margin-bottom: 16px; }
+
+/* =============================================================================
+   12. ICONS & UTILITIES
+   ============================================================================= */
+
+.deepdrft-icon-large { font-size: 3rem; }
+
+/* =============================================================================
+   13. RESPONSIVE
+   ============================================================================= */
+
 @media (max-width: 768px) {
     .deepdrft-hero-text {
         font-size: clamp(1.5rem, 6vw, 3rem) !important;
     }
-    
     .deepdrft-cta-buttons .mud-button {
         margin: 4px !important;
         width: 100%;
@@ -576,268 +371,4 @@ body, p, span, div,
         width: 200px;
         height: 200px;
     }
-}
-
-/* === CHARLESTON IN THE DAY AESTHETICS === */
-
-/* Wrought Iron Effect - decorative borders */
-.charleston-iron-border {
-    border: 2px solid var(--charleston-iron, #1C1C1C);
-    border-radius: 0;
-}
-
-.charleston-iron-border-left {
-    border-left: 4px solid var(--charleston-iron, #1C1C1C);
-}
-
-.charleston-iron-border-top {
-    border-top: 4px solid var(--charleston-iron, #1C1C1C);
-}
-
-.charleston-iron-frame {
-    border: 2px solid var(--charleston-iron, #1C1C1C);
-    box-shadow: inset 0 0 0 1px rgba(28,28,28,0.1);
-}
-
-/* Checkerboard Pattern (Charleston marble floors) */
-.charleston-checkerboard {
-    background-image:
-        linear-gradient(45deg, rgba(28,28,28,0.05) 25%, transparent 25%),
-        linear-gradient(-45deg, rgba(28,28,28,0.05) 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, rgba(28,28,28,0.05) 75%),
-        linear-gradient(-45deg, transparent 75%, rgba(28,28,28,0.05) 75%);
-    background-size: 40px 40px;
-    background-position: 0 0, 0 20px, 20px -20px, -20px 0;
-}
-
-/* Stucco Surface Effect */
-.charleston-stucco {
-    background: var(--charleston-cream, #FDFBF7);
-    box-shadow: inset 0 0 20px rgba(28,28,28,0.03);
-}
-
-/* Lamplight Accent */
-.charleston-lamplight-accent {
-    border-bottom: 2px solid var(--charleston-lamplight, #D4A556);
-}
-
-.charleston-lamplight-border {
-    border: 1px solid var(--charleston-lamplight, #D4A556);
-}
-
-/* Bronze Accent */
-.charleston-bronze-accent {
-    border-bottom: 2px solid var(--charleston-bronze, #B8623D);
-}
-
-.charleston-bronze-border {
-    border: 1px solid var(--charleston-bronze, #B8623D);
-}
-
-/* Garden Card (subtle green tint) */
-.charleston-garden-tint {
-    background: color-mix(in srgb, var(--charleston-swamp) 8%, transparent);
-}
-
-/* Iron Gate Pattern Overlay */
-.charleston-gate-pattern {
-    position: relative;
-}
-
-.charleston-gate-pattern::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image:
-        repeating-linear-gradient(
-            90deg,
-            transparent,
-            transparent 20px,
-            color-mix(in srgb, var(--charleston-iron) 3%, transparent) 20px,
-            color-mix(in srgb, var(--charleston-iron) 3%, transparent) 22px
-        );
-    pointer-events: none;
-}
-
-/* === LOWCOUNTRY SUMMER NIGHTS AESTHETICS === */
-
-/* Warm Sunset Glow Effects */
-.lowcountry-glow-coral {
-    box-shadow: 0 0 15px color-mix(in srgb, var(--lowcountry-coral) 40%, transparent),
-                0 0 30px color-mix(in srgb, var(--lowcountry-coral) 20%, transparent);
-}
-
-.lowcountry-glow-gold {
-    box-shadow: 0 0 15px color-mix(in srgb, var(--lowcountry-gold) 40%, transparent),
-                0 0 30px color-mix(in srgb, var(--lowcountry-gold) 20%, transparent);
-}
-
-.lowcountry-glow-twilight {
-    box-shadow: 0 0 15px color-mix(in srgb, var(--lowcountry-twilight) 40%, transparent),
-                0 0 30px color-mix(in srgb, var(--lowcountry-twilight) 20%, transparent);
-}
-
-.lowcountry-glow-moss {
-    box-shadow: 0 0 15px color-mix(in srgb, var(--lowcountry-moss) 40%, transparent),
-                0 0 30px color-mix(in srgb, var(--lowcountry-moss) 20%, transparent);
-}
-
-/* Firefly Glow (for accent elements) */
-.lowcountry-firefly-glow {
-    box-shadow: 0 0 10px color-mix(in srgb, var(--lowcountry-gold) 50%, transparent),
-                0 0 20px color-mix(in srgb, var(--lowcountry-gold) 30%, transparent),
-                0 0 40px color-mix(in srgb, var(--lowcountry-gold) 10%, transparent);
-}
-
-/* Candlelight effect */
-.lowcountry-candlelight {
-    background: radial-gradient(
-        ellipse at center top,
-        color-mix(in srgb, var(--lowcountry-gold) 10%, transparent) 0%,
-        transparent 60%
-    );
-}
-
-/* Sunset Gradient Backgrounds */
-.lowcountry-gradient-sunset {
-    background: linear-gradient(
-        135deg,
-        var(--lowcountry-coral) 0%,
-        var(--lowcountry-twilight) 50%,
-        var(--lowcountry-violet) 100%
-    );
-}
-
-.lowcountry-gradient-marsh {
-    background: linear-gradient(
-        180deg,
-        var(--lowcountry-night) 0%,
-        color-mix(in srgb, var(--lowcountry-moss) 15%, transparent) 100%
-    );
-}
-
-.lowcountry-gradient-twilight {
-    background: linear-gradient(
-        to bottom,
-        var(--lowcountry-coral) 0%,
-        var(--lowcountry-twilight) 40%,
-        var(--lowcountry-night) 100%
-    );
-}
-
-/* Marsh Water Reflection */
-.lowcountry-water-reflection {
-    border-bottom: 2px solid var(--lowcountry-marsh);
-    box-shadow: 0 4px 15px color-mix(in srgb, var(--lowcountry-marsh) 20%, transparent);
-}
-
-/* Spanish Moss Texture Overlay */
-.lowcountry-moss-overlay {
-    position: relative;
-}
-
-.lowcountry-moss-overlay::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: repeating-linear-gradient(
-        180deg,
-        transparent,
-        transparent 8px,
-        color-mix(in srgb, var(--lowcountry-twilight) 3%, transparent) 8px,
-        color-mix(in srgb, var(--lowcountry-twilight) 3%, transparent) 10px
-    );
-    pointer-events: none;
-}
-
-/* Warm Border Effect */
-.lowcountry-warm-border {
-    border: 1px solid transparent;
-    border-image: linear-gradient(
-        135deg,
-        var(--lowcountry-coral),
-        var(--lowcountry-twilight),
-        var(--lowcountry-gold)
-    ) 1;
-}
-
-.lowcountry-border-coral {
-    border: 1px solid var(--lowcountry-coral);
-    box-shadow: 0 0 8px color-mix(in srgb, var(--lowcountry-coral) 30%, transparent);
-}
-
-.lowcountry-border-gold {
-    border: 1px solid var(--lowcountry-gold);
-    box-shadow: 0 0 8px color-mix(in srgb, var(--lowcountry-gold) 30%, transparent);
-}
-
-/* === EXTENDED PALETTE UTILITY CLASSES === */
-/* These provide theme-aware access to Quaternary through Septenary colors */
-
-/* Text Colors */
-.deepdrft-text-quaternary { color: var(--deepdrft-theme-quaternary); }
-.deepdrft-text-quinary { color: var(--deepdrft-theme-quinary); }
-.deepdrft-text-senary { color: var(--deepdrft-theme-senary); }
-.deepdrft-text-septenary { color: var(--deepdrft-theme-septenary); }
-
-/* Background Colors */
-.deepdrft-bg-quaternary { background-color: var(--deepdrft-theme-quaternary); }
-.deepdrft-bg-quinary { background-color: var(--deepdrft-theme-quinary); }
-.deepdrft-bg-senary { background-color: var(--deepdrft-theme-senary); }
-.deepdrft-bg-septenary { background-color: var(--deepdrft-theme-septenary); }
-
-/* Border Colors */
-.deepdrft-border-quaternary { border-color: var(--deepdrft-theme-quaternary); }
-.deepdrft-border-quinary { border-color: var(--deepdrft-theme-quinary); }
-.deepdrft-border-senary { border-color: var(--deepdrft-theme-senary); }
-.deepdrft-border-septenary { border-color: var(--deepdrft-theme-septenary); }
-
-/* Left Border Accents */
-.deepdrft-border-left-quaternary { border-left: 4px solid var(--deepdrft-theme-quaternary); }
-.deepdrft-border-left-quinary { border-left: 4px solid var(--deepdrft-theme-quinary); }
-.deepdrft-border-left-senary { border-left: 4px solid var(--deepdrft-theme-senary); }
-.deepdrft-border-left-septenary { border-left: 4px solid var(--deepdrft-theme-septenary); }
-
-/* Card Tints for Extended Palette */
-.deepdrft-card-quaternary-tint {
-    background: color-mix(in srgb, var(--deepdrft-theme-quaternary) 10%, transparent);
-}
-.deepdrft-card-quinary-tint {
-    background: color-mix(in srgb, var(--deepdrft-theme-quinary) 10%, transparent);
-}
-.deepdrft-card-senary-tint {
-    background: color-mix(in srgb, var(--deepdrft-theme-senary) 10%, transparent);
-}
-.deepdrft-card-septenary-tint {
-    background: color-mix(in srgb, var(--deepdrft-theme-septenary) 10%, transparent);
-}
-
-/* === CHIP STYLES FOR EXTENDED PALETTE === */
-/* These style MudChip components using extended palette colors */
-/* Using higher specificity to override MudBlazor defaults without !important */
-
-.mud-chip.deepdrft-chip-quaternary {
-    background-color: var(--deepdrft-theme-quaternary);
-    color: white;
-}
-
-.mud-chip.deepdrft-chip-quinary {
-    background-color: var(--deepdrft-theme-quinary);
-    color: white;
-}
-
-.mud-chip.deepdrft-chip-senary {
-    background-color: var(--deepdrft-theme-senary);
-    color: white;
-}
-
-.mud-chip.deepdrft-chip-septenary {
-    background-color: var(--deepdrft-theme-septenary);
-    color: white;
 }
