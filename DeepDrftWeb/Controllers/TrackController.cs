@@ -10,9 +10,9 @@ namespace DeepDrftWeb.Controllers;
 [Route("api/[controller]")]
 public class TrackController : ControllerBase
 {
-    private readonly TrackService _trackService;
+    private readonly ITrackService _trackService;
 
-    public TrackController(TrackService trackService)
+    public TrackController(ITrackService trackService)
     {
         _trackService = trackService;
     }

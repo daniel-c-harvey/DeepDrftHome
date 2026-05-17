@@ -4,8 +4,6 @@ namespace DeepDrftWeb.Client.Common;
 
 public class DarkModeSettings()
 {
-    // public EventCallback<bool> IsDarkModeChanged { get; set; }
-    
     [PersistentState]
     public bool IsDarkMode
     {
@@ -14,7 +12,6 @@ public class DarkModeSettings()
         {
             if (value == field) return;
             field = value;
-            // IsDarkModeChanged.InvokeAsync(value);
         }
     } = false;
 }

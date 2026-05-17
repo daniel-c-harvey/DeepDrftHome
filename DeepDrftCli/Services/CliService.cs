@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
-using DeepDrftWeb.Services.Repositories;
 using DeepDrftContent.Services;
 using DeepDrftModels.Entities;
 using NetBlocks.Models;
+using DeepDrftCli.Utils;
 
 namespace DeepDrftCli.Services;
 
@@ -13,18 +13,15 @@ namespace DeepDrftCli.Services;
 public class CliService
 {
     private readonly ILogger<CliService> _logger;
-    private readonly TrackRepository _trackRepository;
-    private readonly DeepDrftWeb.Services.TrackService _webTrackService;
+    private readonly DeepDrftWeb.Services.ITrackService _webTrackService;
     private readonly DeepDrftContent.Services.TrackService _contentTrackService;
 
     public CliService(
         ILogger<CliService> logger,
-        TrackRepository trackRepository,
-        DeepDrftWeb.Services.TrackService webTrackService,
+        DeepDrftWeb.Services.ITrackService webTrackService,
         DeepDrftContent.Services.TrackService contentTrackService)
     {
         _logger = logger;
-        _trackRepository = trackRepository;
         _webTrackService = webTrackService;
         _contentTrackService = contentTrackService;
     }
@@ -232,7 +229,7 @@ public class CliService
 
             foreach (var track in tracks)
             {
-                Console.WriteLine($"{track.Id,-5} {TruncateString(track.TrackName, 25),-25} {TruncateString(track.Artist, 20),-20} {TruncateString(track.Album ?? "", 15),-15} {TruncateString(track.Genre ?? "", 10),-10}");
+                Console.WriteLine($"{track.Id,-5} {CliUtils.TruncateString(track.TrackName, 25),-25} {CliUtils.TruncateString(track.Artist, 20),-20} {CliUtils.TruncateString(track.Album ?? "", 15),-15} {CliUtils.TruncateString(track.Genre ?? "", 10),-10}");
             }
         }
         catch (Exception ex)
@@ -283,17 +280,6 @@ public class CliService
         Console.WriteLine("  - Release date format: YYYY-MM-DD");
         Console.WriteLine("  - Arguments with spaces should be quoted");
         Console.WriteLine("  - Use * to indicate required fields in interactive mode");
-    }
-
-    /// <summary>
-    /// Truncates a string to fit within specified length
-    /// </summary>
-    private string TruncateString(string input, int maxLength)
-    {
-        if (string.IsNullOrEmpty(input))
-            return string.Empty;
-            
-        return input.Length <= maxLength ? input : input.Substring(0, maxLength - 3) + "...";
     }
 
     /// <summary>

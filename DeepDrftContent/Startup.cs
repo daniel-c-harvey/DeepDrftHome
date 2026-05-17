@@ -1,7 +1,9 @@
+using DeepDrftContent.Services;
 using DeepDrftContent.Services.Audio;
 using DeepDrftContent.Services.Constants;
 using DeepDrftContent.Services.FileDatabase.Models;
 using DeepDrftContent.Services.FileDatabase.Services;
+using DeepDrftContent.Services.Processors;
 using DeepDrftContent.Models;
 
 namespace DeepDrftContent
@@ -12,6 +14,8 @@ namespace DeepDrftContent
         {
             // Audio services
             builder.Services.AddSingleton<WavOffsetService>();
+            builder.Services.AddSingleton<AudioProcessor>();
+            builder.Services.AddSingleton<TrackService>();
 
             // File Database
             builder.Configuration.AddJsonFile("environment/filedatabase.json", optional: false, reloadOnChange: true);

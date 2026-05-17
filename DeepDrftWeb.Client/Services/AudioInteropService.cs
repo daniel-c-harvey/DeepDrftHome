@@ -225,6 +225,9 @@ public class AudioInteropService : IAsyncDisposable
         return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.disposePlayer", playerId);
     }
 
+    // TODO: The typeof(T) switch below requires updating whenever a new result type is added.
+    // Consider introducing a shared marker interface (e.g. IAudioResult with a static factory
+    // method) so InvokeJsAsync can construct the failure result generically without a type switch.
     private async Task<T> InvokeJsAsync<T>(string identifier, params object[] args)
     {
         try

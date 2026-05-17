@@ -22,7 +22,7 @@ public static class Startup
         // Add Track services
         builder.Services
             .AddScoped<TrackRepository>()
-            .AddScoped<TrackService>();
+            .AddScoped<ITrackService, TrackService>();
     }
     
     public static string GetKestrelUrl(this WebApplicationBuilder builder)
