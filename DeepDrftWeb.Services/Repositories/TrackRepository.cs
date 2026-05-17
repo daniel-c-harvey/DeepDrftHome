@@ -50,7 +50,7 @@ public class TrackRepository
 
         if (trackEntity == null)
         {
-            return await Create(track);
+            throw new InvalidOperationException($"Track not found: {track.Id}");
         }
         
         trackEntity.Album = track.Album;

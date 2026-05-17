@@ -57,7 +57,7 @@ public abstract class IndexDirectory : AbstractIndexContainer
 
     public int GetIndexSize() => Index.GetEntriesSize();
 
-    public bool HasIndexEntry(string entryId) => Index.HasEntry(entryId);
+    public virtual Task<bool> HasIndexEntry(string entryId) => Task.FromResult(Index.HasEntry(entryId));
 }
 
 /// <summary>
@@ -66,17 +66,26 @@ public abstract class IndexDirectory : AbstractIndexContainer
 public class DirectoryIndexDirectory : IndexDirectory
 {
     private readonly IDirectoryIndex _directoryIndex;
+    private readonly SemaphoreSlim _indexLock = new(1, 1);
 
-    public DirectoryIndexDirectory(string rootPath, IDirectoryIndex index, IIndexDataFactory? indexDataFactory = null) 
-        : base(rootPath, IndexType.Directory, index, indexDataFactory) 
+    public DirectoryIndexDirectory(string rootPath, IDirectoryIndex index, IIndexDataFactory? indexDataFactory = null)
+        : base(rootPath, IndexType.Directory, index, indexDataFactory)
     {
         _directoryIndex = index;
     }
 
     protected async Task AddToIndexAsync(string entryId)
     {
-        _directoryIndex.PutEntry(entryId);
-        await SaveIndexAsync(_directoryIndex);
+        await _indexLock.WaitAsync();
+        try
+        {
+            _directoryIndex.PutEntry(entryId);
+            await SaveIndexAsync(_directoryIndex);
+        }
+        finally
+        {
+            _indexLock.Release();
+        }
     }
 }
 
@@ -86,7 +95,7 @@ public class DirectoryIndexDirectory : IndexDirectory
 public class VaultIndexDirectory : IndexDirectory
 {
     private IVaultIndex _vaultIndex;
-    private readonly object _indexLock = new();
+    private readonly SemaphoreSlim _indexLock = new(1, 1);
     private readonly IndexFactoryService _factoryService = new();
 
     public VaultIndexDirectory(string rootPath, IVaultIndex index, IIndexDataFactory? indexDataFactory = null)
@@ -97,11 +106,16 @@ public class VaultIndexDirectory : IndexDirectory
 
     protected async Task AddToIndexAsync(string entryId, MetaData metaData)
     {
-        lock (_indexLock)
+        await _indexLock.WaitAsync();
+        try
         {
             _vaultIndex.PutEntry(entryId, metaData);
+            await SaveIndexAsync(_vaultIndex);
         }
-        await SaveIndexAsync(_vaultIndex);
+        finally
+        {
+            _indexLock.Release();
+        }
     }
 
     /// <summary>
@@ -109,16 +123,14 @@ public class VaultIndexDirectory : IndexDirectory
     /// </summary>
     public async Task ReloadIndexAsync()
     {
+        await _indexLock.WaitAsync();
         try
         {
             var newIndex = await _factoryService.LoadIndexAsync(IndexType.Vault, RootPath);
             if (newIndex is IVaultIndex vaultIndex)
             {
-                lock (_indexLock)
-                {
-                    _vaultIndex = vaultIndex;
-                    Index = vaultIndex;
-                }
+                _vaultIndex = vaultIndex;
+                Index = vaultIndex;
                 Console.WriteLine($"VaultIndexDirectory: Reloaded index for {RootPath}, {vaultIndex.GetEntriesSize()} entries");
             }
         }
@@ -126,27 +138,41 @@ public class VaultIndexDirectory : IndexDirectory
         {
             Console.WriteLine($"VaultIndexDirectory: Failed to reload index for {RootPath}: {ex.Message}");
         }
+        finally
+        {
+            _indexLock.Release();
+        }
     }
 
     /// <summary>
     /// Thread-safe check for index entry
     /// </summary>
-    public new bool HasIndexEntry(string entryId)
+    public override async Task<bool> HasIndexEntry(string entryId)
     {
-        lock (_indexLock)
+        await _indexLock.WaitAsync();
+        try
         {
             return _vaultIndex.HasEntry(entryId);
+        }
+        finally
+        {
+            _indexLock.Release();
         }
     }
 
     /// <summary>
     /// Thread-safe get entry metadata
     /// </summary>
-    public MetaData? GetEntryMetadata(string entryId)
+    public async Task<MetaData?> GetEntryMetadata(string entryId)
     {
-        lock (_indexLock)
+        await _indexLock.WaitAsync();
+        try
         {
             return _vaultIndex.GetEntry(entryId);
+        }
+        finally
+        {
+            _indexLock.Release();
         }
     }
 }

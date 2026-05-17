@@ -492,13 +492,13 @@ public class IndexSystemTests
             await database!.CreateVaultAsync(testVaultKey, MediaVaultType.Image);
 
             // Assert
-            Assert.That(database.HasIndexEntry(testVaultKey), Is.True, "Should contain added entry");
+            Assert.That(await database.HasIndexEntry(testVaultKey), Is.True, "Should contain added entry");
             Assert.That(database.GetIndexSize(), Is.EqualTo(1), "Should have one entry");
             Assert.That(File.Exists(IndexPath), Is.True, "Should persist to file");
 
             // Verify persistence by reloading database
             var reloadedDatabase = await FileDatabase.FromAsync(TestDirectory);
-            Assert.That(reloadedDatabase!.HasIndexEntry(testVaultKey), Is.True, "Should persist entry across restarts");
+            Assert.That(await reloadedDatabase!.HasIndexEntry(testVaultKey), Is.True, "Should persist entry across restarts");
         }
 
         [Test]
@@ -516,13 +516,13 @@ public class IndexSystemTests
             await vault!.AddEntryAsync(testKey, testImage);
 
             // Assert
-            Assert.That(vault.HasIndexEntry(testKey), Is.True, "Should contain added entry");
+            Assert.That(await vault.HasIndexEntry(testKey), Is.True, "Should contain added entry");
             Assert.That(vault.GetIndexSize(), Is.EqualTo(1), "Should have one entry");
             Assert.That(File.Exists(IndexPath), Is.True, "Should persist to file");
 
             // Verify persistence by reloading vault
             var reloadedVault = await ImageVault.FromAsync(TestDirectory);
-            Assert.That(reloadedVault!.HasIndexEntry(testKey), Is.True, "Should persist entry across restarts");
+            Assert.That(await reloadedVault!.HasIndexEntry(testKey), Is.True, "Should persist entry across restarts");
         }
     }
 }
