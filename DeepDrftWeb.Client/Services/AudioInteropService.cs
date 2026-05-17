@@ -56,6 +56,11 @@ public class AudioInteropService : IAsyncDisposable
         return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.startStreamingPlayback", playerId);
     }
 
+    public async Task<AudioOperationResult> MarkStreamCompleteAsync(string playerId)
+    {
+        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.markStreamComplete", playerId);
+    }
+
     public async Task<AudioOperationResult> EnsureAudioContextReady(string playerId)
     {
         return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.ensureAudioContextReady", playerId);

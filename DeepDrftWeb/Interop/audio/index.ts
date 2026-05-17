@@ -45,6 +45,12 @@ const DeepDrftAudio = {
         return player.startStreamingPlayback();
     },
 
+    markStreamComplete: async (playerId: string): Promise<StreamingResult> => {
+        const player = audioPlayers.get(playerId);
+        if (!player) return { success: false, error: 'Player not found' };
+        return player.markStreamComplete();
+    },
+
     ensureAudioContextReady: async (playerId: string): Promise<AudioResult> => {
         const player = audioPlayers.get(playerId);
         if (!player) return { success: false, error: 'Player not found' };

@@ -173,17 +173,26 @@ class WavUtils {
         buffer[43] = (audioDataSize >> 24) & 0xFF;
     }
 
-    static getSampleAlignedChunkSize(header: WavHeader, maxChunkSize: number, availableDataSize: number): number {
+    static getSampleAlignedChunkSize(header: WavHeader, maxChunkSize: number, availableDataSize: number, streamComplete: boolean = false): number {
         const frameSize = header.blockAlign;
-        
-        // Much smaller minimum for streaming - just enough for Web Audio API
+
+        // Much smaller minimum for streaming - just enough for Web Audio API.
+        // The minimum exists to avoid decoding partial-frame artifacts on
+        // mid-stream chunks while the rest is still in flight. Once the stream
+        // is fully received, we must drain whatever remains regardless of size,
+        // otherwise the trailing tail (often <512 bytes) is silently lost.
         const minAudioBytes = Math.max(512, frameSize * 10); // At least 512 bytes or 10 frames
-        
-        // If we don't have enough data, return 0 to wait for more
-        if (availableDataSize < minAudioBytes) {
+
+        // Mid-stream guard: wait for more data if below minimum.
+        if (!streamComplete && availableDataSize < minAudioBytes) {
             return 0;
         }
-        
+
+        // Even when complete we still need at least one full frame to decode.
+        if (availableDataSize < frameSize) {
+            return 0;
+        }
+
         // Calculate frames for the available data
         const requestedSize = Math.min(maxChunkSize, availableDataSize);
         const frames = Math.floor(requestedSize / frameSize);
