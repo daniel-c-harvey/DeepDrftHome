@@ -1,5 +1,4 @@
-﻿using DeepDrftContent.Services.FileDatabase.Abstractions;
-using DeepDrftContent.Services.FileDatabase.Models;
+﻿using DeepDrftContent.Services.FileDatabase.Models;
 
 namespace DeepDrftContent.Services.FileDatabase.Services;
 
@@ -8,10 +7,13 @@ namespace DeepDrftContent.Services.FileDatabase.Services;
 /// </summary>
 public static class MediaVaultFactory
 {
-    private static readonly IMediaTypeRegistry _registry = new SimpleMediaTypeRegistry();
-
-    public static async Task<MediaVault?> From(string rootPath, MediaVaultType mediaType)
+    public static async Task<MediaVault?> From(string rootPath, MediaVaultType mediaType, IndexFactoryService? factoryService = null)
     {
-        return await _registry.CreateVaultAsync(mediaType, rootPath);
+        return mediaType switch
+        {
+            MediaVaultType.Image => await ImageVault.FromAsync(rootPath, factoryService),
+            MediaVaultType.Audio => await AudioVault.FromAsync(rootPath, factoryService),
+            _ => null
+        };
     }
 }

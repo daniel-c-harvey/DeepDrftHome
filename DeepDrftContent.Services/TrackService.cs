@@ -75,9 +75,10 @@ public class TrackService
 
             return trackEntity;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            throw new InvalidOperationException($"Failed to add track: {ex.Message}", ex);
+            Console.WriteLine($"TrackService.AddTrackFromWavAsync failed: {ex.Message}");
+            return null;
         }
     }
 

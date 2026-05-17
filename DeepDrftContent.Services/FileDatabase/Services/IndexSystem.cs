@@ -1,6 +1,7 @@
 using DeepDrftContent.Services.FileDatabase.Abstractions;
 using DeepDrftContent.Services.FileDatabase.Models;
 using DeepDrftContent.Services.FileDatabase.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace DeepDrftContent.Services.FileDatabase.Services;
 
@@ -96,12 +97,15 @@ public class VaultIndexDirectory : IndexDirectory
 {
     private IVaultIndex _vaultIndex;
     private readonly SemaphoreSlim _indexLock = new(1, 1);
-    private readonly IndexFactoryService _factoryService = new();
+    private readonly IndexFactoryService _factoryService;
+    private readonly ILogger<VaultIndexDirectory>? _logger;
 
-    public VaultIndexDirectory(string rootPath, IVaultIndex index, IIndexDataFactory? indexDataFactory = null)
-        : base(rootPath, IndexType.Vault, index, indexDataFactory)
+    public VaultIndexDirectory(string rootPath, IVaultIndex index, IIndexDataFactory? indexDataFactory = null, ILogger<VaultIndexDirectory>? logger = null, IndexFactoryService? factoryService = null)
+        : base(rootPath, IndexType.Vault, index, indexDataFactory ?? factoryService)
     {
         _vaultIndex = index;
+        _logger = logger;
+        _factoryService = factoryService ?? new IndexFactoryService();
     }
 
     protected async Task AddToIndexAsync(string entryId, MetaData metaData)
@@ -131,12 +135,18 @@ public class VaultIndexDirectory : IndexDirectory
             {
                 _vaultIndex = vaultIndex;
                 Index = vaultIndex;
-                Console.WriteLine($"VaultIndexDirectory: Reloaded index for {RootPath}, {vaultIndex.GetEntriesSize()} entries");
+                if (_logger != null)
+                    _logger.LogDebug("VaultIndexDirectory: Reloaded index for {RootPath}, {EntryCount} entries", RootPath, vaultIndex.GetEntriesSize());
+                else
+                    Console.WriteLine($"VaultIndexDirectory: Reloaded index for {RootPath}, {vaultIndex.GetEntriesSize()} entries");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"VaultIndexDirectory: Failed to reload index for {RootPath}: {ex.Message}");
+            if (_logger != null)
+                _logger.LogWarning(ex, "VaultIndexDirectory: Failed to reload index for {RootPath}", RootPath);
+            else
+                Console.WriteLine($"VaultIndexDirectory: Failed to reload index for {RootPath}: {ex.Message}");
         }
         finally
         {

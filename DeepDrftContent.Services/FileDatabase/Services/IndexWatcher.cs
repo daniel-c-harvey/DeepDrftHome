@@ -1,4 +1,5 @@
 using DeepDrftContent.Services.FileDatabase.Models;
+using Microsoft.Extensions.Logging;
 
 namespace DeepDrftContent.Services.FileDatabase.Services;
 
@@ -11,7 +12,13 @@ public class IndexWatcher : IDisposable
     private readonly Dictionary<string, FileSystemWatcher> _watchers = new();
     private readonly Dictionary<string, Action> _reloadCallbacks = new();
     private readonly object _lock = new();
+    private readonly ILogger<IndexWatcher>? _logger;
     private bool _disposed;
+
+    public IndexWatcher(ILogger<IndexWatcher>? logger = null)
+    {
+        _logger = logger;
+    }
 
     /// <summary>
     /// Registers an index file to be watched for changes.
@@ -46,11 +53,17 @@ public class IndexWatcher : IDisposable
                 _watchers[indexPath] = watcher;
                 _reloadCallbacks[indexPath] = onChanged;
 
-                Console.WriteLine($"IndexWatcher: Watching {indexPath}/index");
+                if (_logger != null)
+                    _logger.LogDebug("IndexWatcher: Watching {IndexPath}/index", indexPath);
+                else
+                    Console.WriteLine($"IndexWatcher: Watching {indexPath}/index");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"IndexWatcher: Failed to watch {indexPath}: {ex.Message}");
+                if (_logger != null)
+                    _logger.LogWarning(ex, "IndexWatcher: Failed to watch {IndexPath}", indexPath);
+                else
+                    Console.WriteLine($"IndexWatcher: Failed to watch {indexPath}: {ex.Message}");
             }
         }
     }
@@ -83,7 +96,10 @@ public class IndexWatcher : IDisposable
         {
             if (_reloadCallbacks.TryGetValue(indexPath, out var callback))
             {
-                Console.WriteLine($"IndexWatcher: Index changed at {indexPath}, triggering reload");
+                if (_logger != null)
+                    _logger.LogDebug("IndexWatcher: Index changed at {IndexPath}, triggering reload", indexPath);
+                else
+                    Console.WriteLine($"IndexWatcher: Index changed at {indexPath}, triggering reload");
 
                 // Invoke callback on a background thread to avoid blocking the watcher
                 Task.Run(() =>
@@ -94,7 +110,10 @@ public class IndexWatcher : IDisposable
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"IndexWatcher: Reload callback failed: {ex.Message}");
+                        if (_logger != null)
+                            _logger.LogWarning(ex, "IndexWatcher: Reload callback failed for {IndexPath}", indexPath);
+                        else
+                            Console.WriteLine($"IndexWatcher: Reload callback failed: {ex.Message}");
                     }
                 });
             }

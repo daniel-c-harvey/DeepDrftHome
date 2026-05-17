@@ -11,6 +11,7 @@ public class FileDatabase : DirectoryIndexDirectory, IDisposable
 {
     private readonly StructuralMap<string, MediaVault> _vaults;
     private readonly IndexWatcher _indexWatcher;
+    private readonly IndexFactoryService _indexFactory;
     private bool _disposed;
 
     /// <summary>
@@ -23,7 +24,7 @@ public class FileDatabase : DirectoryIndexDirectory, IDisposable
 
         if (rootIndex != null)
         {
-            var db = new FileDatabase(rootPath, rootIndex);
+            var db = new FileDatabase(rootPath, rootIndex, factoryService);
             await db.InitVaultsAsync();
             return db;
         }
@@ -31,10 +32,11 @@ public class FileDatabase : DirectoryIndexDirectory, IDisposable
         return null;
     }
 
-    private FileDatabase(string rootPath, IDirectoryIndex index) : base(rootPath, index)
+    private FileDatabase(string rootPath, IDirectoryIndex index, IndexFactoryService indexFactory) : base(rootPath, index)
     {
         _vaults = new StructuralMap<string, MediaVault>();
         _indexWatcher = new IndexWatcher();
+        _indexFactory = indexFactory;
     }
 
     /// <summary>
@@ -58,7 +60,7 @@ public class FileDatabase : DirectoryIndexDirectory, IDisposable
     private async Task InitVaultAsync(string vaultId, MediaVaultType vaultType)
     {
         var path = Path.Combine(RootPath, vaultId);
-        var directoryVault = await MediaVaultFactory.From(path, vaultType);
+        var directoryVault = await MediaVaultFactory.From(path, vaultType, _indexFactory);
 
         if (directoryVault != null)
         {
@@ -80,9 +82,8 @@ public class FileDatabase : DirectoryIndexDirectory, IDisposable
     {
         try
         {
-            var factoryService = new IndexFactoryService();
             var vaultPath = Path.Combine(RootPath, vaultId);
-            var index = await factoryService.LoadIndexAsync(IndexType.Vault, vaultPath);
+            var index = await _indexFactory.LoadIndexAsync(IndexType.Vault, vaultPath);
             
             if (index is VaultIndex vaultIndex)
             {
@@ -115,25 +116,18 @@ public class FileDatabase : DirectoryIndexDirectory, IDisposable
     }
 
     /// <summary>
-    /// Creates a new vault
+    /// Creates a new vault. Propagates exceptions to the caller — vault creation failure is not
+    /// silently swallowable because a partially-created vault would leave the index inconsistent.
     /// </summary>
     public async Task CreateVaultAsync(string vaultId, MediaVaultType vaultType)
     {
-        try
-        {
-            var path = Path.Combine(RootPath, vaultId);
-            var directoryVault = await MediaVaultFactory.From(path, vaultType);
+        var path = Path.Combine(RootPath, vaultId);
+        var directoryVault = await MediaVaultFactory.From(path, vaultType, _indexFactory);
 
-            if (directoryVault != null)
-            {
-                _vaults.Set(vaultId, directoryVault);
-                // Now using string-based index
-                await AddToIndexAsync(vaultId);
-            }
-        }
-        catch
+        if (directoryVault != null)
         {
-            throw;
+            _vaults.Set(vaultId, directoryVault);
+            await AddToIndexAsync(vaultId);
         }
     }
 
