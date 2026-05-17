@@ -27,6 +27,7 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
 
     private bool _streamingPlaybackStarted = false;
     private CancellationTokenSource? _streamingCancellation;
+    private Task? _activeStreamingTask;
     private DateTime _lastNotification = DateTime.MinValue;
     private readonly ILogger<StreamingAudioPlayerService> _logger;
     private string? _currentTrackId;
@@ -62,7 +63,11 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
 
     private async Task LoadTrackStreaming(TrackEntity track)
     {
-        // Always reset to clean state before loading new track
+        // Always reset to clean state before loading new track. ResetToIdle
+        // both cancels and awaits any in-flight streaming loop, so by the time
+        // we return from it the previous loop is guaranteed to have exited and
+        // there is no risk of interleaved ProcessStreamingChunk calls against
+        // the single-instance JS StreamDecoder.
         await ResetToIdle();
 
         // Save track ID for seek operations
@@ -116,7 +121,8 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
                 return;
             }
 
-            await StreamAudioWithEarlyPlayback(audio, _streamingCancellation.Token);
+            _activeStreamingTask = StreamAudioWithEarlyPlayback(audio, _streamingCancellation.Token);
+            await _activeStreamingTask;
         }
         catch (OperationCanceledException)
         {
@@ -163,9 +169,12 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
                 {
                     totalBytesRead += currentBytes;
                     
-                    // Use only the actual bytes read, no copying needed
-                    var actualBuffer = currentBytes == _currentBufferSize ? buffer : buffer[..currentBytes];
-                    
+                    // Always slice to the exact number of bytes read. The pooled buffer
+                    // is rented at MaxBufferSize and may carry stale bytes past
+                    // currentBytes from a prior rental — handing the full array to JS
+                    // interop would serialise that garbage into the audio stream.
+                    var actualBuffer = buffer.AsSpan(0, currentBytes).ToArray();
+
                     // Process chunk for streaming
                     var chunkResult = await _audioInterop.ProcessStreamingChunk(PlayerId, actualBuffer);
                     if (!chunkResult.Success)
@@ -217,7 +226,13 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
                     await ThrottledNotifyStateChanged();
                 }
             } while (currentBytes > 0);
-            
+
+            // Notify the JS decoder that the stream is finished. When the server omits
+            // Content-Length the StreamDecoder cannot determine completion via byte counting
+            // alone; this explicit signal ensures the tail-decoding path (streamComplete=true)
+            // fires regardless of whether Content-Length was present.
+            await _audioInterop.MarkStreamCompleteAsync(PlayerId);
+
             // Mark as fully loaded
             LoadProgress = 1.0;
             await NotifyStateChanged();
@@ -314,8 +329,13 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
 
         IsSeekingBeyondBuffer = true;
 
-        // Cancel current streaming
+        // Cancel the current streaming loop AND wait for it to fully exit before
+        // starting a new one. The previous loop's pending ReadAsync will throw
+        // OperationCanceledException asynchronously; if we kick off a new loop
+        // immediately, both can race against the single-instance JS StreamDecoder
+        // and corrupt decode state. Draining here is the load-bearing guarantee.
         _streamingCancellation?.Cancel();
+        await DrainActiveStreamingTaskAsync();
         _streamingCancellation?.Dispose();
         _streamingCancellation = new CancellationTokenSource();
 
@@ -355,7 +375,8 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
             BufferedChunks = 0;
 
             // Stream audio from offset
-            await StreamAudioWithEarlyPlayback(audio, _streamingCancellation.Token);
+            _activeStreamingTask = StreamAudioWithEarlyPlayback(audio, _streamingCancellation.Token);
+            await _activeStreamingTask;
 
             IsSeekingBeyondBuffer = false;
         }
@@ -379,8 +400,11 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
     /// </summary>
     private async Task ResetToIdle()
     {
-        // 1. Cancel any ongoing streaming operation
+        // 1. Cancel any ongoing streaming operation and wait for it to exit
+        //    before tearing down JS state. Otherwise the loop's pending
+        //    ProcessStreamingChunk call can land after StopAsync/UnloadAsync.
         _streamingCancellation?.Cancel();
+        await DrainActiveStreamingTaskAsync();
         _streamingCancellation?.Dispose();
         _streamingCancellation = null;
 
@@ -415,6 +439,40 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
         _currentTrackId = null;
 
         await NotifyStateChanged();
+    }
+
+    /// <summary>
+    /// Wait for the previously-started streaming loop to fully exit. The caller
+    /// must have already cancelled <see cref="_streamingCancellation"/>. Swallows
+    /// the expected OperationCanceledException; any other exception was already
+    /// surfaced through the loop's own catch block, so we ignore it here too.
+    /// </summary>
+    private async Task DrainActiveStreamingTaskAsync()
+    {
+        var task = _activeStreamingTask;
+        if (task == null) return;
+
+        try
+        {
+            await task;
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when we cancelled the loop ourselves.
+        }
+        catch
+        {
+            // Any other failure was already logged inside the loop.
+        }
+        finally
+        {
+            // Only clear if we are still the active task — a concurrent caller
+            // may have started a new stream while we were draining the old one.
+            if (ReferenceEquals(_activeStreamingTask, task))
+            {
+                _activeStreamingTask = null;
+            }
+        }
     }
 
     private async Task ThrottledNotifyStateChanged()

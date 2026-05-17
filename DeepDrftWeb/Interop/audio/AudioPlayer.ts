@@ -107,12 +107,40 @@ export class AudioPlayer {
         }
     }
 
+    /**
+     * Signal to the decoder that the C# streaming loop has finished sending bytes.
+     * This sets streamComplete=true and flushes any remaining decoded tail segments.
+     * Must be called after the ReadAsync loop exits, regardless of whether
+     * Content-Length was known — without it the tail-decode path is dead when
+     * Content-Length is absent.
+     */
+    async markStreamComplete(): Promise<StreamingResult> {
+        try {
+            const results = await this.streamDecoder.markStreamComplete();
+            if (results.length > 0) {
+                for (const result of results) {
+                    this.scheduler.addBuffer(result.buffer);
+                }
+                if (this.streamingStarted && this.isPlaying) {
+                    this.scheduler.scheduleNewBuffers();
+                }
+            }
+            this.streamingCompleted = true;
+            console.log('Stream marked complete by C# signal');
+            return { success: true, bufferCount: this.scheduler.getBufferCount() };
+        } catch (error) {
+            return { success: false, error: (error as Error).message };
+        }
+    }
+
     async processStreamingChunk(chunk: Uint8Array): Promise<StreamingResult> {
         try {
-            const result = await this.streamDecoder.processChunk(chunk);
+            const results = await this.streamDecoder.processChunk(chunk);
 
-            if (result) {
-                this.scheduler.addBuffer(result.buffer);
+            if (results.length > 0) {
+                for (const result of results) {
+                    this.scheduler.addBuffer(result.buffer);
+                }
 
                 // Update duration estimate
                 const estimatedDuration = this.streamDecoder.getEstimatedDuration();
