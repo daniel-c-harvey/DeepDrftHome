@@ -7,7 +7,7 @@ public class TrackMediaResponse : IDisposable
 {
     public Stream Stream { get; }
     public long ContentLength { get; }
-    
+
     public TrackMediaResponse(Stream stream, long contentLength)
     {
         Stream = stream;
@@ -23,13 +23,22 @@ public class TrackMediaResponse : IDisposable
 public class TrackMediaClient
 {
     private readonly HttpClient _http;
-    
+
     public TrackMediaClient(IHttpClientFactory httpClientFactory)
     {
         _http = httpClientFactory.CreateClient("DeepDrft.Content");
     }
 
-    public async Task<ApiResult<TrackMediaResponse>> GetTrackMedia(string trackId, long byteOffset = 0)
+    /// <summary>
+    /// Fetches the WAV stream for a track, optionally starting from a byte offset.
+    /// The cancellation token is forwarded to <see cref="HttpClient.GetAsync"/> so a
+    /// navigation or seek-replacement aborts the in-flight server connection rather
+    /// than leaving the server draining bytes into a dead socket.
+    /// </summary>
+    public async Task<ApiResult<TrackMediaResponse>> GetTrackMedia(
+        string trackId,
+        long byteOffset = 0,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -39,11 +48,11 @@ public class TrackMediaClient
                 : $"api/track/{trackId}";
 
             // Use HttpCompletionOption.ResponseHeadersRead to get stream immediately
-            var response = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+            var response = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             response.EnsureSuccessStatusCode();
 
             var contentLength = response.Content.Headers.ContentLength ?? 0;
-            var stream = await response.Content.ReadAsStreamAsync();
+            var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
             return ApiResult<TrackMediaResponse>.CreatePassResult(new TrackMediaResponse(stream, contentLength));
         }

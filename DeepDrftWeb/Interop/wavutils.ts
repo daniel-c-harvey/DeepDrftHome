@@ -51,9 +51,11 @@ class WavUtils {
                 if (chunkSize < 16) return null;
 
                 const audioFormat = view.getUint16(chunkOffset + 8, true);
-                // Support PCM (1) and IEEE Float (3) formats
-                if (audioFormat !== 1 && audioFormat !== 3) {
-                    console.warn(`Unsupported audio format: ${audioFormat} (only PCM=1 and IEEE Float=3 supported)`);
+                // PCM only. The server's WavOffsetService synthesises PCM-shaped headers,
+                // and AudioProcessor rejects non-PCM at upload — accepting Float here would
+                // hand the decoder a header/payload mismatch that surfaces as garbled audio.
+                if (audioFormat !== 1) {
+                    console.warn(`Unsupported audio format: ${audioFormat} (only PCM=1 supported)`);
                     return null;
                 }
 

@@ -1,6 +1,7 @@
-﻿using DeepDrftContent.Services.Audio;
+using DeepDrftContent.Services.Audio;
 using DeepDrftContent.Services.Constants;
 using DeepDrftContent.Services.FileDatabase.Models;
+using DeepDrftContent.Services.FileDatabase.Services;
 using DeepDrftContent.Middleware;
 using Microsoft.AspNetCore.Mvc;
 
@@ -31,6 +32,57 @@ public class TrackController : ControllerBase
 
         try
         {
+            // No-offset path: stream the file straight from disk so a 100 MB WAV does not
+            // force a 100 MB LOH allocation per request. The offset path still loads
+            // the full buffer because WavOffsetService block-aligns and reslices into
+            // a composite stream over the in-memory buffer.
+            if (offset == 0)
+            {
+                var vault = _fileDatabase.GetVault(VaultConstants.Tracks);
+                if (vault == null)
+                {
+                    _logger.LogWarning("Tracks vault not found");
+                    return NotFound();
+                }
+
+                var mediaStream = await vault.GetEntryStreamAsync(trackId);
+                if (mediaStream == null)
+                {
+                    _logger.LogWarning("Track not found: {TrackId}", trackId);
+                    return NotFound();
+                }
+
+                // Resolve MIME and log before handing the stream to File().
+                // If anything here throws, the finally block disposes the wrapper
+                // (and its inner FileStream) so neither leaks. On the success path
+                // File() takes ownership of the inner stream; ASP.NET Core disposes
+                // it after the response body is sent. The wrapper is a thin struct
+                // with no extra resources, so disposing it after extracting the
+                // inner stream is a no-op — we only call Dispose() in the catch path.
+                string streamMimeType;
+                long streamLength;
+                Stream innerStream;
+                try
+                {
+                    streamMimeType = MimeTypeExtensions.GetMimeType(mediaStream.Extension);
+                    streamLength = mediaStream.Stream.Length;
+                    innerStream = mediaStream.Stream;
+                }
+                catch
+                {
+                    await mediaStream.DisposeAsync();
+                    throw;
+                }
+
+                _logger.LogInformation(
+                    "Streaming track from disk: {TrackId}, Size: {Size} bytes",
+                    trackId, streamLength);
+                // enableRangeProcessing: false — seek is served by WavOffsetService, not Range.
+                return File(innerStream, streamMimeType, enableRangeProcessing: false);
+            }
+
+            // Offset path: buffer the file (current behaviour) and synthesise a
+            // header-prefixed slice via WavOffsetService.
             var file = await _fileDatabase.LoadResourceAsync<AudioBinary>(VaultConstants.Tracks, trackId);
             if (file == null)
             {
@@ -40,14 +92,6 @@ public class TrackController : ControllerBase
 
             var mimeType = MimeTypeExtensions.GetMimeType(file.Extension);
 
-            // If no offset, return the full file
-            if (offset == 0)
-            {
-                _logger.LogInformation("Successfully retrieved track: {TrackId}, Size: {Size} bytes", trackId, file.Buffer.Length);
-                return File(file.Buffer, mimeType);
-            }
-
-            // Create offset stream with synthesized header
             var offsetStream = _wavOffsetService.CreateOffsetStream(file.Buffer, offset);
             if (offsetStream == null)
             {

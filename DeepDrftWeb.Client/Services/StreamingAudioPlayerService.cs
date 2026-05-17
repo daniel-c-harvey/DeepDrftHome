@@ -90,7 +90,12 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
 
             await NotifyStateChanged();
 
-            var mediaResult = await _trackMediaClient.GetTrackMedia(track.EntryKey);
+            // Pass the streaming token to the HTTP layer so a navigation/track switch
+            // aborts the server connection instead of leaving it draining bytes.
+            var mediaResult = await _trackMediaClient.GetTrackMedia(
+                track.EntryKey,
+                byteOffset: 0,
+                cancellationToken: _streamingCancellation.Token);
             if (!mediaResult.Success)
             {
                 var technicalError = mediaResult.GetMessage();
@@ -346,7 +351,10 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
             await NotifyStateChanged();
 
             // Request new stream from offset
-            var mediaResult = await _trackMediaClient.GetTrackMedia(_currentTrackId, byteOffset);
+            var mediaResult = await _trackMediaClient.GetTrackMedia(
+                _currentTrackId,
+                byteOffset,
+                cancellationToken: _streamingCancellation.Token);
             if (!mediaResult.Success || mediaResult.Value == null)
             {
                 var technicalError = mediaResult.GetMessage() ?? "Failed to load audio from position";
@@ -483,6 +491,25 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
             _lastNotification = now;
             await NotifyStateChanged();
         }
+    }
+
+    /// <summary>
+    /// On component unmount we must cancel the in-flight streaming loop and tear
+    /// down JS callbacks before the JS side's setInterval fires again with a
+    /// stale DotNetObjectReference. ResetToIdle covers cancellation + JS stop
+    /// + state reset; the base then disposes the JS player and its callbacks.
+    /// </summary>
+    public override async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await ResetToIdle();
+        }
+        catch
+        {
+            // Disposal must not throw; any failure here is best-effort cleanup.
+        }
+        await base.DisposeAsync();
     }
 
     private void AdaptBufferSize(int bytesRead, long readTimeMs)

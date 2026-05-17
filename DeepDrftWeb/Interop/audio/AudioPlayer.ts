@@ -175,13 +175,21 @@ export class AudioPlayer {
         }
     }
 
-    startStreamingPlayback(): AudioResult {
+    async startStreamingPlayback(): Promise<AudioResult> {
         if (!this.scheduler.hasBuffers()) {
             return { success: false, error: 'No buffers available' };
         }
 
         try {
             console.log('\n=== Starting streaming playback ===');
+
+            // A backgrounded tab leaves AudioContext suspended. createBufferSource/start
+            // against a suspended context produces no audio without throwing — the same
+            // failure mode that was fixed for play() (resume path). Awaiting ensureReady()
+            // here guarantees the context is running before playFromPosition schedules
+            // any AudioBufferSourceNodes.
+            await this.contextManager.ensureReady();
+
             this.streamingStarted = true;
             this.isPlaying = true;
             this.isPaused = false;
@@ -199,7 +207,7 @@ export class AudioPlayer {
 
     // ==================== Playback Control ====================
 
-    play(): AudioResult {
+    async play(): Promise<AudioResult> {
         if (!this.isStreamingMode) {
             return { success: false, error: 'Not in streaming mode' };
         }
@@ -215,7 +223,11 @@ export class AudioPlayer {
         }
 
         try {
-            this.contextManager.ensureReady();
+            // Must await: a backgrounded tab leaves AudioContext suspended, and
+            // createBufferSource/source.start against a suspended context produces
+            // no audio without throwing. Firing ensureReady() without await meant
+            // play() returned success but the user heard nothing.
+            await this.contextManager.ensureReady();
 
             this.isPlaying = true;
             this.isPaused = false;
@@ -313,7 +325,9 @@ export class AudioPlayer {
     private seekBeyondBuffer(position: number): AudioResult {
         try {
             const byteOffset = this.streamDecoder.calculateByteOffset(position);
-            if (byteOffset <= 0) {
+            // 0 is a valid offset (seek to start of audio data). Only a negative result
+            // indicates calculation failure — typically a missing/unparsed WAV header.
+            if (byteOffset < 0) {
                 return { success: false, error: 'Cannot calculate byte offset' };
             }
 
