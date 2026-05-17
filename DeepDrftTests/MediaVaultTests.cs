@@ -120,7 +120,7 @@ public class MediaVaultTests
             await _imageVault.AddEntryAsync(entryKey, imageBinary);
 
             // Assert
-            Assert.That(_imageVault.HasIndexEntry(entryKey), Is.True, "Should add to index");
+            Assert.That(await _imageVault.HasIndexEntry(entryKey), Is.True, "Should add to index");
             
             var expectedFilePath = Path.Combine(TestDirectory, "test-image.png");
             AssertMediaFileExists(expectedFilePath, imageBinary.Buffer);
@@ -148,7 +148,7 @@ public class MediaVaultTests
             
             foreach (var (key, binary) in entries)
             {
-                Assert.That(_imageVault.HasIndexEntry(key), Is.True, $"Should contain {key} in index");
+                Assert.That(await _imageVault.HasIndexEntry(key), Is.True, $"Should contain {key} in index");
                 var expectedFilePath = Path.Combine(TestDirectory, $"{key}.png");
                 AssertMediaFileExists(expectedFilePath, binary.Buffer);
             }
@@ -264,7 +264,7 @@ public class MediaVaultTests
             await _audioVault.AddEntryAsync(entryKey, audioBinary);
 
             // Assert
-            Assert.That(_audioVault.HasIndexEntry(entryKey), Is.True, "Should add to index");
+            Assert.That(await _audioVault.HasIndexEntry(entryKey), Is.True, "Should add to index");
             
             var expectedFilePath = Path.Combine(TestDirectory, "test-audio.mp3");
             AssertMediaFileExists(expectedFilePath, audioBinary.Buffer);
@@ -337,7 +337,7 @@ public class MediaVaultTests
                 return (string)method!.Invoke(_vault, new object[] { mediaKey })!;
             }
 
-            public bool HasIndexEntry(string entryId) => _vault.HasIndexEntry(entryId);
+            public Task<bool> HasIndexEntry(string entryId) => _vault.HasIndexEntry(entryId);
             public Task AddEntryAsync(string entryId, FileBinary media) => 
                 _vault.AddEntryAsync(entryId, media);
         }
@@ -423,7 +423,7 @@ public class MediaVaultTests
             await vault!.AddEntryAsync(entryKey, imageBinary);
 
             // Assert
-            Assert.That(vault.HasIndexEntry(entryKey), Is.True, "Should add entry to index");
+            Assert.That(await vault.HasIndexEntry(entryKey), Is.True, "Should add entry to index");
             
             var expectedFilePath = Path.Combine(TestDirectory, "test-media.png");
             AssertMediaFileExists(expectedFilePath, imageBinary.Buffer);

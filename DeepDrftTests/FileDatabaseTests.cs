@@ -92,7 +92,7 @@ public class FileDatabaseTests
         // Assert
         var vault = _fileDatabase.GetVault(TestData.TestKeys.ImageVaultKey);
         Assert.That(vault, Is.Not.Null, "Vault should not be null");
-        Assert.That(vault!.HasIndexEntry(TestData.TestKeys.TestImageEntry), Is.True, 
+        Assert.That(await vault!.HasIndexEntry(TestData.TestKeys.TestImageEntry), Is.True,
             "Added image should be in the index");
     }
 
@@ -182,7 +182,7 @@ public class FileDatabaseTests
         Assert.That(reloadedDatabase.GetIndexSize(), Is.EqualTo(1), "Index count should be 1");
         
         // Verify vault exists
-        Assert.That(reloadedDatabase.HasIndexEntry(TestData.TestKeys.ImageVaultKey), Is.True, 
+        Assert.That(await reloadedDatabase.HasIndexEntry(TestData.TestKeys.ImageVaultKey), Is.True,
             "Vault should be present in index");
         Assert.That(reloadedDatabase.HasVault(TestData.TestKeys.ImageVaultKey), Is.True, 
             "Vault should be present in vault collection");

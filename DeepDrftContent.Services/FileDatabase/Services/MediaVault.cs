@@ -64,11 +64,11 @@ public abstract class MediaVault : VaultIndexDirectory
         var vaultType = MediaVaultTypeMap.GetVaultType<T>();
 
         // Use thread-safe method from VaultIndexDirectory
-        if (!HasIndexEntry(entryId))
+        if (!await HasIndexEntry(entryId))
             return null;
 
         // Use thread-safe metadata retrieval
-        var metaData = GetEntryMetadata(entryId);
+        var metaData = await GetEntryMetadata(entryId);
         if (metaData == null)
             return null;
 
