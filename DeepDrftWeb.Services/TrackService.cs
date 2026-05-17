@@ -6,10 +6,8 @@ using NetBlocks.Models;
 
 namespace DeepDrftWeb.Services;
 
-public class TrackService
+public class TrackService : ITrackService
 {
-    private readonly string _sortLastAscending = Enumerable.Repeat(char.MaxValue, 64).Aggregate(string.Empty, (a, b) => a + b);
-    private readonly string _sortLastDescending = Enumerable.Repeat(char.MinValue.ToString(), 64).Aggregate(string.Empty, (a, b) => a + b);
     private readonly TrackRepository _repository;
 
     public TrackService(TrackRepository repository)
@@ -65,13 +63,13 @@ public class TrackService
                         parameters.OrderBy = entity => entity.Artist;
                         break;
                     case "Album":
-                        parameters.OrderBy = entity => entity.Album ?? _sortLastAscending;
+                        parameters.OrderBy = entity => entity.Album ?? "";
                         break;
                     case "ReleaseDate":
                         parameters.OrderBy = entity => entity.ReleaseDate ?? DateOnly.MaxValue;
                         break;
                     case "Genre":
-                        parameters.OrderBy = entity => entity.Genre ?? _sortLastAscending;
+                        parameters.OrderBy = entity => entity.Genre ?? "";
                         break;
                     
                 }

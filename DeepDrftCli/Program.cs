@@ -47,7 +47,7 @@ builder.Services.AddSingleton<FileDatabase>(provider =>
 
 // Add services
 builder.Services.AddScoped<TrackRepository>();
-builder.Services.AddScoped<DeepDrftWeb.Services.TrackService>();
+builder.Services.AddScoped<DeepDrftWeb.Services.ITrackService, DeepDrftWeb.Services.TrackService>();
 builder.Services.AddScoped<AudioProcessor>();
 builder.Services.AddScoped<DeepDrftContent.Services.TrackService>();
 builder.Services.AddScoped<CliService>();

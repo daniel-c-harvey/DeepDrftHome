@@ -53,8 +53,6 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
         // Resume AudioContext immediately on track selection (user interaction) to avoid clicks later
         await _audioInterop.EnsureAudioContextReady(PlayerId);
 
-        // NotifyStateChanged();
-
         await NotifyTrackSelected();
 
         await LoadTrackStreaming(track);

@@ -2,6 +2,7 @@ using DeepDrftModels.Entities;
 using DeepDrftWeb.Client.Clients;
 using Microsoft.AspNetCore.Components;
 using NetBlocks.Models;
+using System.Buffers;
 
 namespace DeepDrftWeb.Client.Services;
 
@@ -135,34 +136,30 @@ public abstract class AudioPlayerService : IPlayerService, IAsyncDisposable
 
     private async Task StreamAudio(TrackMediaResponse audio)
     {
+        const int bufferSize = 32 * 1024;
+        var rentedBuffer = ArrayPool<byte>.Shared.Rent(bufferSize);
         try
         {
-            const int bufferSize = 32 * 1024;
             long totalBytesRead = 0;
             int currentBytes;
-            
+
             do
             {
-                var buffer = new byte[bufferSize];
-                currentBytes = await audio.Stream.ReadAsync(buffer, 0, buffer.Length);
-                
+                currentBytes = await audio.Stream.ReadAsync(rentedBuffer, 0, bufferSize);
+
                 if (currentBytes > 0)
                 {
                     totalBytesRead += currentBytes;
-                    
-                    if (currentBytes < bufferSize)
-                    {
-                        var trimmedBuffer = new byte[currentBytes];
-                        Array.Copy(buffer, trimmedBuffer, currentBytes);
-                        buffer = trimmedBuffer;
-                    }
-                    
-                    var appendResult = await _audioInterop.AppendAudioBlockAsync(PlayerId, buffer);
+
+                    // Slice to actual bytes read before sending to interop
+                    var chunk = rentedBuffer[..currentBytes];
+
+                    var appendResult = await _audioInterop.AppendAudioBlockAsync(PlayerId, chunk);
                     if (!appendResult.Success)
                     {
                         throw new Exception($"Failed to append audio block: {appendResult.Error}");
                     }
-                    
+
                     if (audio.ContentLength > 0)
                     {
                         LoadProgress = Math.Min(1.0, (double)totalBytesRead / audio.ContentLength);
@@ -170,13 +167,13 @@ public abstract class AudioPlayerService : IPlayerService, IAsyncDisposable
                     }
                 }
             } while (currentBytes > 0);
-            
+
             var finalizeResult = await _audioInterop.FinalizeAudioBufferAsync(PlayerId);
             if (!finalizeResult.Success)
             {
                 throw new Exception($"Failed to finalize audio buffer: {finalizeResult.Error}");
             }
-            
+
             Duration = finalizeResult.Duration;
             LoadProgress = 1.0;
             IsLoaded = true;
@@ -190,6 +187,10 @@ public abstract class AudioPlayerService : IPlayerService, IAsyncDisposable
             IsLoaded = false;
             await NotifyStateChanged();
             throw;
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(rentedBuffer);
         }
     }
 

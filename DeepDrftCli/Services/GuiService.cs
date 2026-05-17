@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Terminal.Gui;
 using DeepDrftModels.Entities;
+using DeepDrftCli.Utils;
 
 namespace DeepDrftCli.Services;
 
@@ -10,7 +11,7 @@ namespace DeepDrftCli.Services;
 public class GuiService
 {
     private readonly ILogger<GuiService> _logger;
-    private readonly DeepDrftWeb.Services.TrackService _webTrackService;
+    private readonly DeepDrftWeb.Services.ITrackService _webTrackService;
     private readonly DeepDrftContent.Services.TrackService _contentTrackService;
 
     // GUI Components
@@ -23,7 +24,7 @@ public class GuiService
 
     public GuiService(
         ILogger<GuiService> logger,
-        DeepDrftWeb.Services.TrackService webTrackService,
+        DeepDrftWeb.Services.ITrackService webTrackService,
         DeepDrftContent.Services.TrackService contentTrackService)
     {
         _logger = logger;
@@ -784,8 +785,8 @@ public class GuiService
                 _tracks = result.Value.ToList();
                 
                 // Create display items for the list view
-                var displayItems = _tracks.Select(t => 
-                    $"{t.Id,4} │ {TruncateString(t.TrackName, 25),25} │ {TruncateString(t.Artist, 20),20} │ {TruncateString(t.Album ?? "", 15),15} │ {TruncateString(t.Genre ?? "", 10),10}"
+                var displayItems = _tracks.Select(t =>
+                    $"{t.Id,4} │ {CliUtils.TruncateString(t.TrackName, 25),25} │ {CliUtils.TruncateString(t.Artist, 20),20} │ {CliUtils.TruncateString(t.Album ?? "", 15),15} │ {CliUtils.TruncateString(t.Genre ?? "", 10),10}"
                 ).ToArray();
 
                 _trackListView?.SetSource(displayItems);
@@ -894,14 +895,4 @@ public class GuiService
         UpdateStatus("Ready");
     }
 
-    /// <summary>
-    /// Truncate string to fit display width
-    /// </summary>
-    private string TruncateString(string input, int maxLength)
-    {
-        if (string.IsNullOrEmpty(input))
-            return string.Empty;
-            
-        return input.Length <= maxLength ? input : input.Substring(0, maxLength - 3) + "...";
-    }
 }
