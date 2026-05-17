@@ -18,7 +18,8 @@ The C# port preserves the original three-layer architecture:
 - **Location**: `Services/MediaVault.cs`
 - **Components**:
   - `MediaVault` (Abstract base class)
-  - `ImageDirectoryVault` (Concrete implementation for images)
+  - `ImageVault` (Concrete implementation for images)
+  - `AudioVault` (Concrete implementation for audio)
 - **Key Features**:
   - File path normalization and media key generation
   - Generic type-safe operations using `MediaVaultType` enum
@@ -107,7 +108,7 @@ FileDatabase/
 │   ├── StructuralMap.cs     # Structural equality map
 │   ├── StructuralSet.cs     # Structural equality set
 │   └── FileUtils.cs         # File I/O utilities
-└── FileDatabase.csproj      # Project file (.NET 9.0)
+└── [FileDatabase is now part of DeepDrftContent.Services.csproj]
 ```
 
 ## Key Architectural Decisions

@@ -1,204 +1,225 @@
 # CLAUDE.md - DeepDrftCli
 
-This file provides guidance to Claude Code (claude.ai/code) when working with the DeepDrftCli project.
+Guidance for working in the DeepDrftCli project (the admin CLI tool).
 
-## Project Overview
+See the root `CLAUDE.md` for full architecture overview. This file covers what is specific to this project.
 
-DeepDrftCli is a **console application** for managing audio tracks in the DeepDrft system. It provides command-line interface for adding WAV files to both the SQL database and FileDatabase, leveraging services from both DeepDrftWeb and DeepDrftContent projects.
+## One-line purpose
 
-## Architecture
+Local admin tool. Adds and lists tracks. Two modes: classic CLI (`add` / `list` / `help`) and Terminal.Gui interactive interface (`gui`). Has direct access to both the SQL DB and the FileDatabase (it's not a network client — it runs on the same machine as the databases).
 
-### Technology Stack
-- **.NET 9.0 Console Application**: Command-line interface
-- **Microsoft.Extensions.Hosting**: Dependency injection and configuration
-- **Entity Framework Core**: SQL database operations via DeepDrftWeb
-- **FileDatabase**: Binary storage via DeepDrftContent
+## Why this is allowed to bypass the API
 
-### Project Structure
+CLI is a **local single-user admin tool**, run on the same machine as the databases by an admin. It consumes `DeepDrftWeb.Services` and `DeepDrftContent.Services` directly without going through HTTP. Browsers never get to bypass — the APIs are for them. **Don't extend this pattern to network clients.**
+
+## Layout
+
 ```
 DeepDrftCli/
 ├── Services/
-│   ├── CliService.cs           # Main CLI command handler
-│   └── [Processors moved to DeepDrftContent]
-├── Program.cs                  # Application entry point with DI setup
-├── appsettings.json           # Configuration
-└── DeepDrftCli.csproj         # Project file with references
-```
-
-### Service Dependencies
-- **DeepDrftWeb**: SQL database operations, TrackService, TrackRepository
-- **DeepDrftContent**: FileDatabase, AudioProcessor (in /Processors)
-- **DeepDrftModels**: Shared entities and DTOs
-- **NetBlocks**: Result pattern (ResultContainer<T>)
-
-## Audio Processing Architecture
-
-### AudioProcessor (DeepDrftContent/Processors/)
-Handles WAV file processing with full metadata extraction:
-```csharp
-public async Task<AudioBinary?> ProcessWavFileAsync(string filePath)
-{
-    // WAV header parsing for duration, bitrate, sample rate
-    // Creates AudioBinary with extracted metadata
-}
-```
-
-### TrackService (DeepDrftContent/Services/)
-Orchestrates dual-database operations:
-```csharp
-public async Task<TrackEntity?> AddTrackFromWavAsync(
-    string wavFilePath, string trackName, string artist, ...)
-{
-    // 1. Process WAV file → AudioBinary
-    // 2. Store in FileDatabase → get trackId
-    // 3. Create TrackEntity with MediaPath = trackId
-    // 4. Return entity for SQL storage
-}
-```
-
-## Command-Line Interface
-
-### Available Commands
-
-#### GUI Mode (Interactive Terminal Interface)
-```bash
-DeepDrftCli gui
-```
-Launches the interactive Terminal.Gui interface with:
-- **DeepDrft brand color theme** (Magenta/Purple/Pink)
-- **Color-coded track list** with navigation
-- **Persistent hotkey legend** showing shortcuts
-- **Interactive add track dialog** with file browser
-- **Real-time status updates** and feedback
-- **Full keyboard shortcuts** for all operations
-
-#### Add Track
-```bash
-DeepDrftCli add <wav-file-path> <track-name> <artist> [album] [genre] [release-date]
-```
-**Example:**
-```bash
-DeepDrftCli add "mysong.wav" "My Song" "Artist Name" "Album" "Rock" "2024-01-01"
-```
-
-#### List Tracks
-```bash
-DeepDrftCli list
-```
-Shows all tracks from SQL database with formatted table output.
-
-#### Help
-```bash
-DeepDrftCli help
-# or
-DeepDrftCli --help
-# or
-DeepDrftCli -h
-```
-
-## Development Commands
-
-### Building
-```bash
-# Build CLI project
-dotnet build DeepDrftCli/
-
-# Build entire solution
-dotnet build DeepDrftHome.sln
-```
-
-### Running
-```bash
-# Run from project directory
-cd DeepDrftCli
-dotnet run -- add "song.wav" "Track Name" "Artist"
-
-# Run from solution root
-dotnet run --project DeepDrftCli -- list
-
-# Run built executable
-./DeepDrftCli/bin/Debug/net9.0/DeepDrftCli.exe add "song.wav" "Track" "Artist"
-```
-
-### Database Requirements
-Ensure databases exist and are accessible:
-```bash
-# SQL Database: ../Database/deepdrft.db
-# FileDatabase: ../Database/Vaults
+│   ├── CliService.cs                  # Main CLI command dispatcher
+│   └── GuiService.cs                  # Terminal.Gui interface
+├── Models/
+│   └── CliSettings.cs                 # Config POCO (ConnectionString, VaultPath)
+├── Program.cs                         # Entry point, DI setup
+├── environment/
+│   ├── connections.json               # The actual config file (not appsettings.json)
+│   └── config.json                    # Placeholder, currently unused
+└── DeepDrftCli.csproj
 ```
 
 ## Configuration
 
-### appsettings.json
+`CliSettings` (loaded from `environment/connections.json`):
+
+```csharp
+public class CliSettings
+{
+    public required string ConnectionString { get; set; }  // SQLite path
+    public required string VaultPath { get; set; }         // FileDatabase root
+}
+```
+
+**The config file is `environment/connections.json`, not `appsettings.json`.** Example:
+
 ```json
 {
-  "ConnectionStrings": {
-    "DefaultConnection": "Data Source=../Database/deepdrft.db"
-  },
-  "FileDatabaseSettings": {
+  "CliSettings": {
+    "ConnectionString": "Data Source=../Database/deepdrft.db",
     "VaultPath": "../Database/Vaults"
   }
 }
 ```
 
-### Dependency Injection Setup
-Program.cs configures full DI container:
-- **SQL Context**: DeepDrftContext with SQLite
-- **FileDatabase**: Singleton initialized from vault path
-- **Services**: TrackRepository, TrackServices (both Web and Content), AudioProcessor
-- **Logging**: Console logging for development
+Paths are resolved relative to `AppDomain.CurrentDomain.BaseDirectory`.
 
-## Important Patterns
+## DI wiring (Program.cs)
 
-### Result Pattern (NetBlocks)
-All service operations return ResultContainer<T>:
+Registers:
+- `DeepDrftContext` with SQLite (from connection string)
+- `FileDatabase` singleton (awaited on init via `FileDatabase.FromAsync`)
+- `TrackRepository`, `DeepDrftWeb.Services.TrackService` (SQL side)
+- `AudioProcessor`, `DeepDrftContent.Services.TrackService` (content side)
+- `CliService`, `GuiService`
+- Console logging
+
+All services are scoped or singletons. The app waits for `FileDatabase.FromAsync` on startup (blocking), so the vault is ready before any command runs.
+
+## Mode dispatch
+
+`Program.cs` checks the first argument:
+- `gui` or `--gui`: runs `GuiService.RunAsync()` → Terminal.Gui interactive interface.
+- Anything else: runs `CliService.RunAsync(args)` → classic CLI command parsing.
+
+## CLI commands (classic mode)
+
+### add <wav-file> <track-name> <artist> [album] [genre] [release-date]
+
+Positional arguments. Adds a track:
+
+```bash
+DeepDrftCli add "/path/to/song.wav" "My Song" "Artist Name" "Album Title" "Rock" "2024-01-15"
+```
+
+Release date format: `YYYY-MM-DD`. Optional: album, genre, release date.
+
+### add <wav-file> -i|--interactive [defaults...]
+
+Interactive mode. Prompts for each field; command-line args become defaults:
+
+```bash
+DeepDrftCli add "/path/to/song.wav" -i "Artist Name"
+```
+
+Prompts: "Track Name? [default] → ", "Artist? [default] → ", etc.
+
+### list
+
+Formats and displays all tracks from SQL:
+
+```bash
+DeepDrftCli list
+```
+
+Table output: ID, Name, Artist, Album, Genre, ReleaseDate, EntryKey, ImagePath.
+
+### help, --help, -h
+
+Shows command list.
+
+### gui (or --gui)
+
+Launches the Terminal.Gui interactive interface (separate mode).
+
+## GUI mode (Terminal.Gui)
+
+Launches a full interactive terminal UI with:
+- **DeepDrft brand color scheme** (Magenta/Purple/Pink).
+- **Track list** (scrollable, selectable, deletable).
+- **Status pane** showing feedback and errors.
+- **Persistent hotkey legend** (F1=Help, A=Add, D=Delete, Q=Quit, etc.).
+- **Add dialog** with file browser and track metadata entry.
+- **Keyboard navigation**: arrow keys to navigate, Enter to select, escape to cancel.
+
+`GuiService.RunAsync()` creates a `Window`, populates controls, and runs the main loop.
+
+## Dual-database add flow (critical contract)
+
+This is the seam where both databases are written — **must be idempotent and crash-safe**:
+
+1. `DeepDrftContent.Services.TrackService.AddTrackFromWavAsync(filePath)`:
+   - Validates file is `.wav` and readable.
+   - Calls `AudioProcessor.ProcessWavFileAsync(filePath)` → `AudioBinary` (duration, bitrate extracted).
+   - Generates a GUID entry key.
+   - Ensures the `tracks` vault exists.
+   - Calls `FileDatabase.RegisterResourceAsync("tracks", entryKey, audioBinary)`.
+   - Returns a populated `TrackEntity` (with `Id = 0` since not yet in SQL).
+
+2. `DeepDrftWeb.Services.TrackService.Create(trackEntity)`:
+   - Saves the entity to SQLite.
+   - Returns the persisted entity with `Id` assigned.
+
+**If step 1 succeeds and step 2 fails, the audio is orphaned in the vault.** There is no compensating rollback today. The CLI logs both results and exits with status code indicating overall success/failure.
+
+## File validation
+
+- **Extension**: must be `.wav` (only WAV files are supported).
+- **Existence**: checked before processing.
+- **Readability**: attempted during processing.
+- **WAV structure**: validated by `AudioProcessor` (RIFF/WAVE/PCM header parsing).
+
+Non-WAV files are rejected with a clear error message.
+
+## Release date format
+
+Only `YYYY-MM-DD` is accepted. Parsing is strict:
+
+```csharp
+DateOnly.ParseExact(releaseDateStr, "yyyy-MM-dd")
+```
+
+Invalid dates result in an error. Optional fields (if not provided or invalid) are set to `null`.
+
+## Publishing
+
+Build configuration in `.csproj`:
+- `PublishSingleFile=true`: Produces a single executable.
+- `SelfContained` and `IncludeNativeLibrariesForSelfExtract` are **commented out** — publish is framework-dependent (requires .NET runtime installed).
+
+To publish:
+
+```bash
+dotnet publish DeepDrftCli -c Release -o ./bin/Release/publish
+```
+
+Result is a single `.exe` (Windows) or binary (Linux) that consumes the host framework.
+
+## Service registration patterns
+
+All service calls return `Result` or `ResultContainer<T>`. CLI checks `Success` and `Messages` to display feedback:
+
 ```csharp
 var result = await _webTrackService.Create(trackEntity);
 if (result.Success && result.Value != null)
 {
-    // Success handling
+    Console.WriteLine($"✓ Saved to SQL with ID {result.Value.Id}");
 }
 else
 {
-    var errorMessage = result.Messages.FirstOrDefault()?.Message ?? "Unknown error";
-    // Error handling
+    Console.WriteLine($"✗ SQL save failed: {string.Join("; ", result.Messages.Select(m => m.Message))}");
 }
 ```
 
-### Dual Database Strategy
-1. **Process WAV** → AudioBinary (metadata + buffer)
-2. **Store in FileDatabase** → generates unique trackId
-3. **Create TrackEntity** with MediaPath = trackId
-4. **Store in SQL** → gets database ID and full entity
+## Development commands
 
-### WAV File Processing
-- **RIFF/WAVE format parsing**: Header validation and chunk parsing
-- **Metadata extraction**: Duration, bitrate, sample rate, channels
-- **Fallback handling**: Default values if parsing fails
-- **Binary preservation**: Full WAV file stored as-is
-
-### Error Handling
-- **File validation**: Existence and .wav extension checking
-- **Graceful degradation**: Default metadata if parsing fails
-- **User-friendly messages**: Clear error reporting for CLI users
-- **Logging integration**: Structured logging for debugging
-
-## CLI Usage Notes
-
-### File Path Handling
-- Supports absolute and relative paths
-- Arguments with spaces must be quoted
-- Only .wav files are supported currently
-
-### Date Format
-Release dates must be in YYYY-MM-DD format:
 ```bash
-DeepDrftCli add "song.wav" "Title" "Artist" "Album" "Genre" "2024-01-01"
+# Build
+dotnet build DeepDrftCli
+
+# Run classic CLI mode
+dotnet run --project DeepDrftCli -- add "test.wav" "Test Track" "Test Artist"
+dotnet run --project DeepDrftCli -- list
+dotnet run --project DeepDrftCli -- help
+
+# Run GUI mode
+dotnet run --project DeepDrftCli -- gui
+
+# Build for single-file publish
+dotnet publish DeepDrftCli -c Release -o ./bin/Release/publish
 ```
 
-### Output Format
-- Success: Detailed track information display
-- List: Formatted table with ID, Name, Artist, Album, Genre
-- Errors: Clear, actionable error messages
+## Important patterns
 
-When working with this project, focus on maintaining the dual-database consistency and the established patterns for CLI argument handling and user feedback.
+- **No HTTP**: CLI talks directly to databases. No HTTP clients needed.
+- **Async/await**: All database operations are async. Even CLI mode runs in an async context.
+- **Error swallowing in FileDatabase**: Vault operations return `null` / `false`. CLI must check return values.
+- **Local-only**: CLI has no authentication or CORS. It runs locally as an admin tool.
+- **Rollback**: Adding a track is not transactional across the two databases. If one fails, the other may have partially succeeded (orphaned audio in the vault). Plan accordingly.
+
+## Configuration
+
+- `environment/connections.json`: **required** at runtime. Must contain `CliSettings` with `ConnectionString` and `VaultPath`.
+- `environment/config.json`: Placeholder, currently unused. Keep it as a placeholder for future expansion.
+- No `appsettings.json` — don't add one.
+
+When working with this project, focus on the dual-database consistency of the add flow, CLI argument parsing, and maintaining the interactive Terminal.Gui mode as a first-class interface (not a second-class citizen).

@@ -1,163 +1,166 @@
 # CLAUDE.md - DeepDrftModels
 
-This file provides guidance to Claude Code (claude.ai/code) when working with the DeepDrftModels project.
+Guidance for working in the DeepDrftModels project (shared contracts across all projects).
 
-## Project Overview
+See the root `CLAUDE.md` for full architecture overview. This file covers what is specific to this project.
 
-DeepDrftModels is a **shared models library** that defines common data structures, entities, DTOs, and model classes used across the entire DeepDrft solution. It serves as the data contract layer between all projects.
+## One-line purpose
 
-## Architecture
+Shared contracts. Entities, DTOs, pagination types. Every project references this; nothing else references the projects that reference this.
 
-### Technology Stack
-- **.NET 9.0 Class Library**: Shared library targeting .NET 9
-- **Entity Framework Compatible**: Entities work with EF Core
-- **JSON Serializable**: Models support JSON serialization for APIs
+## Layout
 
-### Project Structure
 ```
 DeepDrftModels/
-├── Entities/           # Database entities
-│   └── TrackEntity.cs  # Core track data model
-├── DTOs/              # Data Transfer Objects
-│   └── TrackDto.cs    # Track DTO for API transfers
-├── Models/            # Shared model classes
-│   ├── PagingParameters.cs  # Pagination configuration
-│   └── PagedResult.cs       # Paginated result wrapper
-└── DeepDrftModels.csproj   # Project file
+├── Entities/
+│   └── TrackEntity.cs          # Database entity for tracks
+├── DTOs/
+│   └── TrackDto.cs             # DTO mirror of TrackEntity
+├── Models/
+│   ├── PagingParameters.cs      # Pagination configuration (base + generic)
+│   └── PagedResult.cs           # Paginated result wrapper
+└── DeepDrftModels.csproj
 ```
 
-## Core Models
+## TrackEntity (the core entity)
 
-### TrackEntity
-Primary database entity for track metadata:
+The single source of truth for track metadata. Fields:
+
 ```csharp
-public class TrackEntity
-{
-    public long Id { get; set; }                    // Primary key
-    public required string MediaPath { get; set; }  // FileDatabase vault reference
-    public required string TrackName { get; set; }  // Track title
-    public required string Artist { get; set; }     // Artist name
-    public string? Album { get; set; }               // Optional album
-    public string? Genre { get; set; }               // Optional genre
-    public DateOnly? ReleaseDate { get; set; }       // Optional release date
-    public string? ImagePath { get; set; }           // Optional cover image path
-}
+public long Id { get; set; }                      // Primary key (auto-assigned by SQLite)
+public required string EntryKey { get; set; }     // FileDatabase entry id (max 100)
+public required string TrackName { get; set; }    // Track title (max 200)
+public required string Artist { get; set; }       // Artist name (max 200)
+public string? Album { get; set; }                // Optional album (max 200)
+public string? Genre { get; set; }                // Optional genre (max 100)
+public DateOnly? ReleaseDate { get; set; }        // Optional release date
+public string? ImagePath { get; set; }            // Optional image URL (max 500)
 ```
 
-### TrackDto
-Data transfer object matching TrackEntity structure for API operations:
-- Mirrors all TrackEntity properties
-- Used for JSON serialization/deserialization
-- Client-server data exchange
+**No `MediaPath` field exists.** That was a legacy name. The field is `EntryKey`.
 
-## Pagination System
+The `EntryKey` is the link to binary content — it's the entry id in the `tracks` vault inside FileDatabase. The database column is `entry_key` (snake_case).
 
-### PagingParameters<T>
-Generic pagination configuration with LINQ expression support:
-```csharp
-public class PagingParameters<T> : PagingParameters
-{
-    public Expression<Func<T, object>>? OrderBy { get; set; }  // Sorting expression
-    public bool IsDescending { get; set; } = false;           // Sort direction
-    public int Skip => (Page - 1) * PageSize;                 // Calculated skip count
-}
-```
+Convention: required reference fields use `required` modifier; optional reference fields are `?`. Don't relax `required` — it's the compile-time guarantee that prevents half-built entities from reaching the database.
 
-### PagingParameters
-Base pagination class with size constraints:
+## TrackDto
+
+Mirrors `TrackEntity` structure (identical fields, same nullability). Used where DTO/entity separation is needed for serialisation. In practice, both flow over the wire today, but the separation is available if APIs need to diverge (e.g., hide `Id` in responses).
+
+## Pagination system
+
+### PagingParameters (base)
+
 ```csharp
 public class PagingParameters
 {
-    public int Page { get; set; } = 1;           // Current page (1-based)
-    public int PageSize { get; set; } = 20;      // Items per page (max 100)
+    public int Page { get; set; } = 1;         // Current page (1-based)
+    public int PageSize { get; set; } = 20;    // Items per page (default 20, max 100)
 }
 ```
 
+`PageSize` setter enforces a hard ceiling at 100 — prevents clients from requesting huge pages that would tank performance.
+
+### PagingParameters<T> (generic)
+
+```csharp
+public class PagingParameters<T> : PagingParameters
+{
+    public Expression<Func<T, object>>? OrderBy { get; set; }  // Type-safe sort expression
+    public bool IsDescending { get; set; }                     // Sort direction
+    public int Skip => (Page - 1) * PageSize;                  // Calculated (0-based)
+}
+```
+
+Used by services to build type-safe LINQ queries. The service takes a string sort column from the API, maps it to an `Expression<Func<T, object>>`, and passes it in `OrderBy`. The repository applies the expression to the DbSet.
+
 ### PagedResult<T>
-Container for paginated data with metadata:
+
 ```csharp
 public class PagedResult<T>
 {
-    public IEnumerable<T> Items { get; set; }    // Page items
-    public int TotalCount { get; set; }          // Total items available
-    public int Page { get; set; }                // Current page
-    public int PageSize { get; set; }            // Items per page
+    public IEnumerable<T> Items { get; set; }     // Current page items
+    public int TotalCount { get; set; }           // Total items available
+    public int Page { get; set; }                 // Current page
+    public int PageSize { get; set; }             // Items per page
     
     // Calculated properties
-    public int TotalPages { get; }               // Total pages available
-    public bool HasNextPage { get; }             // Can navigate forward
-    public bool HasPreviousPage { get; }         // Can navigate backward
+    public int TotalPages => (TotalCount + PageSize - 1) / PageSize;
+    public bool HasNextPage => Page < TotalPages;
+    public bool HasPreviousPage => Page > 1;
 }
 ```
 
-## Key Patterns
+Returned by service `GetPaged` methods. Includes a static factory `From<TOther>` for cross-type mapping (e.g., `PagedResult<TrackEntity>` → `PagedResult<TrackDto>`).
 
-### Required Properties
-Uses C# required modifier for essential properties:
+## Key patterns
+
+### Required fields
+
+Essential fields use the `required` modifier. This is a compile-time guarantee that prevents half-built entities from being instantiated.
+
 ```csharp
-public required string MediaPath { get; set; }  // Compile-time requirement
+public required string EntryKey { get; set; }
+public required string Artist { get; set; }
 ```
 
-### Nullable Reference Types
+### Nullable reference types
+
 Explicit nullability throughout:
+
 ```csharp
-public string? Album { get; set; }      // Optional nullable
-public required string Artist { get; set; }  // Required non-null
+public string? Album { get; set; }              // Optional, can be null
+public required string Artist { get; set; }     // Required, must be assigned
 ```
 
-### Generic Type Conversion
-PagedResult supports type transformation:
-```csharp
-public static PagedResult<T> From<TOther>(PagedResult<TOther> other, IEnumerable<T> items)
-```
+### Expression-based sorting
 
-### Expression-Based Sorting
-Type-safe LINQ expressions for dynamic sorting:
+Type-safe LINQ expressions for dynamic sorting. No string-based `OrderBy` at runtime:
+
 ```csharp
 parameters.OrderBy = entity => entity.TrackName;  // Compile-time checked
 ```
 
-## Integration Points
+Services map string column names to expressions in a switch, so only valid sorts are possible.
 
-### Entity Framework
-- `TrackEntity` configured for EF Core in `DeepDrftWeb.Data.Configurations`
-- Long Id as primary key for SQLite compatibility
-- DateOnly support for release dates
+### Pagination defaults
 
-### API Serialization
-- All models JSON-serializable for web API usage
-- DTO pattern separates data transfer from domain models
+- `Page`: 1 (1-based)
+- `PageSize`: 20 (per-item default)
+- `PageSize` max: 100 (hard cap, enforced by setter)
 
-### Cross-Project Usage
-Referenced by:
-- **DeepDrftWeb**: Entity Framework, services, repositories
-- **DeepDrftWeb.Client**: API client communication
-- **DeepDrftContent**: API DTOs (potential future usage)
-- **DeepDrftTests**: Test data and assertions
+Client requests outside these bounds are clamped by the API controller before being passed to the service.
 
-## External Dependencies
+## Integration points
 
-### NetBlocks Library
-Some projects reference `NetBlocks.Models` for:
-- `ResultContainer<T>`: Consistent result handling pattern
-- `ApiResult<T>`: API response wrapper
-- `Result`: Simple operation result
+- **EF Core**: `TrackEntity` is configured in `DeepDrftWeb.Services.Data.Configurations.TrackConfiguration`.
+- **API serialisation**: All models JSON-serializable. Controllers return `ActionResult<ApiResultDto<PagedResult<TrackEntity>>>`.
+- **Cross-project usage**:
+  - `DeepDrftWeb`: Server render preload, controller responses.
+  - `DeepDrftWeb.Client`: HTTP client deserialization, UI display.
+  - `DeepDrftContent.Services`: `TrackService.AddTrackFromWavAsync` returns populated `TrackEntity`.
+  - `DeepDrftCli`: Entity display, table formatting.
+  - `DeepDrftTests`: Test assertions.
 
-## Development Notes
+## NetBlocks transitivity
 
-### Page Size Limits
-Maximum page size enforced at 100 items to prevent performance issues:
-```csharp
-set => _pageSize = value > _maxPageSize ? _maxPageSize : value;
+This project does not directly reference NetBlocks. The result types (`Result`, `ResultContainer<T>`, `ApiResult<T>`, `ApiResultDto<T>`) come into services and clients directly via their own NetBlocks references. Models stay independent of result wrappers — they are serializable POCOs.
+
+## Important conventions
+
+- **Column naming**: Entity property `EntryKey` maps to table column `entry_key` (snake_case, configured in EF).
+- **Table name**: `track` (singular, configured in EF).
+- **Required fields**: Properties with `required` modifier cannot be left unassigned.
+- **Page numbers**: 1-based (page 1 is the first page). The `Skip` calculation converts to 0-based for LINQ (`(Page - 1) * PageSize`).
+
+## Development commands
+
+```bash
+# Build
+dotnet build DeepDrftModels
+
+# No tests live here (models are simple POCOs)
+# Tests that use these models live in DeepDrftTests/
 ```
 
-### 1-Based Pagination
-Page numbers start at 1 (not 0) following common UI patterns:
-```csharp
-public int Skip => (Page - 1) * PageSize;  // Convert to 0-based for queries
-```
-
-### Immutable Design
-Models favor immutability where possible, using init-only properties and required fields.
-
-When working with this project, maintain consistency in data models across the solution and preserve the established patterns for pagination, nullability, and type safety.
+When working with this project, maintain the required/optional distinction rigorously, keep the pagination contract tight, and remember that this project is the interface between all other projects — changes here ripple everywhere.
