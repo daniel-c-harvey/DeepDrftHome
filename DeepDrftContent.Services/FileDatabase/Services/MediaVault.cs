@@ -9,7 +9,8 @@ namespace DeepDrftContent.Services.FileDatabase.Services;
 /// </summary>
 public abstract class MediaVault : VaultIndexDirectory
 {
-    protected MediaVault(string rootPath, VaultIndex index) : base(rootPath, index) { }
+    protected MediaVault(string rootPath, VaultIndex index, IndexFactoryService? factoryService = null)
+        : base(rootPath, index, factoryService: factoryService) { }
 
     /// <summary>
     /// Generates a media key from an entry key by sanitizing special characters
@@ -105,19 +106,20 @@ public abstract class MediaVault : VaultIndexDirectory
 /// </summary>
 public class ImageVault : MediaVault
 {
-    private ImageVault(string rootPath, VaultIndex index) : base(rootPath, index) { }
+    private ImageVault(string rootPath, VaultIndex index, IndexFactoryService? factoryService = null)
+        : base(rootPath, index, factoryService) { }
 
     /// <summary>
     /// Factory method to create an ImageVault instance
     /// </summary>
-    public static async Task<ImageVault?> FromAsync(string rootPath)
+    public static async Task<ImageVault?> FromAsync(string rootPath, IndexFactoryService? factoryService = null)
     {
-        var factoryService = new IndexFactoryService();
-        var index = await factoryService.LoadOrCreateVaultIndexAsync(rootPath, MediaVaultType.Image);
+        var factory = factoryService ?? new IndexFactoryService();
+        var index = await factory.LoadOrCreateVaultIndexAsync(rootPath, MediaVaultType.Image);
 
         if (index != null)
         {
-            return new ImageVault(rootPath, (VaultIndex)index);
+            return new ImageVault(rootPath, (VaultIndex)index, factory);
         }
 
         return null;
@@ -126,16 +128,17 @@ public class ImageVault : MediaVault
 
 public class AudioVault : MediaVault
 {
-    private AudioVault(string rootPath, VaultIndex index) : base(rootPath, index) { }
-    
-    public static async Task<AudioVault?> FromAsync(string rootPath)
+    private AudioVault(string rootPath, VaultIndex index, IndexFactoryService? factoryService = null)
+        : base(rootPath, index, factoryService) { }
+
+    public static async Task<AudioVault?> FromAsync(string rootPath, IndexFactoryService? factoryService = null)
     {
-        var factoryService = new IndexFactoryService();
-        var index = await factoryService.LoadOrCreateVaultIndexAsync(rootPath, MediaVaultType.Audio);
+        var factory = factoryService ?? new IndexFactoryService();
+        var index = await factory.LoadOrCreateVaultIndexAsync(rootPath, MediaVaultType.Audio);
 
         if (index != null)
         {
-            return new AudioVault(rootPath, (VaultIndex)index);
+            return new AudioVault(rootPath, (VaultIndex)index, factory);
         }
 
         return null;

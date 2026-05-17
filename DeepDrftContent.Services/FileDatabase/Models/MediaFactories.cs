@@ -4,11 +4,19 @@ using DeepDrftContent.Services.FileDatabase.Services;
 namespace DeepDrftContent.Services.FileDatabase.Models;
 
 /// <summary>
+/// Shared media type registry instance — one allocation for all factory classes in this file.
+/// </summary>
+file static class SharedMediaTypeRegistry
+{
+    internal static readonly IMediaTypeRegistry Instance = new SimpleMediaTypeRegistry();
+}
+
+/// <summary>
 /// Type mappings for media vault types - simple dictionary-based approach
 /// </summary>
 public static class MediaVaultTypeMap
 {
-    private static readonly IMediaTypeRegistry _registry = new SimpleMediaTypeRegistry();
+    private static readonly IMediaTypeRegistry _registry = SharedMediaTypeRegistry.Instance;
 
     public static Type GetBinaryType(MediaVaultType vaultType) => _registry.GetBinaryType(vaultType);
 
@@ -55,7 +63,7 @@ public static class MetaDataFactory
         return new AudioMetaData(entryKey, extension, duration, bitrate);
     }
 
-    private static readonly IMediaTypeRegistry _metaDataRegistry = new SimpleMediaTypeRegistry();
+    private static readonly IMediaTypeRegistry _metaDataRegistry = SharedMediaTypeRegistry.Instance;
 
     public static MetaData CreateFromMedia(MediaVaultType type, string entryKey, string extension, object media)
     {
@@ -75,7 +83,7 @@ public static class MetaDataFactory
 /// </summary>
 public static class MediaParamsFactory
 {
-    private static readonly IMediaTypeRegistry _registry = new SimpleMediaTypeRegistry();
+    private static readonly IMediaTypeRegistry _registry = SharedMediaTypeRegistry.Instance;
 
     public static object Create(MediaVaultType type, FileBinary fileBinary, MetaData metaData)
     {
@@ -94,7 +102,7 @@ public static class MediaParamsFactory
 /// </summary>
 public static class FileBinaryFactory
 {
-    private static readonly IMediaTypeRegistry _registry = new SimpleMediaTypeRegistry();
+    private static readonly IMediaTypeRegistry _registry = SharedMediaTypeRegistry.Instance;
 
     public static object Create(MediaVaultType vaultType, object parameters)
     {
@@ -124,7 +132,7 @@ public static class FileBinaryFactory
 /// </summary>
 public static class FileBinaryDtoFactory
 {
-    private static readonly IMediaTypeRegistry _registry = new SimpleMediaTypeRegistry();
+    private static readonly IMediaTypeRegistry _registry = SharedMediaTypeRegistry.Instance;
 
     public static object From(MediaVaultType type, object mediaBinary)
     {

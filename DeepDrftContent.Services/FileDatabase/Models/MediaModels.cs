@@ -68,7 +68,7 @@ public class MediaBinary : FileBinary
         return new MediaBinary(new MediaBinaryParams(buffer, dto.Size, extension));
     }
 
-    private static string GetExtensionType(string mime)
+    protected static string GetExtensionType(string mime)
     {
         return MimeTypeExtensions.GetExtension(mime);
     }
@@ -115,11 +115,6 @@ public class ImageBinary : MediaBinary
         var buffer = Convert.FromBase64String(dto.Base64);
         var extension = GetExtensionType(dto.Mime);
         return new ImageBinary(new ImageBinaryParams(buffer, dto.Size, extension, dto.AspectRatio));
-    }
-
-    private static string GetExtensionType(string mime)
-    {
-        return MimeTypeExtensions.GetExtension(mime);
     }
 }
 
@@ -170,11 +165,6 @@ public class AudioBinary : MediaBinary
         var buffer = Convert.FromBase64String(dto.Base64);
         var extension = GetExtensionType(dto.Mime);
         return new AudioBinary(new AudioBinaryParams(buffer, dto.Size, extension, dto.Duration, dto.Bitrate));
-    }
-
-    private static string GetExtensionType(string mime)
-    {
-        return MimeTypeExtensions.GetExtension(mime);
     }
 }
 
