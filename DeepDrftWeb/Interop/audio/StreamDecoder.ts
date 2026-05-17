@@ -51,6 +51,9 @@ export class StreamDecoder {
     private contextManager: AudioContextManager;
     private wavHeader: WavHeader | null = null;
     private rawChunks: Uint8Array[] = [];
+    // totalRawBytes and processedBytes are JS number (IEEE 754 double), which can
+    // represent integers exactly up to 2^53 bytes (~8 PB). WAV files are bounded
+    // at 4 GB by the 32-bit RIFF size field, so overflow is not a practical concern.
     private totalRawBytes: number = 0;
     private processedBytes: number = 0;
     private totalStreamLength: number = 0;

@@ -22,11 +22,16 @@ class WavUtils {
         // Need a DataView that spans the entire buffer for chunk searching
         const view = new DataView(concatenated.buffer);
 
+        // Allocate TextDecoder once for the entire parse pass. Constructing it
+        // inside the chunk-walk loop would create a new instance per iteration,
+        // which is non-trivial and unnecessary — a single instance is reusable.
+        const decoder = new TextDecoder();
+
         // Check RIFF header
-        const riff = new TextDecoder().decode(concatenated.slice(0, 4));
+        const riff = decoder.decode(concatenated.slice(0, 4));
         if (riff !== 'RIFF') return null;
 
-        const wave = new TextDecoder().decode(concatenated.slice(8, 12));
+        const wave = decoder.decode(concatenated.slice(8, 12));
         if (wave !== 'WAVE') return null;
 
         // Variables to store parsed header info
@@ -43,7 +48,7 @@ class WavUtils {
         // Find fmt and data chunks
         let chunkOffset = 12;
         while (chunkOffset < totalSize - 8) {
-            const chunkId = new TextDecoder().decode(concatenated.slice(chunkOffset, chunkOffset + 4));
+            const chunkId = decoder.decode(concatenated.slice(chunkOffset, chunkOffset + 4));
             const chunkSize = view.getUint32(chunkOffset + 4, true);
 
             if (chunkId === 'fmt ') {

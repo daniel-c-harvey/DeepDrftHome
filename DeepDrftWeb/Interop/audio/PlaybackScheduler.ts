@@ -64,7 +64,10 @@ export class PlaybackScheduler {
      * Get current playback position in seconds (includes playbackOffset for seek-beyond-buffer)
      */
     getCurrentPosition(): number {
-        if (this.playbackAnchorTime === 0) {
+        // Use isActive_ as the sentinel for "playback is running", not playbackAnchorTime == 0.
+        // AudioContext.currentTime can legitimately be 0 at context creation, so comparing
+        // against 0 would incorrectly treat an active stream started at t=0 as paused.
+        if (!this.isActive_) {
             return this.playbackAnchorPosition + this.playbackOffset;
         }
         const elapsed = this.contextManager.currentTime - this.playbackAnchorTime;
@@ -143,8 +146,11 @@ export class PlaybackScheduler {
             return; // No new buffers
         }
 
-        if (this.nextScheduleTime === 0) {
-            this.nextScheduleTime = this.contextManager.currentTime + 0.01;
+        // Use isActive_ as the sentinel for "playback is running", not nextScheduleTime === 0.
+        // AudioContext.currentTime can legitimately be 0 at context creation, which would cause
+        // nextScheduleTime === 0 to incorrectly reset a value already set by playFromPosition.
+        if (!this.isActive_) {
+            return;
         }
 
         this.scheduleBuffersFrom(this.nextBufferIndex, 0);
