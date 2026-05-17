@@ -39,7 +39,7 @@ const DeepDrftAudio = {
         return player.processStreamingChunk(chunk);
     },
 
-    startStreamingPlayback: (playerId: string): AudioResult => {
+    startStreamingPlayback: async (playerId: string): Promise<AudioResult> => {
         const player = audioPlayers.get(playerId);
         if (!player) return { success: false, error: 'Player not found' };
         return player.startStreamingPlayback();
@@ -57,7 +57,7 @@ const DeepDrftAudio = {
         return player.ensureAudioContextReady();
     },
 
-    play: (playerId: string): AudioResult => {
+    play: async (playerId: string): Promise<AudioResult> => {
         const player = audioPlayers.get(playerId);
         if (!player) return { success: false, error: 'Player not found' };
         return player.play();

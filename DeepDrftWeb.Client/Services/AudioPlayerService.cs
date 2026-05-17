@@ -393,7 +393,7 @@ public abstract class AudioPlayerService : IPlayerService, IAsyncDisposable
             await OnTrackSelected.Value.InvokeAsync();
     }
 
-    public async ValueTask DisposeAsync()
+    public virtual async ValueTask DisposeAsync()
     {
         if (IsInitialized)
         {

@@ -86,6 +86,53 @@ public abstract class MediaVault : VaultIndexDirectory
     }
 
     /// <summary>
+    /// Opens a read-only stream over an entry's backing file plus its metadata
+    /// (extension/MIME), without buffering the file into memory.
+    /// Returns null if the entry is unknown or the backing file is missing.
+    ///
+    /// Use this when the caller will forward bytes to a network response — the
+    /// existing <see cref="GetEntryAsync{T}"/> allocates a full <c>byte[]</c>
+    /// and pushes large WAVs onto the LOH for every request.
+    ///
+    /// The caller owns the returned stream and must dispose it. Error-handling
+    /// follows the same swallow-and-return-null contract as the rest of the
+    /// FileDatabase API; the caller checks for null.
+    /// </summary>
+    public async Task<MediaStream?> GetEntryStreamAsync(string entryId)
+    {
+        try
+        {
+            if (!await HasIndexEntry(entryId))
+                return null;
+
+            var metaData = await GetEntryMetadata(entryId);
+            if (metaData == null)
+                return null;
+
+            var mediaPath = GetMediaPathFromEntryKey(metaData.MediaKey, metaData.Extension);
+            if (!FileUtils.FileExists(mediaPath))
+                return null;
+
+            // Async-capable, sequential-scan FileStream — the response writer will pull
+            // bytes in order. bufferSize matches FileUtils.FetchFileAsync (64 KB).
+            var stream = new FileStream(
+                mediaPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                bufferSize: 64 * 1024,
+                useAsync: true);
+
+            return new MediaStream(stream, metaData.Extension);
+        }
+        catch
+        {
+            // Match FileDatabase error-swallow contract.
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Extracts buffer and extension from a media binary
     /// </summary>
     private static (byte[] buffer, string extension) ExtractMediaProperties(FileBinary media)
@@ -143,4 +190,23 @@ public class AudioVault : MediaVault
 
         return null;
     }
+}
+
+/// <summary>
+/// An open read-only stream over a vault entry plus the extension needed to
+/// resolve its MIME type. Caller owns the stream and must dispose it.
+/// </summary>
+public sealed class MediaStream : IDisposable, IAsyncDisposable
+{
+    public Stream Stream { get; }
+    public string Extension { get; }
+
+    public MediaStream(Stream stream, string extension)
+    {
+        Stream = stream;
+        Extension = extension;
+    }
+
+    public void Dispose() => Stream.Dispose();
+    public ValueTask DisposeAsync() => Stream.DisposeAsync();
 }

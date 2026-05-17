@@ -12,6 +12,36 @@ export interface DecodedChunkResult {
     duration: number;
 }
 
+/**
+ * Thrown when decodeAudioData exceeds the per-segment deadline. Distinct from
+ * DecodeError so callers (and operators reading logs) can tell a slow/throttled
+ * decoder from corrupt audio data — the previous "Decode timeout" string error
+ * was indistinguishable from any other Error and was silently swallowed.
+ */
+export class DecodeTimeoutError extends Error {
+    constructor(public readonly segmentOffset: number, public readonly byteCount: number) {
+        super(`Decode timeout at offset ${segmentOffset} (${byteCount} bytes)`);
+        this.name = 'DecodeTimeoutError';
+    }
+}
+
+/**
+ * Thrown when decodeAudioData rejects for non-timeout reasons (corrupt header,
+ * unsupported format, etc.). Carries the segment offset so callers can log
+ * which part of the stream failed.
+ */
+export class DecodeError extends Error {
+    constructor(
+        message: string,
+        public readonly segmentOffset: number,
+        public readonly byteCount: number,
+        public readonly cause?: Error
+    ) {
+        super(message);
+        this.name = 'DecodeError';
+    }
+}
+
 export class StreamDecoder {
     // Upper bound on pre-header accumulation. 256 KB is far beyond any sane WAV
     // header (including extended LIST/INFO/JUNK chunks). If we have accumulated
@@ -173,7 +203,15 @@ export class StreamDecoder {
     }
 
     /**
-     * Try to decode the next segment of audio
+     * Try to decode the next segment of audio.
+     *
+     * Failure modes:
+     *  - Decode timeout: retry once, then surface as DecodeTimeoutError (typed).
+     *  - Other decode error (corrupt data, format mismatch): surface as DecodeError.
+     * Both are thrown rather than silently swallowed — callers (processChunk /
+     * markStreamComplete) decide whether to abort the stream or skip the segment.
+     * processedBytes is only advanced on success so a thrown failure does not
+     * silently consume the failed segment.
      */
     private async tryDecodeNextSegment(): Promise<DecodedChunkResult | null> {
         if (!this.wavHeader) return null;
@@ -199,15 +237,63 @@ export class StreamDecoder {
         const wavFile = this.createWavFile(rawSegment);
 
         try {
-            const buffer = await this.decodeWithTimeout(wavFile);
-            // Advance only after a successful decode so that a timeout or decode
-            // failure does not permanently skip the segment.
+            const buffer = await this.decodeWithRetry(wavFile, segmentOffset, alignedSize);
+            // Advance only after a successful decode so a thrown timeout/decode
+            // failure does not silently drop the segment.
             this.processedBytes += alignedSize;
             console.log(`✓ Decoded: ${buffer.duration.toFixed(3)}s, ${buffer.numberOfChannels}ch`);
             return { buffer, duration: buffer.duration };
         } catch (error) {
-            console.error(`Failed to decode segment at offset ${segmentOffset}:`, error);
-            return null;
+            // Re-throw typed errors so the outer drain loop in processChunk /
+            // markStreamComplete sees the real failure instead of an empty array.
+            // The previous silent return hid timeouts entirely.
+            if (error instanceof DecodeTimeoutError || error instanceof DecodeError) {
+                throw error;
+            }
+            // Unknown synchronous failure during decode — wrap and surface.
+            throw new DecodeError(
+                `Decode failed at offset ${segmentOffset} (${alignedSize} bytes): ${(error as Error).message}`,
+                segmentOffset,
+                alignedSize,
+                error as Error);
+        }
+    }
+
+    /**
+     * Decode with a single retry on timeout. Web Audio's decodeAudioData is
+     * occasionally flaky under tab throttling; a retry costs little and recovers
+     * the common transient case without dropping the segment.
+     */
+    private async decodeWithRetry(
+        wavData: Uint8Array,
+        segmentOffset: number,
+        alignedSize: number): Promise<AudioBuffer> {
+        try {
+            return await this.decodeWithTimeout(wavData);
+        } catch (error) {
+            if (!(error instanceof DecodeTimeoutError)) {
+                throw new DecodeError(
+                    `Decode failed at offset ${segmentOffset} (${alignedSize} bytes): ${(error as Error).message}`,
+                    segmentOffset,
+                    alignedSize,
+                    error as Error);
+            }
+            console.warn(
+                `Decode timeout at offset ${segmentOffset} (${alignedSize} bytes) — retrying once`);
+            try {
+                return await this.decodeWithTimeout(wavData);
+            } catch (retryError) {
+                if (retryError instanceof DecodeTimeoutError) {
+                    console.error(
+                        `Decode timeout after retry at offset ${segmentOffset} (${alignedSize} bytes)`);
+                    throw new DecodeTimeoutError(segmentOffset, alignedSize);
+                }
+                throw new DecodeError(
+                    `Decode failed on retry at offset ${segmentOffset} (${alignedSize} bytes): ${(retryError as Error).message}`,
+                    segmentOffset,
+                    alignedSize,
+                    retryError as Error);
+            }
         }
     }
 
@@ -257,18 +343,25 @@ export class StreamDecoder {
     }
 
     /**
-     * Decode with timeout to prevent hanging
+     * Decode with timeout to prevent hanging. Throws DecodeTimeoutError if the
+     * deadline expires so callers can distinguish timeout from corrupt-data
+     * failures (decodeAudioData throws DOMException for the latter).
      */
     private async decodeWithTimeout(wavData: Uint8Array, timeoutMs: number = 5000): Promise<AudioBuffer> {
         const buffer = new ArrayBuffer(wavData.length);
         new Uint8Array(buffer).set(wavData);
 
         const decodePromise = this.contextManager.decodeAudioData(buffer);
+        let timer: ReturnType<typeof setTimeout> | null = null;
         const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('Decode timeout')), timeoutMs);
+            timer = setTimeout(() => reject(new DecodeTimeoutError(-1, wavData.length)), timeoutMs);
         });
 
-        return Promise.race([decodePromise, timeoutPromise]);
+        try {
+            return await Promise.race([decodePromise, timeoutPromise]);
+        } finally {
+            if (timer !== null) clearTimeout(timer);
+        }
     }
 
     /**

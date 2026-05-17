@@ -110,7 +110,15 @@ export class PlaybackScheduler {
         }
 
         if (startBufferIndex >= this.buffers.length) {
-            console.log('Position beyond available buffers');
+            // Position landed at or past the end of all buffers. Previously this
+            // returned silently, leaving the player stuck "playing" with no source
+            // scheduled — a pause near the end followed by play never recovered.
+            // Treat this as end-of-track so listeners (UI / end callback) fire.
+            console.log('Position at/beyond available buffers — ending playback');
+            this.isActive_ = false;
+            this.playbackAnchorTime = 0;
+            this.playbackAnchorPosition = 0;
+            this.onPlaybackEnded?.();
             return;
         }
 
