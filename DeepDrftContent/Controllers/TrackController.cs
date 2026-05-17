@@ -125,6 +125,16 @@ public class TrackController : ControllerBase
     public async Task<ActionResult> PutTrack(string trackId, [FromBody] AudioBinaryDto track)
     {
         _logger.LogInformation("PutTrack called with trackId: {TrackId}", trackId);
+
+        // Reject unknown MIME types up front rather than silently storing the binary
+        // with a ".bin" extension. GetExtension returns ".bin" for any unrecognised
+        // MIME, so treat that as the sentinel for an unsupported type.
+        if (MimeTypeExtensions.GetExtension(track.Mime) == ".bin")
+        {
+            _logger.LogWarning("PutTrack rejected: unsupported MIME type '{Mime}' for track {TrackId}", track.Mime, trackId);
+            return BadRequest($"Unsupported MIME type: {track.Mime}");
+        }
+
         var audioBinary = AudioBinary.From(track);
         // Direct FileDatabase write: this endpoint receives an already-processed AudioBinaryDto,
         // not a WAV file, so TrackService.AddTrackFromWavAsync does not apply. See constructor comment.

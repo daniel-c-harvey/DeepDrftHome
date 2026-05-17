@@ -112,8 +112,11 @@ public class WavOffsetService
             if (chunkSize < 0)
                 return null;
 
-            if (chunkId == "fmt ")
+            if (chunkId == "fmt " && !foundFmt)
             {
+                // Use the first fmt chunk encountered — that is the WAV-spec-authoritative
+                // chunk. Subsequent fmt chunks in a malformed file are ignored, matching
+                // AudioProcessor.FindChunk which also returns the first match.
                 if (chunkSize < 16)
                     return null;
 
