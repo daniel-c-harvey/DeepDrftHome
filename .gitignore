@@ -292,6 +292,9 @@ __pycache__/
 *.odx.cs
 *.xsd.cs
 
+# Claude Worktrees
+.claude/worktrees/
+
 # Environment Secrets
 **/environment
 
