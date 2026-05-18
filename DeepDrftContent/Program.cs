@@ -3,6 +3,7 @@ using DeepDrftContent.Services.FileDatabase.Services;
 using DeepDrftContent.Middleware;
 using DeepDrftContent.Models;
 using Microsoft.AspNetCore.HttpOverrides;
+using NetBlocks.Utilities.Environment;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,8 +32,9 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Load API key configuration
-builder.Configuration.AddJsonFile("environment/apikey.json", optional: false, reloadOnChange: true);
+// Load API key via CredentialTools (dev: environment/apikey.json; prod: CREDENTIALS_DIRECTORY/apikey)
+var apiKeyPath = CredentialTools.ResolvePathOrThrow("apikey", "environment/apikey.json");
+builder.Configuration.AddJsonFile(apiKeyPath, optional: false, reloadOnChange: false);
 var apiKeySettings = builder.Configuration.GetSection(nameof(ApiKeySettings)).Get<ApiKeySettings>();
 if (apiKeySettings is null) { throw new Exception("API key settings are not configured"); }
 

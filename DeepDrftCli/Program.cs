@@ -9,11 +9,15 @@ using DeepDrftContent.Services.FileDatabase.Services;
 using DeepDrftContent.Services.Processors;
 using DeepDrftCli.Services;
 using DeepDrftCli.Models;
+using NetBlocks.Utilities.Environment;
 
 var builder = Host.CreateApplicationBuilder(args);
 
 // Load configuration from environment/config.json
-builder.Configuration.AddJsonFile($"{AppDomain.CurrentDomain.BaseDirectory}environment/connections.json", optional: false, reloadOnChange: true);
+var connectionsPath = CredentialTools.ResolvePathOrThrow(
+    "connections",
+    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "environment", "connections.json"));
+builder.Configuration.AddJsonFile(connectionsPath, optional: false, reloadOnChange: false);
 var cliSettings = builder.Configuration.GetSection(nameof(CliSettings)).Get<CliSettings>();
 if (cliSettings is null) { throw new Exception("CLI settings are not configured"); }
 
