@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using DeepDrftModels.Entities;
 using DeepDrftWeb.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -51,8 +52,8 @@ public class CmsEditController : ControllerBase
 }
 
 public record CmsTrackUpdateRequest(
-    string TrackName,
-    string Artist,
-    string? Album,
-    string? Genre,
+    [Required, MaxLength(200)] string TrackName,
+    [Required, MaxLength(200)] string Artist,
+    [MaxLength(200)] string? Album,
+    [MaxLength(100)] string? Genre,
     DateOnly? ReleaseDate);

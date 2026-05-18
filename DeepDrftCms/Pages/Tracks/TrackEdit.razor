@@ -1,4 +1,5 @@
 @page "/cms/tracks/{Id:int}"
+@* InteractiveServer: page injects ITrackService in-process; ITokenService reads localStorage via JS interop over the circuit. *@
 @rendermode InteractiveServer
 @using AuthBlocksWeb.HierarchicalAuthorize
 @using AuthBlocksWeb.Services
@@ -12,6 +13,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject NavigationManager Nav
+@inject ILogger<TrackEdit> Logger
 
 <PageTitle>Edit Track — DeepDrft CMS</PageTitle>
 
@@ -154,7 +156,8 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+            Logger.LogError(ex, "Save failed for track {TrackId}", Id);
+            Snackbar.Add("Save failed — please try again.", Severity.Error);
         }
         finally
         {
@@ -162,6 +165,7 @@
         }
     }
 
+    // DELETE api/cms/track/{Id} is handled by CmsDeleteController (T3 branch).
     private async Task ConfirmDelete()
     {
         if (_track is null) return;
@@ -194,7 +198,8 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Delete failed: {ex.Message}", Severity.Error);
+            Logger.LogError(ex, "Delete failed for track {TrackId}", Id);
+            Snackbar.Add("Delete failed — please try again.", Severity.Error);
             _busy = false;
         }
     }
