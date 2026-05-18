@@ -11,7 +11,7 @@ The binary content API host. ApiKey middleware, CORS, forwarded headers. Returns
 ## What lives here now (only)
 
 - `Program.cs`, `Startup.cs`: HTTP host config, DI wiring, middleware setup, port binding.
-- `Controllers/TrackController.cs`: Two endpoints (see below).
+- `Controllers/TrackController.cs`: Three endpoints (see below).
 - `Middleware/ApiKeyAuthenticationMiddleware.cs`, `Middleware/ApiKeyAuthorizeAttribute.cs`: ApiKey validation logic.
 - `Models/`: Settings POCOs only (`ApiKeySettings`, `CorsSettings`, `FileDatabaseSettings`). No domain code.
 - `environment/filedatabase.json`: FileDatabase vault path config (required).
@@ -45,7 +45,19 @@ Returns the WAV bytes from the `tracks` vault.
 - Actually: the endpoint is rarely used in production (the CLI calls `FileDatabase.RegisterResourceAsync` directly). But the endpoint exists for potential web-side uploads in future.
 - Returns 200 on success, 401 if ApiKey invalid, 400 if body invalid.
 
-**Do not add a third endpoint without product approval.** The surface is intentionally minimal.
+### DELETE api/track/{entryKey} ([ApiKeyAuthorize])
+
+**Authenticated endpoint.** Removes an entry from the `tracks` vault (drops the index entry and deletes the backing file).
+
+- **Header `ApiKey`**: required. Validated by `ApiKeyAuthenticationMiddleware`.
+- **Route parameter `entryKey`**: the entry id inside the `tracks` vault (i.e. `TrackEntity.EntryKey`).
+- Delegates to `FileDatabase.RemoveResourceAsync` which returns a tri-state outcome:
+  - `null` → vault missing or unexpected error → 500.
+  - `false` → entry not present → 404.
+  - `true` → entry removed → 200.
+- Added in CMS Wave 3 (W1.5) so the CMS delete endpoint on `DeepDrftWeb` (`DELETE api/cms/track/{id}`) can clean up the vault after the SQL row is gone. Wave 3 product approval covers this — the "do not add a third endpoint without product approval" rule from prior waves is satisfied.
+
+The endpoint surface is now intentionally **three** endpoints. Do not add a fourth without product approval.
 
 ## ApiKey middleware behaviour
 

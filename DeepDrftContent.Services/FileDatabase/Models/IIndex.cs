@@ -57,4 +57,10 @@ public interface IVaultIndex : IEntryQueryable
     /// Adds an entry with metadata to the vault index
     /// </summary>
     void PutEntry(string entryId, MetaData metaData);
+
+    /// <summary>
+    /// Removes an entry (and its metadata) from the vault index.
+    /// Returns true if an entry was removed, false if it was not present.
+    /// </summary>
+    bool RemoveEntry(string entryId);
 }

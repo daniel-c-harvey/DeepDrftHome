@@ -123,6 +123,32 @@ public class VaultIndexDirectory : IndexDirectory
     }
 
     /// <summary>
+    /// Removes an entry from the index under the index lock, persisting on success.
+    /// Returns the removed entry's metadata, or null if the entry did not exist.
+    /// Caller is responsible for any backing-file cleanup using the returned metadata.
+    /// </summary>
+    protected async Task<MetaData?> RemoveFromIndexAsync(string entryId)
+    {
+        await _indexLock.WaitAsync();
+        try
+        {
+            var metaData = _vaultIndex.GetEntry(entryId);
+            if (metaData == null)
+                return null;
+
+            if (!_vaultIndex.RemoveEntry(entryId))
+                return null;
+
+            await SaveIndexAsync(_vaultIndex);
+            return metaData;
+        }
+        finally
+        {
+            _indexLock.Release();
+        }
+    }
+
+    /// <summary>
     /// Reloads the index from disk. Called when the index file is modified externally.
     /// </summary>
     public async Task ReloadIndexAsync()

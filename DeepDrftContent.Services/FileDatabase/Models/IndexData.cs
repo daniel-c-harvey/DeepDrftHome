@@ -131,4 +131,6 @@ public class VaultIndex : IndexData, IVaultIndex
     public MetaData? GetEntry(string entryId) => Entries.Get(entryId);
 
     public void PutEntry(string entryId, MetaData metaData) => Entries.Set(entryId, metaData);
+
+    public bool RemoveEntry(string entryId) => Entries.Delete(entryId);
 }

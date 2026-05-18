@@ -5,12 +5,13 @@ using DeepDrftContent.Services.FileDatabase.Models;
 using DeepDrftContent.Services.FileDatabase.Services;
 using DeepDrftContent.Services.Processors;
 using DeepDrftContent.Models;
+using Microsoft.Extensions.Logging;
 
 namespace DeepDrftContent
 {
     public static class Startup
     {
-        public static async Task ConfigureDomainServices(WebApplicationBuilder builder)
+        public static Task ConfigureDomainServices(WebApplicationBuilder builder)
         {
             // Audio services
             builder.Services.AddSingleton<WavOffsetService>();
@@ -22,10 +23,17 @@ namespace DeepDrftContent
             var fileDatabaseSettings = builder.Configuration.GetSection(nameof(FileDatabaseSettings)).Get<FileDatabaseSettings>();
             if (fileDatabaseSettings is null) { throw new Exception("File database settings are not configured"); }
 
-            var fileDatabase = await FileDatabase.FromAsync(fileDatabaseSettings.VaultPath);
-            if (fileDatabase is null) { throw new Exception("Unable to initialize file database"); }
-            builder.Services.AddSingleton(fileDatabase);
-            await InitializeTrackVault(fileDatabase);
+            var vaultPath = fileDatabaseSettings.VaultPath;
+            builder.Services.AddSingleton(sp =>
+            {
+                var logger = sp.GetRequiredService<ILogger<FileDatabase>>();
+                var db = FileDatabase.FromAsync(vaultPath, logger).GetAwaiter().GetResult();
+                if (db is null) throw new Exception("Unable to initialize file database");
+                InitializeTrackVault(db).GetAwaiter().GetResult();
+                return db;
+            });
+
+            return Task.CompletedTask;
         }
 
         private static async Task InitializeTrackVault(FileDatabase fileDatabase)

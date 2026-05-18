@@ -142,4 +142,31 @@ public class TrackController : ControllerBase
             DeepDrftContent.Services.Constants.VaultConstants.Tracks, trackId, audioBinary);
         return success ? Ok() : BadRequest("Failed to store audio track");
     }
+
+    [ApiKeyAuthorize]
+    [HttpDelete("{entryKey}")]
+    public async Task<ActionResult> DeleteTrack(string entryKey)
+    {
+        _logger.LogInformation("DeleteTrack called with entryKey: {EntryKey}", entryKey);
+
+        // RemoveResourceAsync distinguishes three outcomes per FileDatabase's error-swallow contract:
+        //   null  → vault missing or unexpected error → 500
+        //   false → entry not present (already deleted or never existed) → 404
+        //   true  → entry removed → 200
+        var outcome = await _fileDatabase.RemoveResourceAsync(VaultConstants.Tracks, entryKey);
+        if (outcome == null)
+        {
+            _logger.LogError("DeleteTrack failed for entryKey: {EntryKey} (vault missing or remove error)", entryKey);
+            return StatusCode(500, "Internal server error");
+        }
+
+        if (outcome == false)
+        {
+            _logger.LogWarning("DeleteTrack: entry not found: {EntryKey}", entryKey);
+            return NotFound();
+        }
+
+        _logger.LogInformation("DeleteTrack: removed entry {EntryKey}", entryKey);
+        return Ok();
+    }
 }
