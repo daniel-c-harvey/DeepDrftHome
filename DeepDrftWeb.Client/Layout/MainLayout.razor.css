@@ -18,3 +18,53 @@
         right: 0.75rem;
         top: 0.5rem;
     }
+
+/* ── SITE FOOTER ── */
+.deepdrft-footer {
+    background: var(--deepdrft-white);
+    border-top: 1px solid var(--deepdrft-border);
+    padding: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+}
+
+.deepdrft-footer-logo {
+    font-family: var(--deepdrft-font-display);
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--deepdrft-navy);
+}
+
+.deepdrft-footer-logo span {
+    font-style: italic;
+    color: var(--deepdrft-green);
+}
+
+.deepdrft-footer-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.deepdrft-footer-links a {
+    font-family: var(--deepdrft-font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--deepdrft-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.deepdrft-footer-links a:hover { color: var(--deepdrft-navy); }
+
+.deepdrft-footer-copy {
+    font-family: var(--deepdrft-font-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+    color: var(--deepdrft-muted);
+}
