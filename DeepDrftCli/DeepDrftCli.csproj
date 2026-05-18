@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.4" />
+    <!-- Npgsql 10.0.1 requires Microsoft.EntityFrameworkCore >= 10.0.4; keep in sync -->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.4" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.4" />

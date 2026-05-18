@@ -4,7 +4,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace DeepDrftWeb.Services.Migrations
+namespace DeepDrftWeb.Migrations
 {
     /// <inheritdoc />
     public partial class Initial : Migration

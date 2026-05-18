@@ -9,7 +9,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace DeepDrftWeb.Services.Migrations
+namespace DeepDrftWeb.Migrations
 {
     [DbContext(typeof(DeepDrftContext))]
     [Migration("20260518025102_Initial")]
