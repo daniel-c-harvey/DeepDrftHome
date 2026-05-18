@@ -1,0 +1,220 @@
+/* Frosted-glass top navigation.
+   Scoped to DeepDrftMenu.razor only — global styles live in deepdrft-styles.css.
+   The CSS variables consumed here (--deepdrft-navy etc.) are theme-aware and
+   defined globally; the dd-nav-dark modifier overrides the backdrop RGBA since
+   it must be hard-coded for the blur fallback. */
+
+.dd-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+
+    padding: 1.5rem 3rem;
+
+    border-bottom: 1px solid var(--deepdrft-border);
+    box-shadow: none;
+
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+}
+
+.dd-nav-light {
+    background: rgba(250, 250, 248, 0.88);
+}
+
+.dd-nav-dark {
+    background: rgba(13, 13, 18, 0.85);
+}
+
+/* Brand */
+.dd-nav-brand {
+    font-family: var(--deepdrft-font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--deepdrft-navy);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.dd-nav-dark .dd-nav-brand {
+    color: var(--deepdrft-white);
+}
+
+/* Centred link list */
+.dd-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+
+    flex: 1;
+    justify-content: center;
+
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.dd-nav-link {
+    font-family: var(--deepdrft-font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--deepdrft-muted);
+    text-decoration: none;
+    transition: color 0.25s ease;
+}
+
+.dd-nav-link:hover,
+.dd-nav-link:focus-visible {
+    color: var(--deepdrft-navy);
+}
+
+.dd-nav-dark .dd-nav-link:hover,
+.dd-nav-dark .dd-nav-link:focus-visible {
+    color: var(--deepdrft-white);
+}
+
+/* Right-side cluster */
+.dd-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Stream Now CTA — square pill, navy on warm white */
+.dd-nav-cta {
+    display: inline-block;
+    font-family: var(--deepdrft-font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--deepdrft-white);
+    background: var(--deepdrft-navy);
+    padding: 0.6rem 1.4rem;
+    border: none;
+    border-radius: 0;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.25s ease;
+}
+
+.dd-nav-cta:hover,
+.dd-nav-cta:focus-visible {
+    background: var(--deepdrft-green);
+}
+
+.dd-nav-dark .dd-nav-cta {
+    color: var(--deepdrft-white);
+    background: var(--deepdrft-primary);
+}
+
+.dd-nav-dark .dd-nav-cta:hover,
+.dd-nav-dark .dd-nav-cta:focus-visible {
+    background: var(--deepdrft-senary);
+}
+
+/* Dark-mode toggle (gas lamp) */
+.dd-nav-toggle {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--deepdrft-navy);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.25s ease;
+}
+
+.dd-nav-toggle:hover,
+.dd-nav-toggle:focus-visible {
+    color: var(--deepdrft-green-accent);
+}
+
+.dd-nav-toggle::deep svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.dd-nav-dark .dd-nav-toggle {
+    color: var(--deepdrft-white);
+}
+
+.dd-nav-dark .dd-nav-toggle:hover,
+.dd-nav-dark .dd-nav-toggle:focus-visible {
+    color: var(--deepdrft-tertiary);
+}
+
+/* Mobile hamburger */
+.dd-nav-hamburger {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+}
+
+.dd-nav-hamburger span {
+    display: block;
+    width: 1.25rem;
+    height: 1.5px;
+    background: var(--deepdrft-navy);
+}
+
+.dd-nav-dark .dd-nav-hamburger span {
+    background: var(--deepdrft-white);
+}
+
+/* Mobile dropdown panel — absolute-positioned beneath the bar */
+.dd-nav-links-mobile {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 0.75rem 1.5rem 1.25rem;
+
+    background: rgba(250, 250, 248, 0.96);
+    border-bottom: 1px solid var(--deepdrft-border);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+}
+
+.dd-nav-dark .dd-nav-links-mobile {
+    background: rgba(13, 13, 18, 0.95);
+}
+
+.dd-nav-links-mobile li {
+    padding: 0.6rem 0;
+}
+
+.dd-nav-links-mobile .dd-nav-cta {
+    margin-top: 0.5rem;
+    text-align: center;
+}
+
+/* Mobile padding — give the nav room to breathe without crowding */
+@media (max-width: 599px) {
+    .dd-nav {
+        padding: 1rem 1.25rem;
+    }
+}
