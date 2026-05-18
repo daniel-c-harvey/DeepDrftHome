@@ -163,42 +163,39 @@
         // Semantic (Info/Success/Warning/Error) intentionally left at MudBlazor defaults
     };
 
-    // Lowcountry Summer Nights - Dark Theme
-    // Inspired by warm sunsets over marshes, fireflies, Spanish moss, lamplight
+    // Wireframe dark palette - navy ground / green-accent / off-white
+    // Mirrors the light palette's vocabulary on a dark ground; the coral/lowcountry
+    // identity has been retired. On dark, green-accent (#3D7A68) becomes the primary
+    // interactive colour and off-white (#FAFAF8) becomes the secondary emphasis.
     private readonly PaletteDark _darkPalette = new()
     {
-        Primary = "#D4654A",           // Deep sunset coral - richer, distinct
-        Secondary = "#7B6D8D",         // Twilight purple - muted
-        Tertiary = "#E9C46A",          // Firefly gold - lamplight
-        Info = "#2196F3",              // MudBlazor default blue (semantic)
-        Success = "#4CAF50",           // MudBlazor default green (semantic)
-        Warning = "#FF9800",           // MudBlazor default amber (semantic)
-        Error = "#F44336",             // MudBlazor default red (semantic)
-        Black = "#0A0A0F",             // Deep night black
-        White = "#F5F0E6",             // Warm moonlight white
-        Surface = "rgba(123,109,141,0.12)",        // Twilight-tinted surface
-        Background = "#0D0D12",        // Deep twilight background
-        BackgroundGray = "#141420",    // Slightly lighter night
-        AppbarText = "#F5F0E6",        // Warm moonlight text
-        AppbarBackground = "rgba(13,13,18,0.95)",  // Translucent night
-        DrawerBackground = "rgba(123,109,141,0.08)", // Subtle twilight tint
-        DrawerIcon = "#E0E0E0",        // Light icons
-        DrawerText = "#E0E0E0",        // Light drawer text
-        ActionDefault = "#BDBDBD",     // Default action color
-        ActionDisabled = "#757575",    // Disabled state
-        ActionDisabledBackground = "#1A1A2E",     // Disabled background
-        TextPrimary = "#F5F0E6",       // Warm white primary text
-        TextSecondary = "#B8B0C4",     // Lavender gray secondary text
-        TextDisabled = "#757575",      // Disabled text
-        GrayLight = "rgba(212,101,74,0.15)",       // Coral tint light
-        GrayLighter = "rgba(212,101,74,0.08)",     // Coral tint lighter
-        GrayDefault = "rgba(212,101,74,0.22)",     // Coral tint default
-        GrayDark = "rgba(212,101,74,0.35)",        // Coral tint dark
-        Divider = "rgba(212,101,74,0.18)",         // Coral divider
-        LinesDefault = "rgba(212,101,74,0.18)",    // Coral lines
-        TableLines = "rgba(212,101,74,0.18)",      // Coral table lines
-        OverlayLight = "rgba(0,0,0,0.7)",          // Dark overlay
-        OverlayDark = "rgba(255,255,255,0.08)",    // Light overlay
+        Primary = "#3D7A68",                              // Green-accent - interactive colour on dark
+        PrimaryDarken = "#2A5C4F",                        // Green-light - hover/pressed
+        Secondary = "#FAFAF8",                            // Off-white - secondary emphasis
+        Tertiary = "#1A3C34",                             // Deep green - tertiary accent
+        Background = "#0D1B2A",                           // Navy - the light palette's primary as the dark ground
+        Surface = "#162437",                              // Navy-mid - elevated cards/panels
+        AppbarBackground = "rgba(13,27,42,0.92)",         // Semi-opaque navy
+        AppbarText = "#FAFAF8",
+        DrawerBackground = "#162437",                     // Navy-mid
+        DrawerText = "#FAFAF8",
+        DrawerIcon = "#8A9BB0",                           // Muted
+        // TextPrimary (#FAFAF8) on Background (#0D1B2A): contrast ratio ~16.5:1 - passes WCAG AA (≥4.5:1)
+        TextPrimary = "#FAFAF8",
+        // TextSecondary (#8A9BB0) on Background (#0D1B2A): contrast ratio ~6.1:1 - passes WCAG AA for normal text
+        TextSecondary = "#8A9BB0",
+        TextDisabled = "rgba(250,250,248,0.38)",
+        ActionDefault = "#8A9BB0",
+        ActionDisabled = "rgba(250,250,248,0.26)",
+        ActionDisabledBackground = "rgba(250,250,248,0.12)",
+        Divider = "rgba(250,250,248,0.10)",
+        DividerLight = "rgba(250,250,248,0.06)",
+        TableLines = "rgba(250,250,248,0.10)",
+        LinesDefault = "rgba(250,250,248,0.10)",
+        LinesInputs = "rgba(250,250,248,0.30)",
+        OverlayLight = "rgba(13,27,42,0.5)",
+        OverlayDark = "rgba(0,0,0,0.7)",
+        // Semantic (Info/Success/Warning/Error) intentionally left at MudBlazor defaults
     };
 
     // Theme wrapper class for CSS targeting
