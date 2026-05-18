@@ -1,78 +1,80 @@
-﻿@using DeepDrftWeb.Client.Controls
+@using DeepDrftWeb.Client.Common
 @using DeepDrftWeb.Client.Services
+@implements IAsyncDisposable
 
-<MudAppBar Elevation="@Elevation">
-    <div class="d-inline-flex align-center flex-1 justify-space-between">
-        @if (_isDesktop)
-        {
-            <div>
-                <MudStack Row AlignItems="AlignItems.Center" Spacing="6">
-                    <MudLink Href="/" Underline="Underline.None">
-                        <MudStack Row AlignItems="AlignItems.Center">    
-                            <MudAvatar Class="mr-2">
-                                <MudImage Src="img/deepdrft-logo.jpg"></MudImage>
-                            </MudAvatar>
-                            <div>Deep DRFT</div>
-                        </MudStack>
-                    </MudLink>
-                </MudStack>
-            </div>
-        
-            <div>
-                <MudStack Spacing="8" Row AlignItems="AlignItems.Center">
-                    @foreach (PageRoute thePage in Pages.AllPages)
-                    {
-                        <AppNavLink Href="@thePage.Route" Icon="@thePage.Icon">@thePage.Name</AppNavLink>
-                    }
-                </MudStack>
-            </div>
-        }
-        else
-        {
-            <div>
-                <MudStack Row AlignItems="AlignItems.Center">
-                    <MudMenu RelativeWidth="DropdownWidth.Adaptive">
-                        <ActivatorContent>
-                            <MudStack Row AlignItems="AlignItems.Center" Spacing="4">
-                                <MudIcon Icon="@Icons.Material.Filled.Menu"/>
-                                <MudAvatar Class="mr-2">
-                                    <MudImage Src="img/deepdrft-logo.jpg"></MudImage>
-                                </MudAvatar>
-                                <div>Deep DRFT</div>
-                            </MudStack>
-                        </ActivatorContent>
-                        <ChildContent>
-                            @foreach (PageRoute route in Pages.AllPages)
-                            {
-                                <MudMenuItem Href="@route.Route" Class="px-6">
-                                    <MudStack Row AlignItems="AlignItems.Center">
-                                        <MudIcon Icon="@route.Icon" Color="Color.Primary"/>   
-                                        <MudText Typo="Typo.button" Color="Color.Primary">
-                                            @route.Name
-                                        </MudText>
-                                    </MudStack>
-                                </MudMenuItem>
-                            }
-                        </ChildContent>
-                    </MudMenu>
-                </MudStack>
-            </div>
-        }
-        
-        <div>
-            <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle"/>
+<nav class="@NavClass">
+    <a class="dd-nav-brand" href="/">Deep DRFT</a>
+
+    @if (_isDesktop)
+    {
+        <ul class="dd-nav-links">
+            @foreach (var navPage in Pages.MenuPages)
+            {
+                <li>
+                    <a href="@navPage.Route" class="dd-nav-link">@navPage.Name</a>
+                </li>
+            }
+        </ul>
+
+        <div class="dd-nav-actions">
+            <a href="/tracks" class="dd-nav-cta">Stream Now &#9654;</a>
+            <button type="button"
+                    class="dd-nav-toggle"
+                    aria-label="Toggle dark mode"
+                    aria-pressed="@IsDarkMode.ToString().ToLowerInvariant()"
+                    @onclick="DarkModeToggle">
+                @((MarkupString)DarkLightModeIconSvg)
+            </button>
         </div>
-    </div>
-</MudAppBar>
+    }
+    else
+    {
+        <div class="dd-nav-actions">
+            <button type="button"
+                    class="dd-nav-toggle"
+                    aria-label="Toggle dark mode"
+                    aria-pressed="@IsDarkMode.ToString().ToLowerInvariant()"
+                    @onclick="DarkModeToggle">
+                @((MarkupString)DarkLightModeIconSvg)
+            </button>
+            <button type="button"
+                    class="dd-nav-hamburger"
+                    aria-label="Toggle navigation"
+                    aria-expanded="@_mobileMenuOpen.ToString().ToLowerInvariant()"
+                    @onclick="ToggleMobileMenu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+
+        @if (_mobileMenuOpen)
+        {
+            <ul class="dd-nav-links dd-nav-links-mobile">
+                @foreach (var navPage in Pages.MenuPages)
+                {
+                    <li>
+                        <a href="@navPage.Route" class="dd-nav-link" @onclick="CloseMobileMenu">@navPage.Name</a>
+                    </li>
+                }
+                <li>
+                    <a href="/tracks" class="dd-nav-cta" @onclick="CloseMobileMenu">Stream Now &#9654;</a>
+                </li>
+            </ul>
+        }
+    }
+</nav>
 
 @code {
     [Inject] public required IBrowserViewportService BrowserViewportService { get; set; }
     [Inject] public required DarkModeCookieService DarkModeCookieService { get; set; }
+
+    // Elevation is vestigial under the frosted-glass design but kept on the parameter
+    // surface so MainLayout's <DeepDrftMenu Elevation="..."> call site stays intact.
     [Parameter] public int Elevation { get; set; }
     [Parameter] public required bool IsDarkMode { get; set; }
     [Parameter] public required EventCallback<bool> IsDarkModeChanged { get; set; }
-    
+
     private bool _isDesktop = true;
+    private bool _mobileMenuOpen;
     private Guid _viewportSubscriptionId;
 
     protected override async Task OnInitializedAsync()
@@ -85,34 +87,41 @@
     {
         if (firstRender)
         {
-            var breakpoint = await BrowserViewportService.GetCurrentBreakpointAsync();
-            _isDesktop = breakpoint >= Breakpoint.Sm;
-
             _viewportSubscriptionId = Guid.NewGuid();
             await BrowserViewportService.SubscribeAsync(
                 _viewportSubscriptionId,
                 args =>
                 {
                     _isDesktop = args.Breakpoint >= Breakpoint.Sm;
+                    if (_isDesktop)
+                    {
+                        _mobileMenuOpen = false;
+                    }
                     InvokeAsync(StateHasChanged);
                 },
                 new ResizeOptions { NotifyOnBreakpointOnly = true },
                 fireImmediately: true);
-
-            StateHasChanged();
         }
     }
-    
-    private string DarkLightModeButtonIcon => IsDarkMode switch
+
+    public async ValueTask DisposeAsync()
     {
-        true => DDIcons.GasLampLit,
-        false => DDIcons.GasLamp,
-    };
-    
+        if (_viewportSubscriptionId != Guid.Empty)
+            await BrowserViewportService.UnsubscribeAsync(_viewportSubscriptionId);
+    }
+
+    private string NavClass => IsDarkMode ? "dd-nav dd-nav-dark" : "dd-nav dd-nav-light";
+
+    private string DarkLightModeIconSvg => IsDarkMode ? DDIcons.GasLampLit : DDIcons.GasLamp;
+
     private async Task DarkModeToggle()
     {
         IsDarkMode = !IsDarkMode;
         await DarkModeCookieService.SetDarkModeAsync(IsDarkMode);
         await IsDarkModeChanged.InvokeAsync(IsDarkMode);
     }
+
+    private void ToggleMobileMenu() => _mobileMenuOpen = !_mobileMenuOpen;
+
+    private void CloseMobileMenu() => _mobileMenuOpen = false;
 }
