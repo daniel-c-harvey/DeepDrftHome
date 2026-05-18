@@ -68,16 +68,16 @@ public class CmsDeleteController : ControllerBase
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning(
-                    "Vault delete failed after SQL delete. {TrackId} {EntryKey} {Reason} {StatusCode}",
-                    id, entryKey, "vault delete failed after SQL delete", (int)response.StatusCode);
+                    "Vault delete failed after SQL delete. {TrackId} {EntryKey} {StatusCode}",
+                    id, entryKey, (int)response.StatusCode);
             }
         }
         catch (Exception ex)
         {
             _logger.LogWarning(
                 ex,
-                "Vault delete threw after SQL delete. {TrackId} {EntryKey} {Reason}",
-                id, entryKey, "vault delete failed after SQL delete");
+                "Vault delete threw after SQL delete. {TrackId} {EntryKey}",
+                id, entryKey);
         }
 
         return Ok();
