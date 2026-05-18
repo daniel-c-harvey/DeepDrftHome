@@ -45,5 +45,8 @@ public class TrackConfiguration : IEntityTypeConfiguration<TrackEntity>
         builder.Property(x => x.ImagePath)
             .HasColumnName("image_path")
             .HasMaxLength(500);
+
+        builder.Property(x => x.CreatedByUserId)
+            .HasColumnName("created_by_user_id");
     }
 }

@@ -7,7 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Cerebellum.NetBlocks" Version="10.1.1" />
+      <PackageReference Include="Cerebellum.NetBlocks" Version="10.3.30" />
     </ItemGroup>
 
 </Project>
