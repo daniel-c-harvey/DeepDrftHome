@@ -24,7 +24,7 @@ The binary content API host. ApiKey middleware, CORS, forwarded headers. Returns
 - `WavOffsetService` — in `DeepDrftContent.Services`.
 - Don't add new domain code to this project.
 
-## The endpoint surface (exactly two endpoints)
+## The endpoint surface (three endpoints)
 
 ### GET api/track/{trackId}?offset=0 (unauthenticated)
 
@@ -45,7 +45,24 @@ Returns the WAV bytes from the `tracks` vault.
 - Actually: the endpoint is rarely used in production (the CLI calls `FileDatabase.RegisterResourceAsync` directly). But the endpoint exists for potential web-side uploads in future.
 - Returns 200 on success, 401 if ApiKey invalid, 400 if body invalid.
 
-**Do not add a third endpoint without product approval.** The surface is intentionally minimal.
+### POST api/track/upload ([ApiKeyAuthorize])
+
+**Authenticated endpoint.** Accepts a raw WAV upload + metadata as `multipart/form-data`, processes the WAV via `DeepDrftContent.Services.TrackService.AddTrackFromWavAsync`, and returns an unpersisted `TrackEntity` (no `Id` assigned). The caller (the CMS controller on `DeepDrftWeb`) is responsible for then saving that entity to SQL.
+
+- **Header `ApiKey`**: required. Validated by `ApiKeyAuthenticationMiddleware`.
+- **Form fields**:
+  - `wav` (`IFormFile`, required): the WAV bytes. File name must end in `.wav`.
+  - `trackName` (string, required)
+  - `artist` (string, required)
+  - `album` (string, optional)
+  - `genre` (string, optional)
+  - `releaseDate` (string, optional, format `YYYY-MM-DD`)
+- The upload stream is copied to a `.wav`-suffixed temp file under `Path.GetTempPath()` (the audio processor requires that extension and reads from disk). The temp file is always deleted in a `finally` block — success or failure.
+- `[RequestSizeLimit(1 GB)]` + `[RequestFormLimits(MultipartBodyLengthLimit = 1 GB)]` lift the per-request ceiling above the framework default (~28 MB) so production-sized WAVs are accepted. The body is streamed to the temp file, not buffered in memory.
+- Returns 200 with the unpersisted `TrackEntity` JSON on success. Returns 400 for missing/invalid form fields (no WAV, missing required strings, wrong extension, bad date). Returns 500 if `AddTrackFromWavAsync` returns null or throws.
+- **Wave 3 product approval covers this addition** (CMS-PLAN §5, Option B): `DeepDrftWeb` proxies CMS uploads here so it never touches the vault disk path. Do not extend the endpoint surface further without a fresh approval.
+
+**The surface is intentionally minimal.** Do not add a fourth endpoint without product approval.
 
 ## ApiKey middleware behaviour
 
