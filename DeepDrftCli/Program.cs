@@ -22,7 +22,7 @@ builder.Services.AddLogging(configure => configure.AddConsole());
 
 // Add database context
 builder.Services.AddDbContext<DeepDrftContext>(options =>
-    options.UseSqlite(cliSettings.ConnectionString));
+    options.UseNpgsql(cliSettings.ConnectionString));
 
 // Add FileDatabase
 builder.Services.AddSingleton<FileDatabase>(provider =>

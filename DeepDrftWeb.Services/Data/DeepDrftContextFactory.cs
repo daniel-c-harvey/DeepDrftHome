@@ -8,7 +8,7 @@ public class DeepDrftContextFactory : IDesignTimeDbContextFactory<DeepDrftContex
     public DeepDrftContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<DeepDrftContext>();
-        optionsBuilder.UseSqlite("Data Source=../Database/deepdrft.db");
+        optionsBuilder.UseNpgsql("Host=localhost;Database=deepdrft_dev;Username=postgres;Password=postgres");
         
         return new DeepDrftContext(optionsBuilder.Options);
     }

@@ -27,7 +27,7 @@ public class TrackRepository
     public async Task<PagedResult<TrackEntity>> GetPage(PagingParameters<TrackEntity> pageParameters)
     {
         // Two separate queries with no transaction: count and page can be momentarily inconsistent
-        // under concurrent writes. Acceptable — SQLite concurrency is low and the UI is read-only.
+        // under concurrent writes. Acceptable — write volume is low and the UI is read-only.
         // If filtering is added, the count query must be updated to apply the same filter.
         var count = await _db.Tracks.CountAsync();
 
