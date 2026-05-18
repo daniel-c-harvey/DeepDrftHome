@@ -4,7 +4,7 @@ Forward-looking plan for the in-site Blazor CMS that replaces `DeepDrftCli`. Sit
 
 This document **supersedes `PLAN.md §2.4` (Web-side track upload)** and its open question on authentication. The CMS is the home for that capability; once auth and the CMS surface land here, `PLAN.md §2.4` should be archived to `COMPLETED.md` with a forward-pointer to this file.
 
-§3 (Authentication model) commits to `Cerebellum.AuthBlocks` as the substrate, based on a read of the library at `C:\Development\AuthBlocks\`. The remaining open questions (§9) are decisions only Daniel can make — render mode, URL prefix, dual-write transport, CLI retirement timing, soak duration, and the Postgres-vs-unify database call surfaced by the AuthBlocks reading.
+§3 (Authentication model) commits to `Cerebellum.AuthBlocks` as the substrate, based on a read of the library at `C:\Development\AuthBlocks\`. All open questions are resolved — see §9 for the full resolution record.
 
 ---
 
@@ -285,25 +285,29 @@ Things this plan must honour without re-deciding them.
 
 The CLI does not get deleted on day one. Sequence:
 
-1. **Wave 1 lands.** CMS reaches parity. CLI continues to work — both producers write to the same dual-database, both can be used.
-2. **Soak period.** Daniel uses the CMS exclusively for some interval (his call — a week, a release, a feel). During soak, the CLI is the fallback if the CMS exhibits issues.
-3. **Deprecation.** `DeepDrftCli/CLAUDE.md` gains a deprecation banner pointing at the CMS. No new CLI features land.
-4. **Removal.** `DeepDrftCli` project is removed from `DeepDrftHome.sln`. Its directory is deleted. The Terminal.Gui dependency goes with it. `DeepDrftCli/CLAUDE.md` is deleted. Stray `obj/Debug/net9.0/` artefacts also disappear. The root `CLAUDE.md` and `CONTEXT.md §2` lose the CLI entry — that is a doc-keeper task that lands with the removal commit.
+1. **Wave 1 lands.** CMS reaches parity and is verified working.
+2. **Removal.** `DeepDrftCli` project is removed from `DeepDrftHome.sln`. Its directory is deleted. The Terminal.Gui dependency goes with it. `DeepDrftCli/CLAUDE.md` is deleted. Stray `obj/Debug/net9.0/` artefacts also disappear. The root `CLAUDE.md` and `CONTEXT.md §2` lose the CLI entry — that is a doc-keeper task that lands with the removal commit.
 
-**Committed: Terminal.Gui dropped entirely.** The browser CMS subsumes the use case. `DeepDrftCli` is removed in step 4 above; the `Terminal.Gui` NuGet dependency goes with it.
+No soak period. `DeepDrftCli` was an experiment; Wave 1 verification is the only gate before removal.
+
+**Committed: Terminal.Gui dropped entirely.** The browser CMS subsumes the use case. `DeepDrftCli` is removed in step 2 above; the `Terminal.Gui` NuGet dependency goes with it.
 
 ---
 
 ## 9. Open questions for Daniel
 
-These are blockers on specific sections of the plan. Numbered for terse reply. The §3 AuthBlocks questions from the prior draft are resolved — the library was read and §3 now commits.
+All open questions are resolved. This section is retained as a record.
 
-The following questions from the prior draft are resolved: Postgres strategy (Option B — both contexts on PG), RCL name (`DeepDrftCms`), URL prefix (`/cms`), render mode (InteractiveServer), CLI retirement (Terminal.Gui dropped), email provider (Mailtrap sandbox), dual-write transport (Option B — HTTP proxy through DeepDrftContent). Remaining questions:
-
-1. **CMS scope confirmation.** Wave 1 = parity (add, list, edit, delete). Wave 2 = image upload, replace audio, bulk delete, dead-letter view, search/filter. Anything missing? Anything to demote out of Wave 1?
-2. **Soak duration.** How long does the CMS run alongside the CLI before the CLI is removed? Time-based, release-based, or "I'll tell you when"?
-
-Answer these in any order. Each unblocks the corresponding section.
+**Resolved questions (in order of resolution):**
+- Postgres strategy: Option B — both `DeepDrftContext` and `AuthDbContext` on PostgreSQL.
+- RCL name: `DeepDrftCms`.
+- URL prefix: `/cms`.
+- Render mode: `InteractiveServer` with MudBlazor.
+- Dual-write transport: Option B — HTTP proxy through `DeepDrftContent`; new `POST api/track/upload` endpoint required.
+- CMS scope: Wave 1 = parity (add/list/edit/delete), Wave 2 = image upload / replace audio / bulk delete / dead-letter / search+filter.
+- CLI retirement: immediate on Wave 1 verification. No soak.
+- Terminal.Gui: dropped.
+- Email provider: Mailtrap sandbox for Wave 1.
 
 ---
 
