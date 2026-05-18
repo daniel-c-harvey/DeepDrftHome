@@ -1,3 +1,5 @@
+using AuthBlocksLib;
+using AuthBlocksLib.Options;
 using DeepDrftCms;
 using DeepDrftWeb;
 using MudBlazor.Services;
@@ -16,6 +18,32 @@ builder.Services.AddCmsServices();
 
 var baseUrl = builder.GetKestrelUrl();
 var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"] ?? throw new Exception("Content API URL is not configured");
+
+// AuthBlocks: JWT Bearer auth, Identity, EF schema, admin seeding.
+// Auth schema runs in its own database (separate from DefaultConnection by design).
+builder.Services.AddAuthBlocks(options =>
+{
+    options.ConnectionString = builder.Configuration.GetConnectionString("Auth")!;
+    options.ApplicationName  = "DeepDrft";
+    options.SupportEmail     = builder.Configuration["AuthBlocks:SupportEmail"] ?? "admin@deepdrft.com";
+
+    options.JwtSettings.Secret   = builder.Configuration["AuthBlocks:Jwt:Secret"]!;
+    options.JwtSettings.Issuer   = builder.Configuration["AuthBlocks:Jwt:Issuer"]!;
+    options.JwtSettings.Audience = builder.Configuration["AuthBlocks:Jwt:Audience"]!;
+
+    options.EmailConnection.Host  = builder.Configuration["AuthBlocks:Email:Host"]!;
+    options.EmailConnection.Token = builder.Configuration["AuthBlocks:Email:Token"]!;
+
+    options.AdminUserSettings = new AdminUserSettings
+    {
+        UserName = builder.Configuration["AuthBlocks:Admin:UserName"]!,
+        Email    = builder.Configuration["AuthBlocks:Admin:Email"]!,
+        Password = builder.Configuration["AuthBlocks:Admin:Password"]!
+    };
+});
+
+// AuthBlocksWeb: Blazor JWT client services (auth API is mounted on this same host via MapAuthBlocks).
+AuthBlocksWeb.Startup.ConfigureAuthServices(builder.Services, baseUrl);
 
 DeepDrftWeb.Client.Startup.ConfigureApiHttpClient(builder.Services, baseUrl);
 DeepDrftWeb.Client.Startup.ConfigureDomainServices(builder.Services);
@@ -52,6 +80,9 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 var app = builder.Build();
 
+// Apply AuthBlocks EF migrations, seed system roles, seed admin user on first boot.
+await app.Services.UseAuthBlocksStartupAsync();
+
 // Configure the HTTP request pipeline.
 // Use forwarded headers before other middleware
 app.UseForwardedHeaders();
@@ -65,7 +96,7 @@ else
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
-    
+
     // Only use HTTPS redirection if not behind a reverse proxy
     var disableHttpsRedirection = app.Configuration.GetValue<bool>("ForwardedHeaders:DisableHttpsRedirection");
     if (!disableHttpsRedirection)
@@ -73,6 +104,9 @@ else
         app.UseHttpsRedirection();
     }
 }
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseAntiforgery();
 
@@ -106,12 +140,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
+app.MapAuthBlocks(); // registers /api/auth/*, /api/users/*, /api/roles/*, /api/user-roles/*, /api/pending-registrations/*
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(
         typeof(DeepDrftWeb.Client._Imports).Assembly,
-        typeof(DeepDrftCms._Imports).Assembly);
+        typeof(DeepDrftCms._Imports).Assembly,
+        typeof(AuthBlocksWeb._Imports).Assembly);   // exposes /account/login, /account/logout
 
 
 app.Run();

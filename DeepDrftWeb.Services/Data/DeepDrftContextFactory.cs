@@ -7,12 +7,12 @@ public class DeepDrftContextFactory : IDesignTimeDbContextFactory<DeepDrftContex
 {
     public DeepDrftContext CreateDbContext(string[] args)
     {
-        // For 'dotnet ef' commands, set ConnectionStrings__DefaultConnection in your environment.
+        // For 'dotnet ef' commands, set ConnectionStrings__DefaultConnection in your environment when
+        // you need to actually hit the database (e.g. `dotnet ef database update`). For model-only
+        // operations like `migrations add`, the placeholder below is sufficient — EF never connects.
         // Example: export ConnectionStrings__DefaultConnection="Host=localhost;Database=deepdrft_dev;Username=postgres;Password=yourpassword"
         var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
-            ?? throw new InvalidOperationException(
-                "Set ConnectionStrings__DefaultConnection environment variable to run dotnet ef commands. " +
-                "Example: Host=localhost;Database=deepdrft_dev;Username=postgres;Password=yourpassword");
+            ?? "Host=localhost;Database=deepdrft_dev;Username=postgres;Password=placeholder";
 
         var optionsBuilder = new DbContextOptionsBuilder<DeepDrftContext>();
         optionsBuilder.UseNpgsql(connectionString);
