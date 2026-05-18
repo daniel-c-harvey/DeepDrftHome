@@ -11,7 +11,7 @@ public static class Startup
     {
         // Add Entity Framework services
         builder.Services.AddDbContext<DeepDrftContext>(options =>
-            options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+            options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
         // Add Server Prerendering Theming Support
         // DarkModeSettings is registered in DeepDrftWeb.Client.Startup.ConfigureDomainServices

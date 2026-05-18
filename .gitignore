@@ -297,6 +297,7 @@ __pycache__/
 
 # Environment Secrets
 **/environment
+**/appsettings.Development.json
 
 # local sqlite files
 **/deepdrft.db*

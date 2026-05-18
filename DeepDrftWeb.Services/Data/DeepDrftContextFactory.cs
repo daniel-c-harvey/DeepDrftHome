@@ -7,9 +7,16 @@ public class DeepDrftContextFactory : IDesignTimeDbContextFactory<DeepDrftContex
 {
     public DeepDrftContext CreateDbContext(string[] args)
     {
+        // For 'dotnet ef' commands, set ConnectionStrings__DefaultConnection in your environment.
+        // Example: export ConnectionStrings__DefaultConnection="Host=localhost;Database=deepdrft_dev;Username=postgres;Password=yourpassword"
+        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+            ?? throw new InvalidOperationException(
+                "Set ConnectionStrings__DefaultConnection environment variable to run dotnet ef commands. " +
+                "Example: Host=localhost;Database=deepdrft_dev;Username=postgres;Password=yourpassword");
+
         var optionsBuilder = new DbContextOptionsBuilder<DeepDrftContext>();
-        optionsBuilder.UseSqlite("Data Source=../Database/deepdrft.db");
-        
+        optionsBuilder.UseNpgsql(connectionString);
+
         return new DeepDrftContext(optionsBuilder.Options);
     }
 }

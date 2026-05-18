@@ -4,6 +4,7 @@ using DeepDrftWeb.Services.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -15,50 +16,56 @@ namespace DeepDrftWeb.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.8");
+            modelBuilder
+                .HasAnnotation("ProductVersion", "10.0.4")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("DeepDrftModels.Entities.TrackEntity", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("bigint")
                         .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Album")
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("character varying(200)")
                         .HasColumnName("album");
 
                     b.Property<string>("Artist")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("character varying(200)")
                         .HasColumnName("artist");
 
                     b.Property<string>("EntryKey")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("entry_key");
 
                     b.Property<string>("Genre")
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("genre");
 
                     b.Property<string>("ImagePath")
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("character varying(500)")
                         .HasColumnName("image_path");
 
                     b.Property<DateOnly?>("ReleaseDate")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("date")
                         .HasColumnName("release_date");
 
                     b.Property<string>("TrackName")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("character varying(200)")
                         .HasColumnName("track_name");
 
                     b.HasKey("Id");
