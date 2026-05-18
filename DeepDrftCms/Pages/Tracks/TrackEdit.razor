@@ -1,0 +1,230 @@
+@page "/cms/tracks/{Id:int}"
+@rendermode InteractiveServer
+@using AuthBlocksWeb.HierarchicalAuthorize
+@using AuthBlocksWeb.Services
+@using DeepDrftWeb.Services
+@using System.Net.Http.Headers
+@using System.Net.Http.Json
+@attribute [HierarchicalRoleAuthorize("Admin")]
+@inject ITrackService TrackService
+@inject IHttpClientFactory HttpClientFactory
+@inject ITokenService TokenService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+
+<PageTitle>Edit Track — DeepDrft CMS</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+    <MudButton Variant="Variant.Text"
+               StartIcon="@Icons.Material.Filled.ArrowBack"
+               Href="/cms/tracks"
+               Class="mb-4">
+        Back to tracks
+    </MudButton>
+
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_track is null)
+    {
+        <MudAlert Severity="Severity.Warning">
+            Track not found.
+        </MudAlert>
+    }
+    else
+    {
+        <MudText Typo="Typo.h4" GutterBottom="true">Edit Track</MudText>
+
+        <MudPaper Class="pa-6" Elevation="2">
+            <MudStack Spacing="4">
+                <MudField Label="Entry Key" Variant="Variant.Outlined" InnerPadding="false">
+                    <MudText Typo="Typo.body1" Style="font-family: monospace;">@_track.EntryKey</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Default">
+                        Vault reference — not editable.
+                    </MudText>
+                </MudField>
+
+                <MudTextField @bind-Value="_form.TrackName"
+                              Label="Track Name"
+                              Required="true"
+                              RequiredError="Track name is required"
+                              Variant="Variant.Outlined" />
+
+                <MudTextField @bind-Value="_form.Artist"
+                              Label="Artist"
+                              Required="true"
+                              RequiredError="Artist is required"
+                              Variant="Variant.Outlined" />
+
+                <MudTextField @bind-Value="_form.Album"
+                              Label="Album"
+                              Variant="Variant.Outlined" />
+
+                <MudTextField @bind-Value="_form.Genre"
+                              Label="Genre"
+                              Variant="Variant.Outlined" />
+
+                <MudDatePicker @bind-Date="_form.ReleaseDate"
+                               Label="Release Date"
+                               DateFormat="yyyy-MM-dd"
+                               Variant="Variant.Outlined" />
+
+                <MudStack Row="true" Spacing="2" Justify="Justify.SpaceBetween">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Error"
+                               StartIcon="@Icons.Material.Filled.Delete"
+                               Disabled="_busy"
+                               OnClick="ConfirmDelete">
+                        Delete
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Save"
+                               Disabled="_busy || !CanSave"
+                               OnClick="SaveAsync">
+                        Save Changes
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private TrackEntity? _track;
+    private TrackEditForm _form = new();
+    private bool _loading = true;
+    private bool _busy;
+
+    private bool CanSave =>
+        !string.IsNullOrWhiteSpace(_form.TrackName)
+        && !string.IsNullOrWhiteSpace(_form.Artist);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var result = await TrackService.GetById(Id);
+        _track = result.Success ? result.Value : null;
+        if (_track is not null)
+        {
+            _form = TrackEditForm.From(_track);
+        }
+        _loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_track is null || !CanSave) return;
+
+        _busy = true;
+        try
+        {
+            var http = HttpClientFactory.CreateClient("DeepDrft.API");
+            await AttachBearerAsync(http);
+
+            var payload = new
+            {
+                TrackName = _form.TrackName,
+                Artist = _form.Artist,
+                Album = string.IsNullOrWhiteSpace(_form.Album) ? null : _form.Album,
+                Genre = string.IsNullOrWhiteSpace(_form.Genre) ? null : _form.Genre,
+                ReleaseDate = _form.ReleaseDate is { } d ? DateOnly.FromDateTime(d) : (DateOnly?)null
+            };
+
+            var response = await http.PutAsJsonAsync($"api/cms/track/{Id}", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Track updated.", Severity.Success);
+                await LoadAsync();
+            }
+            else
+            {
+                Snackbar.Add($"Save failed: {(int)response.StatusCode} {response.ReasonPhrase}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Save failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (_track is null) return;
+
+        var confirmed = await DialogService.ShowMessageBox(
+            "Delete track",
+            $"Permanently delete \"{_track.TrackName}\" by {_track.Artist}? This cannot be undone.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirmed != true) return;
+
+        _busy = true;
+        try
+        {
+            var http = HttpClientFactory.CreateClient("DeepDrft.API");
+            await AttachBearerAsync(http);
+
+            var response = await http.DeleteAsync($"api/cms/track/{Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Track deleted.", Severity.Success);
+                Nav.NavigateTo("/cms/tracks");
+            }
+            else
+            {
+                Snackbar.Add($"Delete failed: {(int)response.StatusCode} {response.ReasonPhrase}", Severity.Error);
+                _busy = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Delete failed: {ex.Message}", Severity.Error);
+            _busy = false;
+        }
+    }
+
+    private async Task AttachBearerAsync(HttpClient http)
+    {
+        var token = await TokenService.GetAccessTokenAsync();
+        if (!string.IsNullOrEmpty(token))
+        {
+            http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
+    }
+
+    private sealed class TrackEditForm
+    {
+        public string TrackName { get; set; } = string.Empty;
+        public string Artist { get; set; } = string.Empty;
+        public string? Album { get; set; }
+        public string? Genre { get; set; }
+        public DateTime? ReleaseDate { get; set; }
+
+        public static TrackEditForm From(TrackEntity track) => new()
+        {
+            TrackName = track.TrackName,
+            Artist = track.Artist,
+            Album = track.Album,
+            Genre = track.Genre,
+            ReleaseDate = track.ReleaseDate is { } d
+                ? d.ToDateTime(TimeOnly.MinValue)
+                : null
+        };
+    }
+}
