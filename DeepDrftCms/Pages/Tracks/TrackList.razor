@@ -1,0 +1,141 @@
+@page "/cms/tracks"
+@rendermode InteractiveServer
+@using System.Net
+@using System.Net.Http.Headers
+@using AuthBlocksWeb.HierarchicalAuthorize
+@using DeepDrftModels.Models
+@attribute [HierarchicalRoleAuthorize("Admin")]
+@inject ITrackService TrackService
+@inject IHttpClientFactory HttpClientFactory
+@inject AuthBlocksWeb.Services.ITokenService TokenService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ILogger<TrackList> Logger
+
+<PageTitle>Tracks — DeepDrft CMS</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudText Typo="Typo.h3">Tracks</MudText>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   Href="/cms/tracks/new">
+            Add Track
+        </MudButton>
+    </MudStack>
+
+    <MudTable T="TrackEntity"
+              @ref="_table"
+              ServerData="LoadServerData"
+              Hover="true"
+              Striped="true"
+              Dense="true"
+              Bordered="false"
+              FixedHeader="true"
+              RowsPerPage="20"
+              AllowUnsorted="false">
+        <NoRecordsContent>
+            <MudText Typo="Typo.body1">No tracks found.</MudText>
+        </NoRecordsContent>
+        <LoadingContent>
+            <MudText Typo="Typo.body1">Loading tracks…</MudText>
+        </LoadingContent>
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortLabel="TrackName" T="TrackEntity" InitialDirection="SortDirection.Ascending">Track Name</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Artist" T="TrackEntity">Artist</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Album" T="TrackEntity">Album</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Genre" T="TrackEntity">Genre</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="ReleaseDate" T="TrackEntity">Release Date</MudTableSortLabel></MudTh>
+            <MudTh>Entry Key</MudTh>
+            <MudTh Style="width: 1%; white-space: nowrap;">Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Track Name">@context.TrackName</MudTd>
+            <MudTd DataLabel="Artist">@context.Artist</MudTd>
+            <MudTd DataLabel="Album">@(context.Album ?? "—")</MudTd>
+            <MudTd DataLabel="Genre">@(context.Genre ?? "—")</MudTd>
+            <MudTd DataLabel="Release Date">@(context.ReleaseDate?.ToString("yyyy-MM-dd") ?? "—")</MudTd>
+            <MudTd DataLabel="Entry Key"><MudText Typo="Typo.caption" Style="font-family: monospace;">@context.EntryKey</MudText></MudTd>
+            <MudTd DataLabel="Actions">
+                <MudTooltip Text="Edit">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Size="Size.Small"
+                                   Color="Color.Primary"
+                                   Href="@($"/cms/tracks/{context.Id}")" />
+                </MudTooltip>
+                <MudTooltip Text="Delete">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Size="Size.Small"
+                                   Color="Color.Error"
+                                   OnClick="@(() => ConfirmAndDelete(context))" />
+                </MudTooltip>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 10, 20, 50 }" />
+        </PagerContent>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private MudTable<TrackEntity>? _table;
+
+    private async Task<TableData<TrackEntity>> LoadServerData(TableState state, CancellationToken cancellationToken)
+    {
+        var pageNumber = state.Page + 1; // MudTable is 0-based, service is 1-based.
+        var sortColumn = string.IsNullOrEmpty(state.SortLabel) ? "TrackName" : state.SortLabel;
+        var sortDescending = state.SortDirection == SortDirection.Descending;
+
+        var result = await TrackService.GetPaged(pageNumber, state.PageSize, sortColumn, sortDescending, cancellationToken);
+
+        if (!result.Success || result.Value is null)
+        {
+            var errorText = result.Messages.FirstOrDefault()?.Message ?? "Unknown error";
+            Snackbar.Add($"Failed to load tracks: {errorText}", Severity.Error);
+            return new TableData<TrackEntity> { Items = Array.Empty<TrackEntity>(), TotalItems = 0 };
+        }
+
+        var page = result.Value;
+        return new TableData<TrackEntity>
+        {
+            Items = page.Items,
+            TotalItems = page.TotalCount
+        };
+    }
+
+    private async Task ConfirmAndDelete(TrackEntity track)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            title: "Delete track",
+            markupMessage: new MarkupString($"Delete <strong>{WebUtility.HtmlEncode(track.TrackName)}</strong> by {WebUtility.HtmlEncode(track.Artist)}? This removes both the metadata row and the underlying audio entry."),
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirmed != true) return;
+
+        try
+        {
+            var client = HttpClientFactory.CreateClient("DeepDrft.API");
+            var token = await TokenService.GetAccessTokenAsync();
+            if (!string.IsNullOrEmpty(token))
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await client.DeleteAsync($"api/cms/track/{track.Id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add($"Deleted '{track.TrackName}'.", Severity.Success);
+                if (_table is not null) await _table.ReloadServerData();
+            }
+            else
+            {
+                Snackbar.Add($"Delete failed ({(int)response.StatusCode} {response.ReasonPhrase}).", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Delete failed for track {TrackId}", track.Id);
+            Snackbar.Add("Delete failed — please try again.", Severity.Error);
+        }
+    }
+}
