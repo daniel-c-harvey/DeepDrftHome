@@ -28,7 +28,7 @@ Replace `DeepDrftCli` with a browser-based admin surface (the **CMS**) living in
 
 ## 2. Solution structure (new projects)
 
-### 2.1 New RCL: `DeepDrftCms` `[open question — exact name]`
+### 2.1 New RCL: `DeepDrftCms`
 
 Daniel said "if possible we will keep the CMS code in an RCL, with mountable pages for the CMS functionality." Recommended shape:
 
@@ -75,7 +75,7 @@ DeepDrftCms                 Razor Class Library (RCL).
 - `DeepDrftWeb.Client` references `Cerebellum.AuthBlocks.Web` and calls `AuthBlocksWeb.Client.Startup.ConfigureServices(builder.Services)` to register `AddAuthorizationCore()`, `AddCascadingAuthenticationState()`, and `AddAuthenticationStateDeserialization()`. This is the prerender → WASM bridge for auth state, equivalent to what `DarkModeSettings` does today (see `CONTEXT.md §3.6`).
 - `DeepDrftCms` references `Cerebellum.AuthBlocks.Web` (for the authorize attribute / view) and `Cerebellum.AuthBlocks.Models` (for `SystemRoleConstants.Admin`).
 - A new `DeepDrftWeb/environment/authblocks.json` (or appsettings section) holds the JWT secret, issuer, audience, Mailtrap email connection, admin seed credentials, and Postgres connection string. Follows the same pattern as `apikey.json` — not in repo.
-- **New infrastructure dependency: PostgreSQL.** AuthBlocks is PG-only (see §3.5). The existing SQLite metadata DB (`../Database/deepdrft.db`) is unaffected; the auth DB is a separate context. Local dev gains a `docker-compose.yml` Postgres service or assumes a local PG install.
+- **New infrastructure dependency: PostgreSQL.** Both `AuthDbContext` (identity) and `DeepDrftContext` (track metadata) run on Postgres (§3.5 Option B confirmed). `DeepDrftContext` EF migrations must be rewritten from SQLite to Postgres before Wave 1 ships; any existing `deepdrft.db` rows require a one-time data migration. Local dev gains a `docker-compose.yml` Postgres service.
 - `DeepDrftCli` and its `obj/` legacy `.NET 9` artefacts: removed in §8 (retirement).
 
 ---
@@ -134,7 +134,7 @@ Three options, in order of preference:
 
 **Recommendation: option 1 for Wave 1.** It minimises change to DeepDrft and avoids touching `DeepDrftContext`. Capture option 2 as a deferred consideration if Postgres-for-auth-only feels operationally annoying after a few months of running it. Option 3 is a non-starter unless AuthBlocks gains upstream SQLite support.
 
-`[open question]` Daniel to confirm option 1 vs option 2. Option 1 is the path of least resistance for shipping the CMS; option 2 is the cleaner long-term posture.
+**Committed: Option B.** Both contexts run on Postgres. The EF Core migration rewrite for `DeepDrftContext` is a Wave 1 prerequisite (W1.0, see §6).
 
 ### 3.6 What this section commits
 
@@ -144,6 +144,7 @@ Three options, in order of preference:
 - One admin user is seeded from `DeepDrftWeb/environment/authblocks.json` on first boot.
 - `TrackEntity.CreatedByUserId : long?` is added in W1.2 for attribution.
 - Postgres becomes a runtime dependency for the auth context, alongside the existing SQLite track-metadata context (pending §3.5 confirmation).
+- Both `DeepDrftContext` (track metadata) and `AuthDbContext` (identity) run on PostgreSQL. EF migrations for `DeepDrftContext` are rewritten from SQLite to Postgres as Wave 1 prerequisite W1.0.
 
 ---
 
@@ -155,9 +156,7 @@ The CMS replaces what the CLI does today (add, list, delete) and grows the small
 
 These are the minimum to retire `DeepDrftCli`.
 
-**`/cms/login`** — credential form, post → session cookie set → redirect to `/cms/tracks`. Login failure stays on page with error message. Already-authenticated users skip to `/cms/tracks`.
-
-**`/cms/tracks`** — track list. The CMS's mirror of `list`.
+**`/cms/tracks`** — track list. The CMS's mirror of `list`. The `[HierarchicalRoleAuthorize("Admin")]` attribute combined with the bundled `RedirectToLogin` component routes unauthenticated visitors to `/account/login` automatically.
 
 - Reads the same `PagedResult<TrackEntity>` that the public gallery reads (`GET api/track/page`). Per `user_one_source_multiple_views`, the CMS list is a different rendering of the same VM — table layout with admin affordances (edit, delete buttons), sort columns, optional row-level selection for bulk operations (see Wave 2).
 - Empty state mirrors the CLI's "No tracks found in database."
@@ -175,8 +174,6 @@ These are the minimum to retire `DeepDrftCli`.
 
 - Loads the `TrackEntity` from the SQL side. Read-write for the metadata fields. Read-only for `EntryKey` (replacing the binary is a separate "replace audio" action — see Wave 2 open question).
 - Delete button with confirmation dialog. Calls the new delete endpoint (see §5).
-
-**`/cms/logout`** — clears the session, redirects to public home `/`.
 
 ### 4.2 Wave 2 surface — operations the CLI did not offer
 
@@ -245,6 +242,7 @@ Themes, not dates. The order between waves is sequential (each depends on its pr
 
 **Goal:** A logged-in collective member can do everything the CLI does today, from a browser.
 
+- **W1.0 `DeepDrftContext` Postgres migration.** Rewrite all existing EF Core migrations from SQLite to PostgreSQL. Update the `DeepDrftWeb` and `DeepDrftCli` connection strings in config. Migrate any existing data from `../Database/deepdrft.db` to Postgres. Verify the existing `api/track/page` and `api/track/{id}` endpoints function against the new backend. This is a prerequisite for W1.2 (which also runs migrations for AuthDbContext against the same Postgres instance).
 - **W1.1 `DeepDrftCms` RCL skeleton.** Project created, added to solution, referenced from `DeepDrftWeb`. Empty `Pages/Cms/Index.razor` mounted at `/cms` returning a "CMS — under construction" placeholder, proving the mount works.
 - **W1.2 AuthBlocks integration + login.** Reference `Cerebellum.AuthBlocks`, `Cerebellum.AuthBlocks.Web`, `Cerebellum.AuthBlocks.Models` from `DeepDrftWeb`; reference `Cerebellum.AuthBlocks.Web` from `DeepDrftWeb.Client`. Call `AddAuthBlocks(...)` in `Program.cs` with JWT secret/issuer/audience, Mailtrap email connection, Postgres connection string, and `AdminUserSettings` from `environment/authblocks.json`. Call `await app.Services.UseAuthBlocksStartupAsync()` post-build. Call `app.MapAuthBlocks()` to mount `/api/auth/*` routes. Add the `AuthBlocksWeb` assembly to `AddAdditionalAssemblies` so the bundled `/account/login` and `/account/logout` pages resolve. In `DeepDrftWeb.Client.Startup`, call `AuthBlocksWeb.Client.Startup.ConfigureServices(builder.Services)` for the prerender→WASM auth-state bridge. Add `CreatedByUserId : long?` column to `TrackEntity` via a nullable migration. Provision local Postgres (docker-compose) and document the dev setup. Verify: anonymous visit to `/cms/anything` redirects to `/account/login`; authenticated `Admin` lands successfully.
 - **W1.3 CMS track list.** `/cms/tracks` consuming the same `GET api/track/page` endpoint as the public gallery. Different rendering (table with admin affordances), same VM. No new SQL endpoint.
@@ -292,13 +290,7 @@ The CLI does not get deleted on day one. Sequence:
 3. **Deprecation.** `DeepDrftCli/CLAUDE.md` gains a deprecation banner pointing at the CMS. No new CLI features land.
 4. **Removal.** `DeepDrftCli` project is removed from `DeepDrftHome.sln`. Its directory is deleted. The Terminal.Gui dependency goes with it. `DeepDrftCli/CLAUDE.md` is deleted. Stray `obj/Debug/net9.0/` artefacts also disappear. The root `CLAUDE.md` and `CONTEXT.md §2` lose the CLI entry — that is a doc-keeper task that lands with the removal commit.
 
-**Open question on the Terminal.Gui mode.** The `gui` subcommand provides a tactile interactive interface that some operators may prefer to a browser. Three options:
-
-- **Drop it entirely.** Simplest. The CMS subsumes the use case.
-- **Keep `DeepDrftCli` indefinitely as a secondary admin path.** Costs us a project to maintain.
-- **Extract Terminal.Gui as a separate tool.** Overkill unless Daniel has an active reason to keep it.
-
-**Recommendation:** Drop it. The browser CMS covers the same operations with richer affordances, and maintaining two admin surfaces dilutes both. If Daniel disagrees, option 2 is fine — just commit to it explicitly so the CLI doesn't drift into a half-supported limbo.
+**Committed: Terminal.Gui dropped entirely.** The browser CMS subsumes the use case. `DeepDrftCli` is removed in step 4 above; the `Terminal.Gui` NuGet dependency goes with it.
 
 ---
 
@@ -306,14 +298,11 @@ The CLI does not get deleted on day one. Sequence:
 
 These are blockers on specific sections of the plan. Numbered for terse reply. The §3 AuthBlocks questions from the prior draft are resolved — the library was read and §3 now commits.
 
-1. **Postgres-for-auth-only vs. unify on Postgres (§3.5).** Option 1: run Postgres alongside SQLite, AuthBlocks gets PG, `DeepDrftContext` stays on SQLite (recommended, minimum-change). Option 2: migrate `DeepDrftContext` to Postgres too, unify on one engine (cleaner end-state, larger lift). Option 3 (fork AuthBlocks for SQLite) is not recommended.
-2. **RCL project name and URL prefix.** Project name `DeepDrftCms` (recommended) or something else? Route prefix `/cms` (recommended), `/admin`, `/manage`, or other? Note: login/logout live at `/account/login` and `/account/logout` (bundled, not negotiable without forking AuthBlocks).
-3. **Render mode for CMS pages.** `InteractiveServer` (recommended — matches bundled AuthBlocks UI, native `InputFile`) or `InteractiveAuto`/`InteractiveWebAssembly` (consistency with the public client)?
-4. **Dual-write transport.** Option A (in-process direct calls, recommended), option B (HTTP through `DeepDrftContent`), or option C (A plus dead-letter log in Wave 1)? If the two hosts will ever deploy to separate machines, the answer is B.
-5. **CMS scope confirmation.** Wave 1 = parity (add, list, edit, delete). Wave 2 = image upload, replace audio, bulk delete, dead-letter view, search/filter. Anything missing? Anything to demote out of Wave 1?
-6. **CLI retirement.** Drop Terminal.Gui mode entirely (recommended), keep `DeepDrftCli` indefinitely as a secondary path, or extract Terminal.Gui as a separate tool?
-7. **Soak duration.** How long does the CMS run alongside the CLI before the CLI is removed? Time-based, release-based, or "I'll tell you when"?
-8. **Mailtrap (or alternative) for the AuthBlocks email channel.** AuthBlocks's options validator requires an `EmailConnection.Host` + `Token` on startup even though Wave 1 does not use the registration-email flow. Acceptable to point at a Mailtrap sandbox (free tier) and defer real email until Wave 3, or do you want a different SMTP provider wired from day one?
+The following questions from the prior draft are resolved: Postgres strategy (Option B — both contexts on PG), RCL name (`DeepDrftCms`), URL prefix (`/cms`), render mode (InteractiveServer), CLI retirement (Terminal.Gui dropped), email provider (Mailtrap sandbox). Remaining questions:
+
+1. **Dual-write transport.** Option A (in-process direct calls, recommended), option B (HTTP through `DeepDrftContent`), or option C (A plus dead-letter log in Wave 1)? If the two hosts will ever deploy to separate machines, the answer is B.
+2. **CMS scope confirmation.** Wave 1 = parity (add, list, edit, delete). Wave 2 = image upload, replace audio, bulk delete, dead-letter view, search/filter. Anything missing? Anything to demote out of Wave 1?
+3. **Soak duration.** How long does the CMS run alongside the CLI before the CLI is removed? Time-based, release-based, or "I'll tell you when"?
 
 Answer these in any order. Each unblocks the corresponding section.
 
