@@ -71,31 +71,48 @@
                     },
                     H1 = new H1Typography()
                     {
-                        FontFamily = new[] {"Bodoni Moda", "serif"}
+                        FontFamily = new[] {"Cormorant Garamond", "Georgia", "serif"}
                     },
                     H2 = new H2Typography()
                     {
-                        FontFamily = new[] {"Cormorant", "serif"}
+                        FontFamily = new[] {"Cormorant Garamond", "Georgia", "serif"}
                     },
                     H3 = new H3Typography()
                     {
-                        FontFamily = new[] {"Cormorant", "serif"}
+                        FontFamily = new[] {"Cormorant Garamond", "Georgia", "serif"}
                     },
                     H4 = new H4Typography()
                     {
-                        FontFamily = new[] {"Cormorant", "serif"}
+                        FontFamily = new[] {"Cormorant Garamond", "Georgia", "serif"}
                     },
+                    // Extended to H5/H6 beyond spec — keeps heading hierarchy consistent in Cormorant Garamond
                     H5 = new H5Typography()
                     {
-                        FontFamily = new[] {"Cormorant", "serif"}
+                        FontFamily = new[] {"Cormorant Garamond", "Georgia", "serif"}
                     },
                     H6 = new H6Typography()
                     {
-                        FontFamily = new[] {"Cormorant", "serif"}
+                        FontFamily = new[] {"Cormorant Garamond", "Georgia", "serif"}
+                    },
+                    Subtitle1 = new Subtitle1Typography()
+                    {
+                        FontFamily = new[] {"Geist Mono", "monospace"}
+                    },
+                    Body1 = new Body1Typography()
+                    {
+                        FontFamily = new[] {"DM Sans", "sans-serif"}
+                    },
+                    Body2 = new Body2Typography()
+                    {
+                        FontFamily = new[] {"DM Sans", "sans-serif"}
+                    },
+                    Caption = new CaptionTypography()
+                    {
+                        FontFamily = new[] {"Geist Mono", "monospace"}
                     },
                     Button = new ButtonTypography()
                     {
-                        FontFamily = new[] {"DM Sans", "sans-serif"}
+                        FontFamily = new[] {"Geist Mono", "monospace"}
                     }
                 }
             }
@@ -118,32 +135,32 @@
         StateHasChanged();
     }
 
-    // Charleston in the Day - Light Theme
-    // Inspired by Charleston's historic architecture: wrought iron, bronze, Atlantic coast
+    // Wireframe light palette - navy / green / warm off-white
     private readonly PaletteLight _lightPalette = new()
     {
-        Primary = "#1A1A1A",           // Wrought iron black
-        Secondary = "#B8623D",         // Burnished copper - warm orange bronze
-        Tertiary = "#2A7B8C",          // Atlantic turquoise
-        Info = "#2196F3",              // MudBlazor default blue (semantic)
-        Success = "#4CAF50",           // MudBlazor default green (semantic)
-        Warning = "#FF9800",           // MudBlazor default amber (semantic)
-        Error = "#F44336",             // MudBlazor default red (semantic)
-        Black = "#1A1A1A",             // Wrought iron black
-        White = "#FDFBF7",             // Cream white (stucco)
-        Surface = "#FDFBF7",           // Cream stucco surface
-        Background = "#F5F2EC",        // Warm linen background
-        AppbarText = "#FDFBF7",        // Cream text on dark appbar
-        AppbarBackground = "#1A1A1A",  // Solid wrought iron appbar
-        DrawerBackground = "#F5F2EC",  // Linen drawer
-        TextPrimary = "#1A1A1A",       // Wrought iron text
-        TextSecondary = "#4A4A4A",     // Softer iron text
-        GrayLight = "rgba(26,26,26,0.08)",         // Light iron tint
-        GrayLighter = "rgba(26,26,26,0.04)",       // Very light iron tint
-        GrayDefault = "rgba(26,26,26,0.15)",       // Medium iron tint
-        GrayDark = "rgba(26,26,26,0.25)",          // Darker iron tint
-        Divider = "rgba(26,26,26,0.12)",           // Subtle divider lines
-        TableLines = "rgba(26,26,26,0.12)",        // Table borders
+        Primary = "#0D1B2A",                              // Navy - text, buttons
+        PrimaryDarken = "#162437",                        // Navy-mid - hover, elevated surfaces
+        Secondary = "#1A3C34",                            // Deep green - italic emphasis
+        Tertiary = "#3D7A68",                             // Green-accent - interactive hovers/active/icons
+        Background = "#FAFAF8",                           // Warm off-white
+        BackgroundGray = "#F0F2F0",                       // Slight warm gray for contrast
+        Surface = "#FAFAF8",
+        AppbarBackground = "rgba(250,250,248,0.88)",
+        AppbarText = "#0D1B2A",
+        TextPrimary = "#0D1B2A",
+        TextSecondary = "#8A9BB0",                        // Muted - secondary text, nav at rest
+        TextDisabled = "rgba(13,27,42,0.38)",
+        ActionDefault = "#8A9BB0",
+        ActionDisabled = "rgba(13,27,42,0.26)",
+        ActionDisabledBackground = "rgba(13,27,42,0.12)",
+        Divider = "rgba(13,27,42,0.10)",
+        DividerLight = "rgba(13,27,42,0.06)",
+        TableLines = "rgba(13,27,42,0.10)",
+        LinesDefault = "rgba(13,27,42,0.10)",
+        LinesInputs = "rgba(13,27,42,0.30)",
+        OverlayLight = "rgba(250,250,248,0.5)",
+        OverlayDark = "rgba(13,27,42,0.5)",
+        // Semantic (Info/Success/Warning/Error) intentionally left at MudBlazor defaults
     };
 
     // Lowcountry Summer Nights - Dark Theme
