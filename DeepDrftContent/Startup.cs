@@ -6,6 +6,7 @@ using DeepDrftContent.Services.FileDatabase.Services;
 using DeepDrftContent.Services.Processors;
 using DeepDrftContent.Models;
 using Microsoft.Extensions.Logging;
+using NetBlocks.Utilities.Environment;
 
 namespace DeepDrftContent
 {
@@ -19,7 +20,8 @@ namespace DeepDrftContent
             builder.Services.AddSingleton<TrackService>();
 
             // File Database
-            builder.Configuration.AddJsonFile("environment/filedatabase.json", optional: false, reloadOnChange: true);
+            var fileDatabasePath = CredentialTools.ResolvePathOrThrow("filedatabase", "environment/filedatabase.json");
+            builder.Configuration.AddJsonFile(fileDatabasePath, optional: false, reloadOnChange: false);
             var fileDatabaseSettings = builder.Configuration.GetSection(nameof(FileDatabaseSettings)).Get<FileDatabaseSettings>();
             if (fileDatabaseSettings is null) { throw new Exception("File database settings are not configured"); }
 

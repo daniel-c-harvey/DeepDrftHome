@@ -5,6 +5,7 @@ using DeepDrftWeb;
 using MudBlazor.Services;
 using DeepDrftWeb.Components;
 using Microsoft.AspNetCore.HttpOverrides;
+using NetBlocks.Utilities.Environment;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,11 +14,20 @@ builder.Services.AddMudServices();
 
 builder.Services.AddCmsServices();
 
-// CMS → DeepDrftContent calls require the DeepDrftContent ApiKey. Loaded from a
-// gitignored environment file, same shape as DeepDrftContent/environment/apikey.json.
-// Optional so the file's absence in non-CMS dev does not fail boot; missing key is
-// surfaced when Startup.ConfigureDomainServices binds the CMS HttpClient.
-builder.Configuration.AddJsonFile("environment/apikey.json", optional: true, reloadOnChange: true);
+// Required credential files — must exist before the app will start.
+// In dev: create the three files under DeepDrftWeb/environment/ (gitignored).
+// In prod: systemd CREDENTIALS_DIRECTORY points to encrypted credential blobs.
+//   - environment/apikey.json:      { "DeepDrftContent": { "ApiKey": "..." } }
+//   - environment/connections.json: { "ConnectionStrings": { "DefaultConnection": "...", "Auth": "..." } }
+//   - environment/authblocks.json:  { "AuthBlocks": { "Jwt": {...}, "Email": {...}, "Admin": {...} } }
+var apiKeyPath = CredentialTools.ResolvePathOrThrow("apikey", "environment/apikey.json");
+builder.Configuration.AddJsonFile(apiKeyPath, optional: false, reloadOnChange: false);
+
+var connectionsPath = CredentialTools.ResolvePathOrThrow("connections", "environment/connections.json");
+builder.Configuration.AddJsonFile(connectionsPath, optional: false, reloadOnChange: false);
+
+var authBlocksPath = CredentialTools.ResolvePathOrThrow("authblocks", "environment/authblocks.json");
+builder.Configuration.AddJsonFile(authBlocksPath, optional: false, reloadOnChange: false);
 
 var baseUrl = builder.GetKestrelUrl();
 var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"] ?? throw new Exception("Content API URL is not configured");
