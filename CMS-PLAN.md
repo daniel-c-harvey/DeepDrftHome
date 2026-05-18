@@ -224,9 +224,9 @@ Same as option A but explicitly couples the CMS upload to landing the `PLAN.md �
 
 ### Recommendation
 
-**Option A for v1.** It is the minimum-change path and matches the CLI's existing semantics exactly. Capture the dead-letter consideration as a hard prerequisite on Wave 2 (once the upload surface is open to non-shell-access operators, the orphaned-vault-entry risk grows). The "stream-oriented processing path" extraction is worth doing later as part of `PLAN.md §1.2` (audio format diversity), where it becomes mandatory anyway — not as a blocker for Wave 1.
+**Committed: Option B.** `DeepDrftWeb` proxies the WAV upload to a new `POST api/track/upload` endpoint on `DeepDrftContent` (see W1.4 below). `DeepDrftWeb` never references `DeepDrftContent.Services` directly and never touches the vault disk path. The host-boundary rule (service projects vs. host projects, `CONTEXT.md §3.2`) is preserved: binary storage is `DeepDrftContent`'s domain.
 
-`[open question]` Daniel to confirm option A vs B. If the two hosts will ever live on separate machines, the answer is B.
+**Implication for W1.4:** The existing `PUT api/track/{id}` on `DeepDrftContent` receives an already-processed `AudioBinaryDto` — it cannot accept a raw WAV file. A new `POST api/track/upload` endpoint is required on `DeepDrftContent` that accepts the raw WAV bytes (as `multipart/form-data` or streaming), runs `DeepDrftContent.Services.TrackService.AddTrackFromWavAsync` internally, and returns a `TrackEntity` (unpersisted). `DeepDrftWeb`'s CMS controller calls this endpoint (with the existing API key), receives the entity, and calls `DeepDrftWeb.Services.TrackService.Create` to persist to SQL. Temp-file handling stays server-side in `DeepDrftContent`, not in `DeepDrftWeb`.
 
 ### Idempotency and rollback (carried-over constraint)
 
@@ -246,7 +246,7 @@ Themes, not dates. The order between waves is sequential (each depends on its pr
 - **W1.1 `DeepDrftCms` RCL skeleton.** Project created, added to solution, referenced from `DeepDrftWeb`. Empty `Pages/Cms/Index.razor` mounted at `/cms` returning a "CMS — under construction" placeholder, proving the mount works.
 - **W1.2 AuthBlocks integration + login.** Reference `Cerebellum.AuthBlocks`, `Cerebellum.AuthBlocks.Web`, `Cerebellum.AuthBlocks.Models` from `DeepDrftWeb`; reference `Cerebellum.AuthBlocks.Web` from `DeepDrftWeb.Client`. Call `AddAuthBlocks(...)` in `Program.cs` with JWT secret/issuer/audience, Mailtrap email connection, Postgres connection string, and `AdminUserSettings` from `environment/authblocks.json`. Call `await app.Services.UseAuthBlocksStartupAsync()` post-build. Call `app.MapAuthBlocks()` to mount `/api/auth/*` routes. Add the `AuthBlocksWeb` assembly to `AddAdditionalAssemblies` so the bundled `/account/login` and `/account/logout` pages resolve. In `DeepDrftWeb.Client.Startup`, call `AuthBlocksWeb.Client.Startup.ConfigureServices(builder.Services)` for the prerender→WASM auth-state bridge. Add `CreatedByUserId : long?` column to `TrackEntity` via a nullable migration. Provision local Postgres (docker-compose) and document the dev setup. Verify: anonymous visit to `/cms/anything` redirects to `/account/login`; authenticated `Admin` lands successfully.
 - **W1.3 CMS track list.** `/cms/tracks` consuming the same `GET api/track/page` endpoint as the public gallery. Different rendering (table with admin affordances), same VM. No new SQL endpoint.
-- **W1.4 CMS upload endpoint + add page.** New `POST api/cms/track` on `DeepDrftWeb` (auth-gated, see §5 for the transport decision). `/cms/tracks/new` page wires `InputFile` to the endpoint.
+- **W1.4 CMS upload endpoint + add page.** New `POST api/cms/track` on `DeepDrftWeb` (auth-gated, see §5 for the transport decision). `/cms/tracks/new` page wires `InputFile` to the endpoint. Note: Option B is confirmed — this requires a new `POST api/track/upload` endpoint on `DeepDrftContent` (raw WAV in, unpersisted `TrackEntity` out) in addition to the CMS page and controller.
 - **W1.5 CMS delete endpoint + delete UI.** New `DELETE api/cms/track/{id}` on `DeepDrftWeb`. Removes the SQL row and the vault entry; logs orphans if vault delete fails after SQL delete succeeds. Delete button + confirmation in the list and detail pages.
 - **W1.6 CMS edit endpoint + edit page.** New `PUT api/cms/track/{id}` (metadata only — no binary replacement in Wave 1). `/cms/tracks/{id}` page.
 
@@ -298,11 +298,10 @@ The CLI does not get deleted on day one. Sequence:
 
 These are blockers on specific sections of the plan. Numbered for terse reply. The §3 AuthBlocks questions from the prior draft are resolved — the library was read and §3 now commits.
 
-The following questions from the prior draft are resolved: Postgres strategy (Option B — both contexts on PG), RCL name (`DeepDrftCms`), URL prefix (`/cms`), render mode (InteractiveServer), CLI retirement (Terminal.Gui dropped), email provider (Mailtrap sandbox). Remaining questions:
+The following questions from the prior draft are resolved: Postgres strategy (Option B — both contexts on PG), RCL name (`DeepDrftCms`), URL prefix (`/cms`), render mode (InteractiveServer), CLI retirement (Terminal.Gui dropped), email provider (Mailtrap sandbox), dual-write transport (Option B — HTTP proxy through DeepDrftContent). Remaining questions:
 
-1. **Dual-write transport.** Option A (in-process direct calls, recommended), option B (HTTP through `DeepDrftContent`), or option C (A plus dead-letter log in Wave 1)? If the two hosts will ever deploy to separate machines, the answer is B.
-2. **CMS scope confirmation.** Wave 1 = parity (add, list, edit, delete). Wave 2 = image upload, replace audio, bulk delete, dead-letter view, search/filter. Anything missing? Anything to demote out of Wave 1?
-3. **Soak duration.** How long does the CMS run alongside the CLI before the CLI is removed? Time-based, release-based, or "I'll tell you when"?
+1. **CMS scope confirmation.** Wave 1 = parity (add, list, edit, delete). Wave 2 = image upload, replace audio, bulk delete, dead-letter view, search/filter. Anything missing? Anything to demote out of Wave 1?
+2. **Soak duration.** How long does the CMS run alongside the CLI before the CLI is removed? Time-based, release-based, or "I'll tell you when"?
 
 Answer these in any order. Each unblocks the corresponding section.
 
