@@ -24,6 +24,15 @@ public abstract class AudioPlayerService : IPlayerService, IAsyncDisposable
     public double Volume { get; protected set; } = 0.8;
     public double LoadProgress { get; protected set; } = 0;
     public string? ErrorMessage { get; protected set; }
+    /// <summary>
+    /// The currently selected track. In the streaming subclass this property is managed
+    /// exclusively by <see cref="StreamingAudioPlayerService"/>: set in
+    /// <c>LoadTrackStreaming</c> after <c>ResetToIdle</c> clears it, and cleared again
+    /// by <c>ResetToIdle</c> on stop/unload/dispose. Base-class subclasses that take the
+    /// <see cref="SelectTrack"/>/<see cref="Unload"/> path are responsible for managing
+    /// it themselves.
+    /// </summary>
+    public TrackEntity? CurrentTrack { get; protected set; }
 
     // Events
     public EventCallback? OnStateChanged { get; set; }
@@ -68,12 +77,12 @@ public abstract class AudioPlayerService : IPlayerService, IAsyncDisposable
     public virtual async Task SelectTrack(TrackEntity track)
     {
         await EnsureInitializedAsync();
-        
+
         await NotifyStateChanged();
-        
+
         if (OnTrackSelected.HasValue)
             await OnTrackSelected.Value.InvokeAsync();
-        
+
         await LoadTrack(track);
         await NotifyStateChanged();
     }

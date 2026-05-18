@@ -70,6 +70,9 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
 
         // Save track ID for seek operations
         _currentTrackId = track.EntryKey;
+        // Expose to UI immediately — Now-Playing surfaces should reflect the selected
+        // track while it's still loading, not only after playback starts.
+        CurrentTrack = track;
 
         // Create new cancellation token for this streaming operation
         _streamingCancellation = new CancellationTokenSource();
@@ -434,6 +437,7 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
         Duration = null;
         LoadProgress = 0;
         ErrorMessage = null;
+        CurrentTrack = null;
 
         // 4. Reset streaming-specific state
         IsStreamingMode = false;

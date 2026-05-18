@@ -17,7 +17,8 @@ public interface IPlayerService
     double Volume { get; }
     double LoadProgress { get; }
     string? ErrorMessage { get; }
-    
+    TrackEntity? CurrentTrack { get; }
+
     // Events for UI updates
     EventCallback? OnStateChanged { get; set; }
     EventCallback? OnTrackSelected { get; set; }
