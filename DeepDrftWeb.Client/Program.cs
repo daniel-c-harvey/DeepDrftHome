@@ -15,6 +15,7 @@ Startup.ConfigureContentServices(builder.Services, contentApiUrl);
 Startup.ConfigureDomainServices(builder.Services);
 
 // AuthBlocks WASM: auth state deserialization bridge (prerender → WASM handoff).
+// Registers AddAuthorizationCore, AddCascadingAuthenticationState, AddAuthenticationStateDeserialization.
 AuthBlocksWeb.Client.Startup.ConfigureServices(builder.Services);
 
 var app = builder.Build();

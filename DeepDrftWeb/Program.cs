@@ -13,9 +13,6 @@ builder.Services.AddMudServices();
 
 builder.Services.AddCmsServices();
 
-// Add AudioInteropService for both server and client rendering
-// builder.Services.AddScoped<AudioInteropService>();
-
 var baseUrl = builder.GetKestrelUrl();
 var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"] ?? throw new Exception("Content API URL is not configured");
 
@@ -23,26 +20,36 @@ var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"] ?? throw new Exc
 // Auth schema runs in its own database (separate from DefaultConnection by design).
 builder.Services.AddAuthBlocks(options =>
 {
-    options.ConnectionString = builder.Configuration.GetConnectionString("Auth")!;
+    options.ConnectionString = builder.Configuration.GetConnectionString("Auth")
+        ?? throw new InvalidOperationException("ConnectionStrings:Auth is required");
     options.ApplicationName  = "DeepDrft";
     options.SupportEmail     = builder.Configuration["AuthBlocks:SupportEmail"] ?? "admin@deepdrft.com";
 
-    options.JwtSettings.Secret   = builder.Configuration["AuthBlocks:Jwt:Secret"]!;
-    options.JwtSettings.Issuer   = builder.Configuration["AuthBlocks:Jwt:Issuer"]!;
-    options.JwtSettings.Audience = builder.Configuration["AuthBlocks:Jwt:Audience"]!;
+    options.JwtSettings.Secret   = builder.Configuration["AuthBlocks:Jwt:Secret"]
+        ?? throw new InvalidOperationException("AuthBlocks:Jwt:Secret is required");
+    options.JwtSettings.Issuer   = builder.Configuration["AuthBlocks:Jwt:Issuer"]
+        ?? throw new InvalidOperationException("AuthBlocks:Jwt:Issuer is required");
+    options.JwtSettings.Audience = builder.Configuration["AuthBlocks:Jwt:Audience"]
+        ?? throw new InvalidOperationException("AuthBlocks:Jwt:Audience is required");
 
-    options.EmailConnection.Host  = builder.Configuration["AuthBlocks:Email:Host"]!;
-    options.EmailConnection.Token = builder.Configuration["AuthBlocks:Email:Token"]!;
+    options.EmailConnection.Host  = builder.Configuration["AuthBlocks:Email:Host"]
+        ?? throw new InvalidOperationException("AuthBlocks:Email:Host is required");
+    options.EmailConnection.Token = builder.Configuration["AuthBlocks:Email:Token"]
+        ?? throw new InvalidOperationException("AuthBlocks:Email:Token is required");
 
     options.AdminUserSettings = new AdminUserSettings
     {
-        UserName = builder.Configuration["AuthBlocks:Admin:UserName"]!,
-        Email    = builder.Configuration["AuthBlocks:Admin:Email"]!,
-        Password = builder.Configuration["AuthBlocks:Admin:Password"]!
+        UserName = builder.Configuration["AuthBlocks:Admin:UserName"]
+            ?? throw new InvalidOperationException("AuthBlocks:Admin:UserName is required"),
+        Email    = builder.Configuration["AuthBlocks:Admin:Email"]
+            ?? throw new InvalidOperationException("AuthBlocks:Admin:Email is required"),
+        Password = builder.Configuration["AuthBlocks:Admin:Password"]
+            ?? throw new InvalidOperationException("AuthBlocks:Admin:Password is required")
     };
 });
 
 // AuthBlocksWeb: Blazor JWT client services (auth API is mounted on this same host via MapAuthBlocks).
+// AuthBlocksWeb.Startup.ConfigureAuthServices registers AddCascadingAuthenticationState server-side.
 AuthBlocksWeb.Startup.ConfigureAuthServices(builder.Services, baseUrl);
 
 DeepDrftWeb.Client.Startup.ConfigureApiHttpClient(builder.Services, baseUrl);

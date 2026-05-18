@@ -47,7 +47,6 @@ public class TrackConfiguration : IEntityTypeConfiguration<TrackEntity>
             .HasMaxLength(500);
 
         builder.Property(x => x.CreatedByUserId)
-            .HasColumnName("created_by_user_id")
-            .IsRequired(false);
+            .HasColumnName("created_by_user_id");
     }
 }

@@ -1,5 +1,13 @@
-﻿<Router AppAssembly="typeof(_Imports).Assembly">
+@inject NavigationManager NavigationManager
+
+<Router AppAssembly="typeof(_Imports).Assembly">
     <Found Context="routeData">
-        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                @{
+                    NavigationManager.NavigateTo($"account/login?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}", forceLoad: true);
+                }
+            </NotAuthorized>
+        </AuthorizeRouteView>
     </Found>
 </Router>
