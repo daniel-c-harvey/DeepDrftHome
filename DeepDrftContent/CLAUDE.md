@@ -14,8 +14,8 @@ The binary content API host. ApiKey middleware, CORS, forwarded headers. Returns
 - `Controllers/TrackController.cs`: Four endpoints (see below).
 - `Middleware/ApiKeyAuthenticationMiddleware.cs`, `Middleware/ApiKeyAuthorizeAttribute.cs`: ApiKey validation logic.
 - `Models/`: Settings POCOs only (`ApiKeySettings`, `CorsSettings`, `FileDatabaseSettings`). No domain code.
-- `environment/filedatabase.json`: FileDatabase vault path config (required).
-- `environment/apikey.json`: API key (not in repo, must be created locally or at deployment).
+- `environment/filedatabase.json`: FileDatabase vault path config (loaded via CredentialTools, not in repo).
+- `environment/apikey.json`: API key (loaded via CredentialTools, not in repo, must be created locally or at deployment).
 
 ## What does NOT live here anymore
 
@@ -103,7 +103,7 @@ Configured in `Startup.ConfigureDomainServices()`, applied to all endpoints via 
 
 ## Startup wiring (Startup.ConfigureDomainServices)
 
-1. Load `environment/filedatabase.json` and bind `FileDatabaseSettings`.
+1. Load `environment/filedatabase.json` via `CredentialTools.ResolvePathOrThrow("filedatabase", ...)` and bind `FileDatabaseSettings`.
 2. Await `FileDatabase.FromAsync(VaultPath)` to load or create the database.
 3. Register `FileDatabase` as singleton.
 4. Ensure the `tracks` vault exists (type `MediaVaultType.Audio`, created on first boot if missing).
@@ -120,8 +120,8 @@ Mapped in `Development` only. Swagger UI at `/swagger` for testing endpoints loc
 
 ## Configuration files
 
-- `appsettings.json`: Logging, hosting config. **Does not contain secrets.**
-- `environment/filedatabase.json` (required):
+- `appsettings.json`: Logging and hosting config. **Does not contain secrets.**
+- `environment/filedatabase.json` (required, loaded via CredentialTools, not in repo):
   ```json
   {
     "FileDatabaseSettings": {
@@ -129,7 +129,7 @@ Mapped in `Development` only. Swagger UI at `/swagger` for testing endpoints loc
     }
   }
   ```
-- `environment/apikey.json` (required at runtime, not in repo):
+- `environment/apikey.json` (required at runtime, loaded via CredentialTools, not in repo):
   ```json
   {
     "ApiKeySettings": {

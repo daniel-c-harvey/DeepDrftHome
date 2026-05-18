@@ -104,7 +104,10 @@ dotnet ef migrations add MigrationName --project DeepDrftWeb.Services --startup-
 
 ## Configuration
 
-- `appsettings.json`: `ConnectionStrings:DefaultConnection` (SQLite path), `ApiUrls:*` (backend base addresses), logging, logging config. Port binding via `Kestrel:Endpoints` or `ASPNETCORE_URLS`.
+- `appsettings.json`: `ApiUrls:*` (backend base addresses), `Logging:*`, `AllowedHosts`, `ForwardedHeaders`. Port binding via `Kestrel:Endpoints` or `ASPNETCORE_URLS`.
+- `environment/apikey.json`: DeepDrftContent API key. Loaded via CredentialTools (not in repo).
+- `environment/connections.json`: SQL `DefaultConnection` and Auth connection strings. Loaded via CredentialTools (not in repo).
+- `environment/authblocks.json`: AuthBlocks settings. Loaded via CredentialTools (not in repo).
 - MudBlazor theme (`MainLayout.razor` in client): bespoke light ("Charleston in the Day") and dark ("Lowcountry Summer Nights") palettes.
 - No `wwwroot/` changes during normal development — TS → JS compilation is automatic.
 
