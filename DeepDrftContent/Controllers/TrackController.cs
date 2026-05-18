@@ -120,6 +120,112 @@ public class TrackController : ControllerBase
         }
     }
 
+    // POST api/track/upload: raw WAV in (multipart/form-data) + metadata → unpersisted TrackEntity out.
+    // Used by the CMS upload flow on DeepDrftWeb; that host proxies the upload here so it never
+    // touches the vault disk path directly (Option B in CMS-PLAN §5).
+    //
+    // RequestSizeLimit/MultipartBodyLengthLimit set to 1 GB: WAV uploads can be tens to hundreds
+    // of MB and the framework defaults (~28 MB) reject them outright. The IFormFile path streams
+    // the body to a temp file once Kestrel surfaces it, so the limit is the per-request ceiling,
+    // not a buffered allocation.
+    [ApiKeyAuthorize]
+    [HttpPost("upload")]
+    [RequestSizeLimit(1_073_741_824)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 1_073_741_824)]
+    public async Task<ActionResult<DeepDrftModels.Entities.TrackEntity>> UploadTrack(
+        [FromForm] IFormFile? wav,
+        [FromForm] string? trackName,
+        [FromForm] string? artist,
+        [FromForm] string? album,
+        [FromForm] string? genre,
+        [FromForm] string? releaseDate,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("UploadTrack called: trackName={TrackName}, artist={Artist}, size={Size}",
+            trackName, artist, wav?.Length);
+
+        if (wav is null || wav.Length == 0)
+        {
+            return BadRequest("WAV file is required");
+        }
+
+        if (string.IsNullOrWhiteSpace(trackName))
+        {
+            return BadRequest("trackName is required");
+        }
+
+        if (string.IsNullOrWhiteSpace(artist))
+        {
+            return BadRequest("artist is required");
+        }
+
+        if (!string.Equals(Path.GetExtension(wav.FileName), ".wav", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest("Uploaded file must have a .wav extension");
+        }
+
+        DateOnly? parsedReleaseDate = null;
+        if (!string.IsNullOrWhiteSpace(releaseDate))
+        {
+            if (!DateOnly.TryParseExact(releaseDate, "yyyy-MM-dd", out var parsed))
+            {
+                return BadRequest("releaseDate must be in YYYY-MM-DD format");
+            }
+            parsedReleaseDate = parsed;
+        }
+
+        // AudioProcessor.ProcessWavFileAsync requires a path ending in .wav and reads from disk.
+        // Path.GetTempFileName() yields .tmp, which fails that check — generate our own .wav path.
+        var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".wav");
+
+        try
+        {
+            await using (var tempStream = new FileStream(
+                tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None,
+                bufferSize: 81920, useAsync: true))
+            await using (var uploadStream = wav.OpenReadStream())
+            {
+                await uploadStream.CopyToAsync(tempStream, cancellationToken);
+            }
+
+            var entity = await _trackService.AddTrackFromWavAsync(
+                tempPath,
+                trackName,
+                artist,
+                string.IsNullOrWhiteSpace(album) ? null : album,
+                string.IsNullOrWhiteSpace(genre) ? null : genre,
+                parsedReleaseDate);
+
+            if (entity is null)
+            {
+                _logger.LogWarning("UploadTrack: TrackService returned null for {TrackName}", trackName);
+                return StatusCode(500, "Failed to process and store WAV");
+            }
+
+            _logger.LogInformation("UploadTrack succeeded: entryKey={EntryKey}", entity.EntryKey);
+            return Ok(entity);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "UploadTrack failed for {TrackName}", trackName);
+            return StatusCode(500, "Internal server error");
+        }
+        finally
+        {
+            try
+            {
+                if (System.IO.File.Exists(tempPath))
+                {
+                    System.IO.File.Delete(tempPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "UploadTrack: failed to delete temp file {TempPath}", tempPath);
+            }
+        }
+    }
+
     [ApiKeyAuthorize]
     [HttpPut("{trackId}")]
     public async Task<ActionResult> PutTrack(string trackId, [FromBody] AudioBinaryDto track)

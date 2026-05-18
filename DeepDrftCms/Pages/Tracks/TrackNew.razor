@@ -1,0 +1,182 @@
+@page "/cms/tracks/new"
+@rendermode InteractiveServer
+@using System.Net.Http.Headers
+@using AuthBlocksWeb.HierarchicalAuthorize
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.Extensions.Logging
+@attribute [HierarchicalRoleAuthorize("Admin")]
+
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject ILogger<TrackNew> Logger
+
+<PageTitle>Add Track — DeepDrft CMS</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+    <MudText Typo="Typo.h4" GutterBottom="true">Add Track</MudText>
+
+    <MudPaper Class="pa-6" Elevation="2">
+        <MudStack Spacing="4">
+            <MudText Typo="Typo.subtitle1">WAV file</MudText>
+            <InputFile OnChange="OnFileSelected" accept=".wav,audio/wav,audio/x-wav" />
+            @if (_selectedFile is not null)
+            {
+                <MudText Typo="Typo.body2">
+                    Selected: @_selectedFile.Name (@FormatBytes(_selectedFile.Size))
+                </MudText>
+            }
+
+            <MudTextField @bind-Value="_trackName" Label="Track Name" Required="true" RequiredError="Track Name is required" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_artist" Label="Artist" Required="true" RequiredError="Artist is required" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_album" Label="Album" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_genre" Label="Genre" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_releaseDate" Label="Release Date (YYYY-MM-DD)" Placeholder="2024-01-15" Variant="Variant.Outlined" />
+
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
+            }
+
+            <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+                <MudButton Variant="Variant.Text"
+                           OnClick="Cancel"
+                           Disabled="_isUploading">
+                    Cancel
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="SubmitAsync"
+                           Disabled="_isUploading">
+                    @if (_isUploading)
+                    {
+                        <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                        <text>Uploading…</text>
+                    }
+                    else
+                    {
+                        <text>Upload</text>
+                    }
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    // 1 GB ceiling matches the proxy controller's RequestSizeLimit; the actual streaming
+    // path means the limit caps the request, not in-memory buffering.
+    private const long MaxUploadBytes = 1_073_741_824L;
+
+    private IBrowserFile? _selectedFile;
+    private string _trackName = string.Empty;
+    private string _artist = string.Empty;
+    private string _album = string.Empty;
+    private string _genre = string.Empty;
+    private string _releaseDate = string.Empty;
+    private string? _errorMessage;
+    private bool _isUploading;
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _selectedFile = e.File;
+        _errorMessage = null;
+    }
+
+    private async Task SubmitAsync()
+    {
+        _errorMessage = null;
+
+        if (_selectedFile is null)
+        {
+            _errorMessage = "Please select a WAV file.";
+            return;
+        }
+
+        if (!_selectedFile.Name.EndsWith(".wav", StringComparison.OrdinalIgnoreCase))
+        {
+            _errorMessage = "Selected file must be a .wav file.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_trackName))
+        {
+            _errorMessage = "Track Name is required.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_artist))
+        {
+            _errorMessage = "Artist is required.";
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_releaseDate)
+            && !DateOnly.TryParseExact(_releaseDate, "yyyy-MM-dd", out _))
+        {
+            _errorMessage = "Release Date must be in YYYY-MM-DD format.";
+            return;
+        }
+
+        _isUploading = true;
+        try
+        {
+            using var multipart = new MultipartFormDataContent();
+
+            // OpenReadStream streams chunks from the browser via the SignalR circuit;
+            // wrapping in StreamContent avoids materialising the whole file in memory
+            // before the proxy controller receives it.
+            await using var fileStream = _selectedFile.OpenReadStream(MaxUploadBytes);
+            var fileContent = new StreamContent(fileStream);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(
+                string.IsNullOrWhiteSpace(_selectedFile.ContentType) ? "audio/wav" : _selectedFile.ContentType);
+            multipart.Add(fileContent, "wav", _selectedFile.Name);
+            multipart.Add(new StringContent(_trackName), "trackName");
+            multipart.Add(new StringContent(_artist), "artist");
+            if (!string.IsNullOrWhiteSpace(_album)) multipart.Add(new StringContent(_album), "album");
+            if (!string.IsNullOrWhiteSpace(_genre)) multipart.Add(new StringContent(_genre), "genre");
+            if (!string.IsNullOrWhiteSpace(_releaseDate)) multipart.Add(new StringContent(_releaseDate), "releaseDate");
+
+            var client = HttpClientFactory.CreateClient("DeepDrft.API");
+            using var response = await client.PostAsync("api/cms/track", multipart);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add($"Uploaded '{_trackName}'.", Severity.Success);
+                Navigation.NavigateTo("/cms/tracks");
+                return;
+            }
+
+            var body = await response.Content.ReadAsStringAsync();
+            _errorMessage = string.IsNullOrWhiteSpace(body)
+                ? $"Upload failed ({(int)response.StatusCode})."
+                : $"Upload failed ({(int)response.StatusCode}): {body}";
+            Logger.LogWarning("CMS upload rejected: {Status} {Body}", (int)response.StatusCode, body);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Upload failed in TrackNew");
+            _errorMessage = "Upload failed. Please try again.";
+        }
+        finally
+        {
+            _isUploading = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/cms/tracks");
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        const long KB = 1024;
+        const long MB = KB * 1024;
+        const long GB = MB * 1024;
+        if (bytes >= GB) return $"{bytes / (double)GB:F2} GB";
+        if (bytes >= MB) return $"{bytes / (double)MB:F2} MB";
+        if (bytes >= KB) return $"{bytes / (double)KB:F2} KB";
+        return $"{bytes} bytes";
+    }
+}
