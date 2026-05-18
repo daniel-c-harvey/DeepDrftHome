@@ -116,18 +116,6 @@ These follow from `CONTEXT.md §5`. Direction is strongly implied but no specifi
 - **Shape:** Same extension to `GetPaged` as 2.2. UI is a debounced text input bound to the VM's filter property. EF Core translates `Contains` to SQLite `LIKE`.
 - **Prerequisite:** Fold into 2.2 if both are being done — the same `GetPaged` extension serves both. Doing them separately doubles the API churn.
 
-### 2.4 Web-side track upload
-
-- **What:** The CLI is the only producer of tracks today. A web upload UI would pair with `TrackService.AddTrackFromWavAsync` and the existing `PUT api/track/{id}` (already `[ApiKeyAuthorize]`-protected).
-- **Why it matters:** Lowers the barrier to adding content. The collective can publish without shell access to the host.
-- **Shape:**
-  - New page or modal on the web client, drag-and-drop file input.
-  - Upload streams to a `POST` endpoint on `DeepDrftWeb` (not `DeepDrftContent` — the web host orchestrates the dual-write, then forwards bytes to content with the API key it already holds).
-  - Authentication: this is the first user-facing action that needs to be gated. A new question — see open question below.
-- **Prerequisite:** **Authentication model for the web side**. Currently the site has no user concept. Cookie-with-shared-password? OAuth? Per-collective-member account? Decide before building the UI.
-- **Open question:** Same as above. This may also bring forward a wider session/identity decision that other features (favourites, listening history) will need eventually.
-- **Constraint:** Today's dual-write has no compensating rollback — if content-side succeeds and SQL-side fails, the audio is orphaned in the vault. The CLI inherits this; pushing this onto a web upload increases the rate at which orphans can occur. A simple `DeadLetterLog` of orphaned `entryKey`s (suggested in the audit) becomes more pressing once the web upload exists.
-
 ---
 
 ## Phase 3 — New content kinds

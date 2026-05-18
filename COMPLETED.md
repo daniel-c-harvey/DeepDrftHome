@@ -1,8 +1,59 @@
 # COMPLETED.md — DeepDrftHome
 
-Archive of items that have moved out of `PLAN.md`. Per `CONTEXT.md §6`, completed `PLAN.md` items are moved here rather than deleted. Each entry preserves the original "What / Why / Shape" body so this file reads as a decision record, not just an outcome list.
+Archive of items that have moved out of `PLAN.md` and `CMS-PLAN.md`. Per `CONTEXT.md §6`, completed items are moved here rather than deleted. Each entry preserves the original "What / Why / Shape" body so this file reads as a decision record, not just an outcome list.
 
-Newest entries at the top. Group by phase header (mirroring `PLAN.md` themes) when there are enough entries to warrant it.
+Newest entries at the top. Group by phase/wave header (mirroring `PLAN.md` / `CMS-PLAN.md` themes) when there are enough entries to warrant it.
+
+---
+
+## CMS Wave 1 — Auth + scaffolding + parity
+
+**Status:** All sub-items landed on 2026-05-18.
+
+Goal was: A logged-in collective member can do everything the CLI does today, from a browser.
+
+### W1.3 CMS track list
+
+**Landed in CMS Wave 3.**
+
+`/cms/tracks` consuming the same `GET api/track/page` endpoint as the public gallery. Different rendering (table with admin affordances), same VM. No new SQL endpoint.
+
+### W1.4 CMS upload endpoint + add page
+
+**Landed in CMS Wave 3.**
+
+New `POST api/cms/track` on `DeepDrftWeb` (auth-gated, see §5 for the transport decision). `/cms/tracks/new` page wires `InputFile` to the endpoint. Note: Option B is confirmed — this requires a new `POST api/track/upload` endpoint on `DeepDrftContent` (raw WAV in, unpersisted `TrackEntity` out) in addition to the CMS page and controller.
+
+### W1.5 CMS delete endpoint + delete UI
+
+**Landed in CMS Wave 3.**
+
+New `DELETE api/cms/track/{id}` on `DeepDrftWeb`. Removes the SQL row and the vault entry; logs orphans if vault delete fails after SQL delete succeeds. Delete button + confirmation in the list and detail pages.
+
+### W1.6 CMS edit endpoint + edit page
+
+**Landed in CMS Wave 3.**
+
+New `PUT api/cms/track/{id}` (metadata only — no binary replacement in Wave 1). `/cms/tracks/{id}` page.
+
+---
+
+## Phase 2 — Product surface: gallery, browsing, ingestion
+
+### 2.4 Web-side track upload
+
+**Landed in CMS Wave 1 (subsumed by `CMS-PLAN.md`).**
+
+The CLI is the only producer of tracks today. A web upload UI would pair with `TrackService.AddTrackFromWavAsync` and the existing `PUT api/track/{id}` (already `[ApiKeyAuthorize]`-protected).
+
+- **Why it matters:** Lowers the barrier to adding content. The collective can publish without shell access to the host.
+- **Shape:**
+  - New page or modal on the web client, drag-and-drop file input.
+  - Upload streams to a `POST` endpoint on `DeepDrftWeb` (not `DeepDrftContent` — the web host orchestrates the dual-write, then forwards bytes to content with the API key it already holds).
+  - Authentication: this is the first user-facing action that needs to be gated. A new question — see open question below.
+- **Prerequisite:** **Authentication model for the web side**. Currently the site has no user concept. Cookie-with-shared-password? OAuth? Per-collective-member account? Decide before building the UI.
+- **Open question:** Same as above. This may also bring forward a wider session/identity decision that other features (favourites, listening history) will need eventually.
+- **Constraint:** Today's dual-write has no compensating rollback — if content-side succeeds and SQL-side fails, the audio is orphaned in the vault. The CLI inherits this; pushing this onto a web upload increases the rate at which orphans can occur. A simple `DeadLetterLog` of orphaned `entryKey`s (suggested in the audit) becomes more pressing once the web upload exists.
 
 ---
 
