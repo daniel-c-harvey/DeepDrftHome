@@ -155,8 +155,8 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "CMS upload failed");
-            _errorMessage = $"Upload failed: {ex.Message}";
+            Logger.LogError(ex, "Upload failed in TrackNew");
+            _errorMessage = "Upload failed. Please try again.";
         }
         finally
         {

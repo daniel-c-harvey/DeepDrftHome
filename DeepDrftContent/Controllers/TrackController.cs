@@ -138,7 +138,8 @@ public class TrackController : ControllerBase
         [FromForm] string? artist,
         [FromForm] string? album,
         [FromForm] string? genre,
-        [FromForm] string? releaseDate)
+        [FromForm] string? releaseDate,
+        CancellationToken cancellationToken)
     {
         _logger.LogInformation("UploadTrack called: trackName={TrackName}, artist={Artist}, size={Size}",
             trackName, artist, wav?.Length);
@@ -184,7 +185,7 @@ public class TrackController : ControllerBase
                 bufferSize: 81920, useAsync: true))
             await using (var uploadStream = wav.OpenReadStream())
             {
-                await uploadStream.CopyToAsync(tempStream);
+                await uploadStream.CopyToAsync(tempStream, cancellationToken);
             }
 
             var entity = await _trackService.AddTrackFromWavAsync(

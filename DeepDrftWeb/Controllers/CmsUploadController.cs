@@ -67,10 +67,10 @@ public class CmsUploadController : ControllerBase
             return BadRequest("artist is required");
         }
 
-        var apiKey = _configuration["ContentApi:ApiKey"];
+        var apiKey = _configuration["DeepDrftContent:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
         {
-            _logger.LogError("ContentApi:ApiKey is not configured");
+            _logger.LogError("DeepDrftContent:ApiKey is not configured");
             return StatusCode(500, "Content API key is not configured");
         }
 
@@ -118,8 +118,16 @@ public class CmsUploadController : ControllerBase
             if (!response.IsSuccessStatusCode)
             {
                 var body = await response.Content.ReadAsStringAsync(cancellationToken);
-                _logger.LogWarning("Content API rejected upload: {Status} {Body}", (int)response.StatusCode, body);
-                return StatusCode((int)response.StatusCode, body);
+                var statusCode = (int)response.StatusCode;
+                if (statusCode >= 500)
+                {
+                    _logger.LogError("Content API returned {Status} for upload of {TrackName}: {Body}", statusCode, trackName, body);
+                    return StatusCode(statusCode, "Upload failed on the content server. Please try again.");
+                }
+
+                // 4xx: body is user-friendly validation text from DeepDrftContent — relay as-is.
+                _logger.LogWarning("Content API rejected upload: {Status} {Body}", statusCode, body);
+                return StatusCode(statusCode, body);
             }
 
             TrackEntity? unpersisted;
