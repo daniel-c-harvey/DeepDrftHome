@@ -1,3 +1,4 @@
+using DeepDrftCms;
 using DeepDrftWeb;
 using MudBlazor.Services;
 using DeepDrftWeb.Components;
@@ -7,6 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add MudBlazor services
 builder.Services.AddMudServices();
+
+builder.Services.AddCmsServices();
 
 // Add AudioInteropService for both server and client rendering
 // builder.Services.AddScoped<AudioInteropService>();
@@ -106,7 +109,9 @@ app.MapControllers();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()
-    .AddAdditionalAssemblies(typeof(DeepDrftWeb.Client._Imports).Assembly);
+    .AddAdditionalAssemblies(
+        typeof(DeepDrftWeb.Client._Imports).Assembly,
+        typeof(DeepDrftCms._Imports).Assembly);
 
 
 app.Run();

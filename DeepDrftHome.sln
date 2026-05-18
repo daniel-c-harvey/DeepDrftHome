@@ -18,6 +18,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftWeb.Services", "Dee
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftContent.Services", "DeepDrftContent.Services\DeepDrftContent.Services.csproj", "{4D025326-7F27-4C42-BE0F-92C1E64E0696}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftCms", "DeepDrftCms\DeepDrftCms.csproj", "{81F1D47F-F892-45FB-9E35-D7775805FFD3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -136,6 +138,18 @@ Global
 		{4D025326-7F27-4C42-BE0F-92C1E64E0696}.Release|x64.Build.0 = Release|Any CPU
 		{4D025326-7F27-4C42-BE0F-92C1E64E0696}.Release|x86.ActiveCfg = Release|Any CPU
 		{4D025326-7F27-4C42-BE0F-92C1E64E0696}.Release|x86.Build.0 = Release|Any CPU
+		{81F1D47F-F892-45FB-9E35-D7775805FFD3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81F1D47F-F892-45FB-9E35-D7775805FFD3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81F1D47F-F892-45FB-9E35-D7775805FFD3}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{81F1D47F-F892-45FB-9E35-D7775805FFD3}.Debug|x64.Build.0 = Debug|Any CPU
+		{81F1D47F-F892-45FB-9E35-D7775805FFD3}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{81F1D47F-F892-45FB-9E35-D7775805FFD3}.Debug|x86.Build.0 = Debug|Any CPU
+		{81F1D47F-F892-45FB-9E35-D7775805FFD3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81F1D47F-F892-45FB-9E35-D7775805FFD3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{81F1D47F-F892-45FB-9E35-D7775805FFD3}.Release|x64.ActiveCfg = Release|Any CPU
+		{81F1D47F-F892-45FB-9E35-D7775805FFD3}.Release|x64.Build.0 = Release|Any CPU
+		{81F1D47F-F892-45FB-9E35-D7775805FFD3}.Release|x86.ActiveCfg = Release|Any CPU
+		{81F1D47F-F892-45FB-9E35-D7775805FFD3}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
