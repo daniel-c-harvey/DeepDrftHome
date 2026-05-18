@@ -171,8 +171,32 @@ public class FileDatabase : DirectoryIndexDirectory, IDisposable
         {
             // Swallow exceptions and return false, matching TypeScript behavior
         }
-        
+
         return false;
+    }
+
+    /// <summary>
+    /// Removes a resource from a specific vault. Returns null if the vault does not exist,
+    /// false if the entry was not found, true if the entry was removed. Distinguishing
+    /// "no such vault" / "no such entry" / "removed" lets the HTTP host map cleanly to
+    /// 404 vs. 200. Follows the FileDatabase error-swallow contract: any unexpected failure
+    /// returns null so callers can surface 5xx without try/catch at the controller layer.
+    /// </summary>
+    public async Task<bool?> RemoveResourceAsync(string vaultId, string entryId)
+    {
+        try
+        {
+            var directoryVault = _vaults.Get(vaultId);
+            if (directoryVault == null)
+                return null;
+
+            return await directoryVault.RemoveEntryAsync(entryId);
+        }
+        catch
+        {
+            // Swallow exceptions and return null, matching the FileDatabase error contract.
+            return null;
+        }
     }
 
     /// <summary>

@@ -133,6 +133,33 @@ public abstract class MediaVault : VaultIndexDirectory
     }
 
     /// <summary>
+    /// Removes an entry from the vault: drops it from the index (persisting the change)
+    /// and deletes the backing file from disk. Returns true if an entry was removed,
+    /// false if the entry was not present. Follows the FileDatabase error-swallow contract
+    /// for read failures; index/file write failures propagate so the caller can map them
+    /// to a 5xx.
+    /// </summary>
+    public async Task<bool> RemoveEntryAsync(string entryId)
+    {
+        var metaData = await RemoveFromIndexAsync(entryId);
+        if (metaData == null)
+            return false;
+
+        // Index already persisted; if the file is missing or fails to delete, the entry
+        // is still gone from the catalogue. Treat a missing file as success (callers asked
+        // for the entry to go away, and it has). A failure deleting an existing file leaves
+        // an orphan on disk; surface it to the caller via exception so the host can log,
+        // matching the AddEntryAsync error-propagation shape.
+        var mediaPath = GetMediaPathFromEntryKey(metaData.MediaKey, metaData.Extension);
+        if (FileUtils.FileExists(mediaPath))
+        {
+            File.Delete(mediaPath);
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Extracts buffer and extension from a media binary
     /// </summary>
     private static (byte[] buffer, string extension) ExtractMediaProperties(FileBinary media)

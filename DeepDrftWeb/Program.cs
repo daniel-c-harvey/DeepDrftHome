@@ -13,6 +13,12 @@ builder.Services.AddMudServices();
 
 builder.Services.AddCmsServices();
 
+// CMS → DeepDrftContent calls require the DeepDrftContent ApiKey. Loaded from a
+// gitignored environment file, same shape as DeepDrftContent/environment/apikey.json.
+// Optional so the file's absence in non-CMS dev does not fail boot; missing key is
+// surfaced when Startup.ConfigureDomainServices binds the CMS HttpClient.
+builder.Configuration.AddJsonFile("environment/apikey.json", optional: true, reloadOnChange: true);
+
 var baseUrl = builder.GetKestrelUrl();
 var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"] ?? throw new Exception("Content API URL is not configured");
 
