@@ -59,20 +59,25 @@
        consumers and are scheduled for retirement in Phase 0.3/0.4. */
 }
 
-/* Dark Theme (Lowcountry Summer Nights) */
+/* Dark theme - wireframe palette (navy ground / green-accent / off-white).
+   Mirrors the light palette's vocabulary on a dark ground. Same alias structure
+   as :root so utility classes (.deepdrft-chip-*, .deepdrft-border-*, .deepdrft-text-*)
+   resolve coherently across themes. */
 .deepdrft-theme-dark {
-    /* Core Palette */
-    --deepdrft-primary: #D4654A;
-    --deepdrft-secondary: #7B6D8D;
-    --deepdrft-tertiary: #E9C46A;
-    --deepdrft-quaternary: #8AA39B;
-    --deepdrft-quinary: #9EB8C4;
-    --deepdrft-senary: #D4845A;
+    /* Legacy palette aliases - mapped onto wireframe tokens.
+       On dark, green-accent becomes the primary interactive colour and
+       off-white becomes the secondary emphasis. */
+    --deepdrft-primary: var(--deepdrft-green-accent);
+    --deepdrft-secondary: var(--deepdrft-white);
+    --deepdrft-tertiary: var(--deepdrft-green);
+    --deepdrft-quaternary: var(--deepdrft-muted);
+    --deepdrft-quinary: var(--deepdrft-green-light);
+    --deepdrft-senary: var(--deepdrft-navy-mid);
 
-    /* Surfaces */
-    --deepdrft-surface: rgba(123,109,141,0.12);
-    --deepdrft-background: #0D0D12;
-    --deepdrft-surface-alpha: rgba(13, 13, 18, 0.95);
+    /* Surfaces - navy ground, navy-mid elevated */
+    --deepdrft-surface: var(--deepdrft-navy-mid);
+    --deepdrft-background: var(--deepdrft-navy);
+    --deepdrft-surface-alpha: rgba(13, 27, 42, 0.92);
 
     /* Theme-aware aliases */
     --theme-primary: var(--deepdrft-primary);
@@ -81,14 +86,14 @@
     --theme-quaternary: var(--deepdrft-quaternary);
     --theme-quinary: var(--deepdrft-quinary);
     --theme-senary: var(--deepdrft-senary);
-    --theme-surface: #F5F0E6;
-    --theme-surface-soft: #B8B0C4;
+    --theme-surface: var(--deepdrft-white);
+    --theme-surface-soft: var(--deepdrft-muted);
 
     /* Gradient colors */
-    --gradient-base: #0D0D12;
-    --gradient-accent: #7B6D8D;
-    --gradient-warm: #D4654A;
-    --gradient-light: #E9C46A;
+    --gradient-base: var(--deepdrft-navy);
+    --gradient-accent: var(--deepdrft-green-accent);
+    --gradient-warm: var(--deepdrft-green);
+    --gradient-light: var(--deepdrft-green-light);
 }
 
 /* =============================================================================
