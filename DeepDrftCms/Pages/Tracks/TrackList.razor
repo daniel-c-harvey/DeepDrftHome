@@ -8,7 +8,7 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
-@inject NavigationManager Navigation
+@inject ILogger<TrackList> Logger
 
 <PageTitle>Tracks — DeepDrft CMS</PageTitle>
 
@@ -85,7 +85,7 @@
         var sortColumn = string.IsNullOrEmpty(state.SortLabel) ? "TrackName" : state.SortLabel;
         var sortDescending = state.SortDirection == SortDirection.Descending;
 
-        var result = await TrackService.GetPaged(pageNumber, state.PageSize, sortColumn, sortDescending);
+        var result = await TrackService.GetPaged(pageNumber, state.PageSize, sortColumn, sortDescending, cancellationToken);
 
         if (!result.Success || result.Value is null)
         {
@@ -129,7 +129,8 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Delete failed: {ex.Message}", Severity.Error);
+            Logger.LogError(ex, "Delete failed for track {TrackId}", track.Id);
+            Snackbar.Add("Delete failed — please try again.", Severity.Error);
         }
     }
 }

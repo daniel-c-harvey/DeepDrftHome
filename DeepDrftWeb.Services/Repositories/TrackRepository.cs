@@ -24,12 +24,12 @@ public class TrackRepository
         return await _db.Tracks.ToListAsync();
     }
 
-    public async Task<PagedResult<TrackEntity>> GetPage(PagingParameters<TrackEntity> pageParameters)
+    public async Task<PagedResult<TrackEntity>> GetPage(PagingParameters<TrackEntity> pageParameters, CancellationToken cancellationToken = default)
     {
         // Two separate queries with no transaction: count and page can be momentarily inconsistent
         // under concurrent writes. Acceptable — write volume is low and the UI is read-only.
         // If filtering is added, the count query must be updated to apply the same filter.
-        var count = await _db.Tracks.CountAsync();
+        var count = await _db.Tracks.CountAsync(cancellationToken);
 
         var orderBy = pageParameters.OrderBy ?? (t => t.Id);
         var ordered = pageParameters.IsDescending
@@ -39,7 +39,7 @@ public class TrackRepository
         var page = await ordered
             .Skip(pageParameters.Skip)
             .Take(pageParameters.PageSize)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
         
         return new PagedResult<TrackEntity>(page, count, pageParameters.Page, pageParameters.PageSize);
     }

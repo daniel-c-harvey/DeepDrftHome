@@ -41,7 +41,7 @@ public class TrackService : ITrackService
         }
     }
 
-    public async Task<ResultContainer<PagedResult<TrackEntity>>> GetPaged(int pageNumber, int pageSize, string? sortColumn, bool sortDescending)
+    public async Task<ResultContainer<PagedResult<TrackEntity>>> GetPaged(int pageNumber, int pageSize, string? sortColumn, bool sortDescending, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -75,7 +75,7 @@ public class TrackService : ITrackService
                 }
             }
             
-            var page = await _repository.GetPage(parameters);
+            var page = await _repository.GetPage(parameters, cancellationToken);
             return ResultContainer<PagedResult<TrackEntity>>.CreatePassResult(page);
         }
         catch (Exception e)
