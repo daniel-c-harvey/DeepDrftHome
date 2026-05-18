@@ -96,6 +96,21 @@
     --gradient-light: var(--deepdrft-green-light);
 }
 
+/* Base page colours — use MudBlazor's theme-injected variables so they
+   switch automatically when IsDarkMode toggles. The --mud-palette-background
+   and --mud-palette-text-primary variables are injected by MudThemeProvider
+   and update in both light and dark modes. */
+html, body {
+    background-color: var(--mud-palette-background);
+    color: var(--mud-palette-text-primary);
+}
+
+/* Ensure the theme wrapper fills the full viewport so no background gap shows. */
+.deepdrft-theme-dark,
+.deepdrft-theme-light {
+    min-height: 100vh;
+}
+
 /* =============================================================================
    2. GRADIENTS
    ============================================================================= */
