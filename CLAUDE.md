@@ -125,7 +125,8 @@ dotnet ef database update --project DeepDrftWeb.Services --startup-project DeepD
 
 All projects load secrets via `CredentialTools.ResolvePathOrThrow()` from gitignored `environment/` files:
 
-- `DeepDrftWeb/appsettings.json`: Logging and URL config. Secrets loaded from `environment/apikey.json` (DeepDrftContent API key), `environment/connections.json` (SQL and Auth connection strings), `environment/authblocks.json` (AuthBlocks settings).
+- `DeepDrftWeb/appsettings.json`: Logging and URL config. Secrets loaded from `environment/connections.json` (SQL connection string).
+- `DeepDrftManager/appsettings.json`: Logging and URL config. Secrets loaded from `environment/apikey.json` (DeepDrftContent API key), `environment/connections.json` (SQL and Auth connection strings), `environment/authblocks.json` (AuthBlocks settings).
 - `DeepDrftContent/environment/filedatabase.json`: FileDatabase vault path. Loaded via CredentialTools.
 - `DeepDrftContent/environment/apikey.json`: API key. Loaded via CredentialTools (not in repo).
 - `DeepDrftCli/environment/connections.json`: CLI config (`ConnectionString`, `VaultPath`). Loaded via CredentialTools.

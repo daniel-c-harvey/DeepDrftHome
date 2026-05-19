@@ -352,6 +352,8 @@ The current `MainLayout.razor` (`<div>@Body</div>` one-liner) is unshippable, bu
 
 **Exit criterion:** Public site (`DeepDrftWeb` still by its old name) renders home page with chrome, prerenders correctly, no hangs. CMS continues to work from `DeepDrftManager`. The hosts run side-by-side.
 
+**Landed:** merged to dev
+
 **Phase 3: Extract `DeepDrftShared.Client` (optional, can run in parallel with 2).**
 
 - New RCL `DeepDrftShared.Client`.
@@ -359,6 +361,8 @@ The current `MainLayout.razor` (`<div>@Body</div>` one-liner) is unshippable, bu
 - Both `DeepDrftWeb.Client` and (eventually) the CMS RCL reference it.
 
 **Exit criterion:** Both apps render `TrackCard` from the shared RCL. Visual parity confirmed.
+
+**Landed:** merged to dev
 
 **Phase 4: Rename `DeepDrftWeb` → `DeepDrftPublic`, `DeepDrftWeb.Client` → `DeepDrftPublic.Client`.**
 
