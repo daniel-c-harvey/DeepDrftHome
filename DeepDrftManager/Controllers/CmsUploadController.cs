@@ -5,12 +5,12 @@ using DeepDrftModels.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace DeepDrftWeb.Controllers;
+namespace DeepDrftManager.Controllers;
 
 /// <summary>
 /// CMS upload surface. Proxies a WAV + metadata multipart form to DeepDrftContent's
 /// POST api/track/upload, then persists the returned unpersisted TrackEntity to SQL via
-/// ITrackService.Create. DeepDrftWeb intentionally does not reference DeepDrftContent.Data
+/// ITrackService.Create. DeepDrftManager intentionally does not reference DeepDrftContent.Data
 /// (CMS-PLAN §5, Option B) — all vault access is over HTTP.
 /// </summary>
 [ApiController]

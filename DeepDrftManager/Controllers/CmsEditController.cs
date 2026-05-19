@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NetBlocks.Models;
 
-namespace DeepDrftWeb.Controllers;
+namespace DeepDrftManager.Controllers;
 
 [ApiController]
 [Authorize(Roles = "Admin")]
@@ -21,8 +21,8 @@ public class CmsEditController : ControllerBase
 
     // Metadata-only update. EntryKey is immutable in Wave 1 — audio replacement
     // is a separate Wave 2 operation that touches the vault.
-    [HttpPut("{id:int}")]
-    public async Task<ActionResult<ApiResultDto<TrackEntity>>> Update(int id, [FromBody] CmsTrackUpdateRequest request)
+    [HttpPut("{id:long}")]
+    public async Task<ActionResult<ApiResultDto<TrackEntity>>> Update(long id, [FromBody] CmsTrackUpdateRequest request)
     {
         var existing = await _trackService.GetById(id);
         if (!existing.Success)
