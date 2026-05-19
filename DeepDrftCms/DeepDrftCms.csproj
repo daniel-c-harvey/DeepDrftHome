@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <PackageReference Include="MudBlazor" Version="8.15.0" />
-    <PackageReference Include="Cerebellum.AuthBlocks.Web" Version="10.3.30" />
+    <PackageReference Include="Cerebellum.AuthBlocks.Web" Version="10.3.31" />
   </ItemGroup>
 
   <ItemGroup>
