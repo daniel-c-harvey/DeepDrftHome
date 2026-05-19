@@ -14,6 +14,8 @@ The public site and the CMS are being split into two independent Blazor applicat
 
 Supersedes the host-shape pieces of `CMS-PLAN.md §2`; the CMS feature waves in `CMS-PLAN.md` survive unchanged and move to the new host.
 
+Phase 1 (`DeepDrftManager` host creation) landed. Phase 2 (strip AuthBlocks from DeepDrftWeb) and Phase 3 (DeepDrftShared.Client RCL extraction) are Wave 2 — can run in parallel.
+
 ---
 
 ## 0. Baseline — what just landed

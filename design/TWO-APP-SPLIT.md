@@ -337,6 +337,8 @@ The current `MainLayout.razor` (`<div>@Body</div>` one-liner) is unshippable, bu
 
 **Exit criterion:** CMS host stands up, `/account/login` works against the seeded admin, `/cms/tracks` renders. Public site continues to run from `DeepDrftWeb` exactly as today (still entangled, still using band-aid MainLayout).
 
+**Landed:** branch `split-phase1-manager`, commit `cd650c4`.
+
 **Phase 2: Strip AuthBlocks out of `DeepDrftWeb`.**
 
 - Remove the `AddAuthBlocks(...)`, `MapAuthBlocks()`, `UseAuthBlocksStartupAsync()` from `DeepDrftWeb/Program.cs`.
