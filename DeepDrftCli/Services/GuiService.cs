@@ -11,8 +11,8 @@ namespace DeepDrftCli.Services;
 public class GuiService
 {
     private readonly ILogger<GuiService> _logger;
-    private readonly DeepDrftWeb.Services.ITrackService _webTrackService;
-    private readonly DeepDrftContent.Services.TrackService _contentTrackService;
+    private readonly DeepDrftData.ITrackService _webTrackService;
+    private readonly DeepDrftContent.Data.TrackService _contentTrackService;
 
     // GUI Components
     private Window? _mainWindow;
@@ -24,8 +24,8 @@ public class GuiService
 
     public GuiService(
         ILogger<GuiService> logger,
-        DeepDrftWeb.Services.ITrackService webTrackService,
-        DeepDrftContent.Services.TrackService contentTrackService)
+        DeepDrftData.ITrackService webTrackService,
+        DeepDrftContent.Data.TrackService contentTrackService)
     {
         _logger = logger;
         _webTrackService = webTrackService;

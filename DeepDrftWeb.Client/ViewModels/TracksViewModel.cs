@@ -1,6 +1,6 @@
 ﻿using DeepDrftModels.Entities;
-using DeepDrftModels.Models;
 using DeepDrftWeb.Client.Clients;
+using Models.Common;
 
 namespace DeepDrftWeb.Client.ViewModels;
 

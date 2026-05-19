@@ -25,7 +25,7 @@
     <ProjectReference Include="..\DeepDrftCms\DeepDrftCms.csproj" />
     <ProjectReference Include="..\DeepDrftModels\DeepDrftModels.csproj" />
     <ProjectReference Include="..\DeepDrftWeb.Client\DeepDrftWeb.Client.csproj" />
-    <ProjectReference Include="..\DeepDrftWeb.Services\DeepDrftWeb.Services.csproj" />
+    <ProjectReference Include="..\DeepDrftData\DeepDrftData.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.7" />
   </ItemGroup>
 

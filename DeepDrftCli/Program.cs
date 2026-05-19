@@ -3,10 +3,11 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
-using DeepDrftWeb.Services.Data;
-using DeepDrftWeb.Services.Repositories;
-using DeepDrftContent.Services.FileDatabase.Services;
-using DeepDrftContent.Services.Processors;
+using DeepDrftData;
+using DeepDrftData.Data;
+using DeepDrftData.Repositories;
+using DeepDrftContent.Data.FileDatabase.Services;
+using DeepDrftContent.Data.Processors;
 using DeepDrftCli.Services;
 using DeepDrftCli.Models;
 using NetBlocks.Utilities.Environment;
@@ -49,11 +50,13 @@ builder.Services.AddSingleton<FileDatabase>(provider =>
     }
 });
 
-// Add services
+// Add services. TrackManager fronts the BlazorBlocks data layer and implements
+// ITrackService for legacy consumers; same scoped instance backs both registrations.
 builder.Services.AddScoped<TrackRepository>();
-builder.Services.AddScoped<DeepDrftWeb.Services.ITrackService, DeepDrftWeb.Services.TrackService>();
+builder.Services.AddScoped<TrackManager>();
+builder.Services.AddScoped<ITrackService>(sp => sp.GetRequiredService<TrackManager>());
 builder.Services.AddScoped<AudioProcessor>();
-builder.Services.AddScoped<DeepDrftContent.Services.TrackService>();
+builder.Services.AddScoped<DeepDrftContent.Data.TrackService>();
 builder.Services.AddScoped<CliService>();
 builder.Services.AddScoped<GuiService>();
 

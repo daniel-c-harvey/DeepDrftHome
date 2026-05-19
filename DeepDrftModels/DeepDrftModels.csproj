@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
@@ -8,6 +8,7 @@
 
     <ItemGroup>
       <PackageReference Include="Cerebellum.NetBlocks" Version="10.3.30" />
+      <PackageReference Include="Cerebellum.BlazorBlocks.Models" Version="10.3.30" />
     </ItemGroup>
 
 </Project>

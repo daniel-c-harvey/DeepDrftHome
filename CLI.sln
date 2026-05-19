@@ -2,9 +2,9 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftCli", "DeepDrftCli\DeepDrftCli.csproj", "{84844B37-FD15-4AFC-850B-DD432AA33B4C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftContent.Services", "DeepDrftContent.Services\DeepDrftContent.Services.csproj", "{169D5D3E-DAEC-46BE-98EE-CC5EBF5E3E8A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftContent.Data", "DeepDrftContent.Data\DeepDrftContent.Data.csproj", "{169D5D3E-DAEC-46BE-98EE-CC5EBF5E3E8A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftWeb.Services", "DeepDrftWeb.Services\DeepDrftWeb.Services.csproj", "{A3DA341B-589E-4705-AB66-6B22652A9B36}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftData", "DeepDrftData\DeepDrftData.csproj", "{A3DA341B-589E-4705-AB66-6B22652A9B36}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetBlocks", "C:\lib\NetBlocks\NetBlocks.csproj", "{41FC69D0-F60D-41B4-AA41-C2382C83DFE8}"
 EndProject

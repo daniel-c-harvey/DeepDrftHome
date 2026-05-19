@@ -1,8 +1,12 @@
-﻿namespace DeepDrftModels.Entities;
+using Models.Entities;
 
-public class TrackEntity
+namespace DeepDrftModels.Entities;
+
+// Inherits Id, CreatedAt, UpdatedAt, IsDeleted from BaseEntity (Cerebellum.BlazorBlocks.Models).
+// BaseEntity ships the audit columns but does not declare IEntity itself, so subclasses
+// declare it explicitly to satisfy the generic constraints on Repository<>/Manager<>/etc.
+public class TrackEntity : BaseEntity, IEntity
 {
-    public long Id { get; set; }
     public required string EntryKey { get; set; }
     public required string TrackName { get; set; }
     public required string Artist { get; set; }

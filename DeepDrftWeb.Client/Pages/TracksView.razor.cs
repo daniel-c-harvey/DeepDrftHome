@@ -1,8 +1,8 @@
 using DeepDrftModels.Entities;
-using DeepDrftModels.Models;
 using DeepDrftWeb.Client.Services;
 using DeepDrftWeb.Client.ViewModels;
 using Microsoft.AspNetCore.Components;
+using Models.Common;
 
 namespace DeepDrftWeb.Client.Pages;
 
