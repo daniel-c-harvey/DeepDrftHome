@@ -6,6 +6,12 @@ Organised by **theme**, not by date. Themes are roughly ordered by current produ
 
 ---
 
+## In-flight — Two-app architectural split
+
+The public site and the CMS are being split into two independent Blazor applications. Design doc: `design/TWO-APP-SPLIT.md`. Open questions pending Daniel's answers at `design/TWO-APP-SPLIT.md §10`. Until those resolve, no implementation phases are scheduled here — see the design doc's §8 for the phased rollout plan that will populate this section once unblocked. Supersedes the host-shape pieces of `CMS-PLAN.md §2`; the CMS feature waves in `CMS-PLAN.md` survive unchanged and move to the new host.
+
+---
+
 ## 0. Baseline — what just landed
 
 A two-part audit (design + streaming) ran on 2026-05-17 and the fixes for Critical, Major, and Minor findings are now on `dev`. The remainder of this plan assumes that baseline. In summary the audit-pass fixed:
