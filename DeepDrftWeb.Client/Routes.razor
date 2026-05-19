@@ -10,4 +10,15 @@
             </NotAuthorized>
         </AuthorizeRouteView>
     </Found>
+    <NotFound>
+        @{
+            // Routes owned by server-side assemblies (e.g. /account/*) are not visible to the
+            // WASM router. Force a full-page reload so the server router handles them instead.
+            var path = new Uri(NavigationManager.Uri).AbsolutePath;
+            if (path.StartsWith("/account", StringComparison.OrdinalIgnoreCase))
+            {
+                NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+            }
+        }
+    </NotFound>
 </Router>
