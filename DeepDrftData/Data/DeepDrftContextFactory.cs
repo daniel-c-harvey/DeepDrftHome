@@ -7,16 +7,26 @@ public class DeepDrftContextFactory : IDesignTimeDbContextFactory<DeepDrftContex
 {
     public DeepDrftContext CreateDbContext(string[] args)
     {
-        // For 'dotnet ef' commands, set ConnectionStrings__DefaultConnection in your environment when
-        // you need to actually hit the database (e.g. `dotnet ef database update`). For model-only
-        // operations like `migrations add`, the placeholder below is sufficient — EF never connects.
-        // Example: export ConnectionStrings__DefaultConnection="Host=localhost;Port=5433;Database=postgres;Username=postgres;Password=yourpassword"
-        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
-            ?? "Host=localhost;Port=5433;Database=postgres;Username=postgres;Password=placeholder";
+        // Load the real connection string from environment/connections.json — the same
+        // file DeepDrftWeb's Program.cs loads via CredentialTools. When EF tools run with
+        // --startup-project DeepDrftWeb, the working directory resolves there, so this
+        // relative path works without any env var configuration.
+        const string relPath = "environment/connections.json";
+        if (!File.Exists(relPath))
+            throw new FileNotFoundException(
+                $"'{relPath}' not found. Run EF commands with --startup-project DeepDrftWeb " +
+                $"from the solution root (current dir: {Directory.GetCurrentDirectory()}).", relPath);
+
+        using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(relPath));
+        var connectionString = doc.RootElement
+            .GetProperty("ConnectionStrings")
+            .GetProperty("DefaultConnection")
+            .GetString()
+            ?? throw new InvalidOperationException(
+                "ConnectionStrings:DefaultConnection not found in environment/connections.json");
 
         var optionsBuilder = new DbContextOptionsBuilder<DeepDrftContext>();
         optionsBuilder.UseNpgsql(connectionString);
-
         return new DeepDrftContext(optionsBuilder.Options);
     }
 }
