@@ -15,7 +15,6 @@
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.7" />
     <PackageReference Include="MudBlazor" Version="8.15.0" />
     <PackageReference Include="MudBlazor.ThemeManager" Version="3.0.0" />
-    <PackageReference Include="Cerebellum.AuthBlocks.Web.Client" Version="10.3.32" />
   </ItemGroup>
 
   <ItemGroup>

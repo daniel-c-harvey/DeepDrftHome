@@ -7,16 +7,12 @@ public class DarkModeService(DarkModeSettings darkModeSettings, IHttpContextAcce
 {
     public void CheckDarkMode()
     {
-        // get
-        // {
-            bool isDarkMode = false; // Default to light mode
-            var context = httpAccessor.HttpContext;
-            if (context?.Request.Cookies.TryGetValue(COOKIE_NAME, out var dark) == true)
-            {
-                isDarkMode = dark == "true";
-            }
-            darkModeSettings.IsDarkMode = isDarkMode;
-            // return isDarkMode;
-        // }
+        bool isDarkMode = false; // Default to light mode
+        var context = httpAccessor.HttpContext;
+        if (context?.Request.Cookies.TryGetValue(COOKIE_NAME, out var dark) == true)
+        {
+            isDarkMode = dark == "true";
+        }
+        darkModeSettings.IsDarkMode = isDarkMode;
     }
 }

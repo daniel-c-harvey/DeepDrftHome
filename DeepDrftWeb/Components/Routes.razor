@@ -1,13 +1,7 @@
 <Router AppAssembly="typeof(App).Assembly"
-        AdditionalAssemblies="new[] { typeof(DeepDrftWeb.Client._Imports).Assembly, typeof(DeepDrftCms._Imports).Assembly, typeof(AuthBlocksWeb._Imports).Assembly }">
+        AdditionalAssemblies="new[] { typeof(DeepDrftWeb.Client._Imports).Assembly }">
     <Found Context="routeData">
-        <AuthorizeRouteView RouteData="routeData">
-            <NotAuthorized>
-                @{
-                    NavigationManager.NavigateTo($"account/login?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}", forceLoad: true);
-                }
-            </NotAuthorized>
-        </AuthorizeRouteView>
+        <RouteView RouteData="routeData" DefaultLayout="typeof(DeepDrftWeb.Client.Layout.MainLayout)" />
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
     <NotFound>
@@ -15,5 +9,3 @@
         <p role="alert">Sorry, there's nothing at this address.</p>
     </NotFound>
 </Router>
-
-@inject NavigationManager NavigationManager

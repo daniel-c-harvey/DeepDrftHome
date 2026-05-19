@@ -2,7 +2,7 @@ using DeepDrftData;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace DeepDrftWeb.Controllers;
+namespace DeepDrftManager.Controllers;
 
 /// <summary>
 /// CMS delete endpoint. Owned by W3-T3 — separate controller from upload/edit to
@@ -18,6 +18,11 @@ namespace DeepDrftWeb.Controllers;
 [Authorize(Roles = "Admin")]
 public class CmsDeleteController : ControllerBase
 {
+    // Named HttpClient used to call DeepDrftContent's ApiKey-protected endpoints.
+    // The Manager owns this name now that the CMS lives here; the client is registered
+    // in Program.cs alongside the public "DeepDrft.API" client.
+    private const string ContentCmsHttpClientName = "DeepDrft.Content.Cms";
+
     private readonly ITrackService _trackService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<CmsDeleteController> _logger;
@@ -61,7 +66,7 @@ public class CmsDeleteController : ControllerBase
 
         // 3. Vault delete. Failure is logged as an orphan but does not fail the request:
         //    SQL is the source of truth for the user's view; the orphan is a maintenance concern.
-        var client = _httpClientFactory.CreateClient(Startup.ContentCmsHttpClientName);
+        var client = _httpClientFactory.CreateClient(ContentCmsHttpClientName);
         try
         {
             var response = await client.DeleteAsync($"api/track/{Uri.EscapeDataString(entryKey)}");

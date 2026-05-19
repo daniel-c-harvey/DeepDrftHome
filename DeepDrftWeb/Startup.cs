@@ -8,13 +8,6 @@ namespace DeepDrftWeb;
 
 public static class Startup
 {
-    /// <summary>
-    /// Named HttpClient used by CMS controllers to call DeepDrftContent's ApiKey-protected endpoints.
-    /// Distinct from the public WASM-facing "DeepDrft.Content" client so the API key never reaches
-    /// the browser. Configured server-side only.
-    /// </summary>
-    public const string ContentCmsHttpClientName = "DeepDrft.Content.Cms";
-
     public static void ConfigureDomainServices(WebApplicationBuilder builder)
     {
         // Add Entity Framework services
@@ -28,26 +21,13 @@ public static class Startup
             .AddScoped<DarkModeService>();
 
         // Add Track services. TrackManager implements ITrackService for backward compatibility
-        // with controllers and CMS pages that inject the interface; resolving ITrackService
-        // returns the same scoped TrackManager instance so the manager surface (DTO-space)
-        // and the service surface (entity-space) share state.
+        // with pages that inject the interface; resolving ITrackService returns the same scoped
+        // TrackManager instance so the manager surface (DTO-space) and the service surface
+        // (entity-space) share state.
         builder.Services
             .AddScoped<TrackRepository>()
             .AddScoped<TrackManager>()
             .AddScoped<ITrackService>(sp => sp.GetRequiredService<TrackManager>());
-
-        // CMS → DeepDrftContent client. The API key is required up front (no lazy resolution)
-        // so a misconfiguration surfaces at startup instead of on the first delete attempt.
-        var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"]
-            ?? throw new InvalidOperationException("ApiUrls:ContentApi is required");
-        var contentApiKey = builder.Configuration["DeepDrftContent:ApiKey"]
-            ?? throw new InvalidOperationException("DeepDrftContent:ApiKey is required (see environment/apikey.json)");
-
-        builder.Services.AddHttpClient(ContentCmsHttpClientName, client =>
-        {
-            client.BaseAddress = new Uri(contentApiUrl);
-            client.DefaultRequestHeaders.Add("ApiKey", contentApiKey);
-        });
     }
 
     public static string GetKestrelUrl(this WebApplicationBuilder builder)

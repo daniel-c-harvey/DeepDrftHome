@@ -81,15 +81,31 @@ builder.Services.AddAuthBlocks(options =>
 var baseUrl = GetKestrelUrl(builder);
 AuthBlocksWeb.Startup.ConfigureAuthServices(builder.Services, baseUrl);
 
-// Named HttpClient used by CMS pages for delete/upload calls.
-// Phase 1: points at DeepDrftWeb (https://localhost:5001) where the CMS mutation controllers
-// (CmsUploadController, CmsEditController, CmsDeleteController) currently live.
-// When those controllers migrate to DeepDrftManager, update ApiUrls:ApiHost to this host's URL.
+// Named HttpClient used by CMS pages for auth API calls (AuthBlocks surface on this host).
 var apiHostUrl = builder.Configuration["ApiUrls:ApiHost"]
     ?? throw new InvalidOperationException("ApiUrls:ApiHost is required");
 builder.Services.AddHttpClient("DeepDrft.API", client =>
 {
     client.BaseAddress = new Uri(apiHostUrl);
+});
+
+// Named HttpClient for unauthenticated Content API calls (e.g. CmsUploadController proxying WAV
+// data to DeepDrftContent's POST api/track/upload). API key added per-request by the controller.
+var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"]
+    ?? throw new InvalidOperationException("ApiUrls:ContentApi is required");
+builder.Services.AddHttpClient("DeepDrft.Content", client =>
+{
+    client.BaseAddress = new Uri(contentApiUrl);
+});
+
+// Named HttpClient for ApiKey-protected Content API calls (e.g. CmsDeleteController's vault
+// delete). API key baked into the default request headers so callers need not add it manually.
+var contentApiKey = builder.Configuration["DeepDrftContent:ApiKey"]
+    ?? throw new InvalidOperationException("DeepDrftContent:ApiKey is required");
+builder.Services.AddHttpClient("DeepDrft.Content.Cms", client =>
+{
+    client.BaseAddress = new Uri(contentApiUrl);
+    client.DefaultRequestHeaders.Add("ApiKey", contentApiKey);
 });
 
 // Reverse-proxy support (nginx in production).
@@ -103,8 +119,8 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
-// Controllers: no-op until CMS mutation controllers migrate from DeepDrftWeb, but registered
-// now so they are discovered automatically when they arrive. Matches DeepDrftWeb precedent.
+// Controllers: discovers CMS mutation controllers (CmsUploadController, CmsEditController,
+// CmsDeleteController) and the AuthBlocks surface. Matches DeepDrftWeb precedent.
 builder.Services.AddControllers();
 
 // InteractiveServer only — no WASM render mode on the CMS host.
@@ -152,7 +168,7 @@ app.MapStaticAssets();
 // Razor pages (/account/login, /account/logout).
 app.MapAuthBlocks();
 
-// No-op today; picks up CMS mutation controllers when they migrate from DeepDrftWeb.
+// Mounts CMS mutation controllers (CmsUploadController, CmsEditController, CmsDeleteController).
 app.MapControllers();
 
 app.MapRazorComponents<App>()

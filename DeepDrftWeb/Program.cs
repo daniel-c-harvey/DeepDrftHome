@@ -1,9 +1,4 @@
-using AuthBlocksLib;
-using AuthBlocksLib.Options;
-using DeepDrftCms;
 using DeepDrftWeb;
-using DeepDrftWeb.Middleware;
-using Microsoft.AspNetCore.Authorization;
 using MudBlazor.Services;
 using DeepDrftWeb.Components;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -14,68 +9,18 @@ var builder = WebApplication.CreateBuilder(args);
 // Add MudBlazor services
 builder.Services.AddMudServices();
 
-builder.Services.AddCmsServices();
-
 // Required credential files — must exist before the app will start.
-// In dev: create the three files under DeepDrftWeb/environment/ (gitignored).
+// In dev: create the files under DeepDrftWeb/environment/ (gitignored).
 // In prod: systemd CREDENTIALS_DIRECTORY points to encrypted credential blobs.
-//   - environment/apikey.json:      { "DeepDrftContent": { "ApiKey": "..." } }
-//   - environment/connections.json: { "ConnectionStrings": { "DefaultConnection": "...", "Auth": "..." } }
-//   - environment/authblocks.json:  { "AuthBlocks": { "Jwt": {...}, "Email": {...}, "Admin": {...} } }
-var apiKeyPath = CredentialTools.ResolvePathOrThrow("apikey", "environment/apikey.json");
-builder.Configuration.AddJsonFile(apiKeyPath, optional: false, reloadOnChange: false);
-
+//   - environment/connections.json: { "ConnectionStrings": { "DefaultConnection": "..." } }
+// AuthBlocks and the DeepDrftContent API key now live on DeepDrftManager;
+// the public host has no auth surface and no CMS upload proxy.
 var connectionsPath = CredentialTools.ResolvePathOrThrow("connections", "environment/connections.json");
 builder.Configuration.AddJsonFile(connectionsPath, optional: false, reloadOnChange: false);
 
-var authBlocksPath = CredentialTools.ResolvePathOrThrow("authblocks", "environment/authblocks.json");
-builder.Configuration.AddJsonFile(authBlocksPath, optional: false, reloadOnChange: false);
-
-var baseUrl = builder.GetKestrelUrl();
 var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"] ?? throw new Exception("Content API URL is not configured");
 
-// AuthBlocks: JWT Bearer auth, Identity, EF schema, admin seeding.
-// Auth schema runs in its own database (separate from DefaultConnection by design).
-builder.Services.AddAuthBlocks(options =>
-{
-    options.ConnectionString = builder.Configuration.GetConnectionString("Auth")
-        ?? throw new InvalidOperationException("ConnectionStrings:Auth is required");
-    options.ApplicationName  = "DeepDrft";
-    options.SupportEmail     = builder.Configuration["AuthBlocks:SupportEmail"] ?? "admin@deepdrft.com";
-
-    options.JwtSettings.Secret   = builder.Configuration["AuthBlocks:Jwt:Secret"]
-        ?? throw new InvalidOperationException("AuthBlocks:Jwt:Secret is required");
-    options.JwtSettings.Issuer   = builder.Configuration["AuthBlocks:Jwt:Issuer"]
-        ?? throw new InvalidOperationException("AuthBlocks:Jwt:Issuer is required");
-    options.JwtSettings.Audience = builder.Configuration["AuthBlocks:Jwt:Audience"]
-        ?? throw new InvalidOperationException("AuthBlocks:Jwt:Audience is required");
-
-    options.EmailConnection.Host  = builder.Configuration["AuthBlocks:Email:Host"]
-        ?? throw new InvalidOperationException("AuthBlocks:Email:Host is required");
-    options.EmailConnection.Token = builder.Configuration["AuthBlocks:Email:Token"]
-        ?? throw new InvalidOperationException("AuthBlocks:Email:Token is required");
-
-    options.AdminUserSettings = new AdminUserSettings
-    {
-        UserName = builder.Configuration["AuthBlocks:Admin:UserName"]
-            ?? throw new InvalidOperationException("AuthBlocks:Admin:UserName is required"),
-        Email    = builder.Configuration["AuthBlocks:Admin:Email"]
-            ?? throw new InvalidOperationException("AuthBlocks:Admin:Email is required"),
-        Password = builder.Configuration["AuthBlocks:Admin:Password"]
-            ?? throw new InvalidOperationException("AuthBlocks:Admin:Password is required")
-    };
-});
-
-// CMS stealth routing: unauthorized /cms/* requests return 404, not a redirect.
-// This prevents the CMS from revealing its own existence to unauthenticated callers.
-// See CMS-PLAN §3.4.
-builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, CmsStealthRoutingHandler>();
-
-// AuthBlocksWeb: Blazor JWT client services (auth API is mounted on this same host via MapAuthBlocks).
-// AuthBlocksWeb.Startup.ConfigureAuthServices registers AddCascadingAuthenticationState server-side.
-AuthBlocksWeb.Startup.ConfigureAuthServices(builder.Services, baseUrl);
-
-DeepDrftWeb.Client.Startup.ConfigureApiHttpClient(builder.Services, baseUrl);
+DeepDrftWeb.Client.Startup.ConfigureApiHttpClient(builder.Services, builder.GetKestrelUrl());
 DeepDrftWeb.Client.Startup.ConfigureDomainServices(builder.Services);
 DeepDrftWeb.Client.Startup.ConfigureContentServices(builder.Services, contentApiUrl);
 
@@ -110,9 +55,6 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 var app = builder.Build();
 
-// Apply AuthBlocks EF migrations, seed system roles, seed admin user on first boot.
-await app.Services.UseAuthBlocksStartupAsync();
-
 // Configure the HTTP request pipeline.
 // Use forwarded headers before other middleware
 app.UseForwardedHeaders();
@@ -135,9 +77,8 @@ else
     }
 }
 
-app.UseAuthentication();
-app.UseAuthorization();
-
+// Antiforgery is required by Blazor form handling. Authentication / authorization
+// middleware is intentionally absent — this host is fully anonymous.
 app.UseAntiforgery();
 
 // Configure cache headers for Blazor WebAssembly assets
@@ -170,14 +111,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
-app.MapAuthBlocks(); // registers /api/auth/*, /api/users/*, /api/roles/*, /api/user-roles/*, /api/pending-registrations/*
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()
-    .AddAdditionalAssemblies(
-        typeof(DeepDrftWeb.Client._Imports).Assembly,
-        typeof(DeepDrftCms._Imports).Assembly,
-        typeof(AuthBlocksWeb._Imports).Assembly);   // exposes /account/login, /account/logout
+    .AddAdditionalAssemblies(typeof(DeepDrftWeb.Client._Imports).Assembly);
 
 
 app.Run();
