@@ -8,7 +8,11 @@ Organised by **theme**, not by date. Themes are roughly ordered by current produ
 
 ## In-flight — Two-app architectural split
 
-The public site and the CMS are being split into two independent Blazor applications. Design doc: `design/TWO-APP-SPLIT.md`. Open questions pending Daniel's answers at `design/TWO-APP-SPLIT.md §10`. Until those resolve, no implementation phases are scheduled here — see the design doc's §8 for the phased rollout plan that will populate this section once unblocked. Supersedes the host-shape pieces of `CMS-PLAN.md §2`; the CMS feature waves in `CMS-PLAN.md` survive unchanged and move to the new host.
+The public site and the CMS are being split into two independent Blazor applications. **Design locked by Daniel 2026-05-19** at `design/TWO-APP-SPLIT.md` §10. All ten open questions resolved. Implementation phases ready to schedule in the phased rollout at §8.
+
+**Names locked:** `DeepDrftPublic` (public host), `DeepDrftManager` (CMS host), `DeepDrftShared.Client` (shared RCL). Subdomain topology: `deepdrft.com` (public) and `manage.deepdrft.com` (CMS).
+
+Supersedes the host-shape pieces of `CMS-PLAN.md §2`; the CMS feature waves in `CMS-PLAN.md` survive unchanged and move to the new host.
 
 ---
 

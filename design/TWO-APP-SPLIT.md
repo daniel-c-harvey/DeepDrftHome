@@ -43,8 +43,8 @@ None of these address the architectural shape: **two products, one host, one DI 
 
 Two independent ASP.NET Core applications:
 
-- **Public site** — customer-facing, anonymous, prerender-first, MudBlazor + (optionally) BlazorBlocks. No AuthBlocks. No cascading auth. No `@rendermode` chaos.
-- **CMS** — staff-facing, fully authenticated via AuthBlocks, built on BlazorBlocks scaffolding. `InteractiveServer` end-to-end. Stealth-routed (`404` to unauthorized callers).
+- **`DeepDrftPublic`** — customer-facing, anonymous, prerender-first, MudBlazor + (optionally) BlazorBlocks. No AuthBlocks. No cascading auth. No `@rendermode` chaos.
+- **`DeepDrftManager`** — staff-facing, fully authenticated via AuthBlocks, built on BlazorBlocks scaffolding. `InteractiveServer` end-to-end. Accessible only via dedicated subdomain.
 
 Each app gets its own host project, its own DI graph, its own deploy unit, its own URL surface. The two share storage and shared models, not Blazor plumbing.
 
@@ -63,25 +63,26 @@ The hard constraints flowing into the design:
 
 ### 2.1 Recommended project layout
 
-Working names below. Final naming is at §10 Q1.
+Final naming locked by Daniel 2026-05-19.
 
 ```
-DeepDrftSite                  NEW. Public-site host (ASP.NET Core, Blazor Web App).
+DeepDrftPublic                NEW. Public-site host (ASP.NET Core, Blazor Web App).
                               Anonymous. Prerender + InteractiveAuto. MudBlazor.
                               No AuthBlocks. Owns api/track/page (see §5) and the
                               TypeScript audio interop.
 
-DeepDrftSite.Client           NEW. Public-site WASM assembly. Promoted from today's
+DeepDrftPublic.Client         NEW. Public-site WASM assembly. Promoted from today's
                               DeepDrftWeb.Client. Contains Home, TracksView, the audio
                               player stack, dark-mode plumbing, HTTP clients.
 
-DeepDrftCmsHost               NEW. CMS host (ASP.NET Core, Blazor Server-only).
+DeepDrftManager               NEW. CMS host (ASP.NET Core, Blazor Server-only).
                               AuthBlocks + BlazorBlocks. InteractiveServer end-to-end.
                               References the existing DeepDrftCms RCL.
 
 DeepDrftCms                   EXISTING (RCL). CMS pages, layouts, components. Becomes
-                              consumed by DeepDrftCmsHost only. Stops being referenced
-                              from the public host.
+                              consumed by DeepDrftManager only. Stops being referenced
+                              from the public host. Staff-engineer: confirm naming
+                              alignment (proposal: rename to DeepDrftManager.Cms).
 
 DeepDrftShared.Client         NEW (RCL). Shared Razor components and client-side helpers
                               that BOTH apps render: TrackCard, TracksGallery (read-mode),
@@ -112,13 +113,13 @@ DeepDrftTests                 EXISTING. May gain a few smoke tests around the ne
 
 **One canonical solution file.** Today the repo carries `DeepDrftHome.sln` plus stray `WebAPI.sln`, `WebUI.sln`, `CLI.sln`. The split is the opportunity to delete the strays; keep `DeepDrftHome.sln` as the single solution.
 
-### 2.2 Naming — flagged as Daniel's call
+### 2.2 Naming — locked by Daniel 2026-05-19
 
-- `DeepDrftSite` vs. `DeepDrftPublic` vs. `DeepDrftWeb` (renaming the existing host instead of retiring it). Recommendation: **rename `DeepDrftWeb` → `DeepDrftSite`** rather than retiring it and standing up a new project. The current `DeepDrftWeb` already has the TypeScript pipeline, `wwwroot`, the `App.razor` host, the `MainLayout` history, and the deploy script entries. Renaming preserves that history; standing up a fresh project loses it. **Counter-argument:** the rename is a heavy git-log churn moment and doesn't compose with the band-aid commits already on `dev` — see §8.
-- `DeepDrftCmsHost` vs. `DeepDrftCms.Host` vs. just promoting `DeepDrftCms` to be the host directly (changing its Sdk from `Microsoft.NET.Sdk.Razor` to `Microsoft.NET.Sdk.Web`). Recommendation: **new project `DeepDrftCmsHost`**, keep `DeepDrftCms` as an RCL. Reason: an RCL+host pair preserves the option to mount the CMS into a different host later (e.g. embedding CMS into an admin-portal aggregator host); collapsing them forecloses that.
-- `DeepDrftShared.Client` vs. `DeepDrftUi.Shared` vs. `DeepDrftWeb.Shared`. Recommendation: **`DeepDrftShared.Client`** — clearly an RCL, clearly client-side. Other names invite ambiguity about whether it can hold server-only code.
+- `DeepDrftPublic` — public-site host. Renamed from the working name `DeepDrftSite`. (Daniel chose this over `DeepDrftWeb` to distinguish from the existing `DeepDrftWeb` project cleanly.)
+- `DeepDrftManager` — CMS host. Renamed from the working name `DeepDrftCmsHost`.
+- `DeepDrftShared.Client` — shared RCL. Confirmed as-is.
 
-All three are Q1 in §10.
+**Note on `DeepDrftCms` (RCL):** The existing `DeepDrftCms` is an RCL and stays that way (not promoted to a host project). Staff-engineer should evaluate whether to rename it to `DeepDrftManager.Cms` for alignment with the host family, or leave it standalone. This is a naming convention call, not an architectural change.
 
 ---
 
@@ -134,9 +135,11 @@ The split is only useful if shared concerns stay shared. The risk is duplication
 
 The EF Core domain layer and the FileDatabase implementation are class libraries today; they don't care which host references them. The CMS host references both for writes; whichever host owns the metadata API (§5) references `DeepDrftData` for reads.
 
-### 3.3 What moves to `DeepDrftShared.Client` (new RCL)
+### 3.3 What moves to `DeepDrftShared.Client` (new RCL, Wave 1 locked)
 
-Things both apps render and want to keep visually consistent:
+Things both apps render and want to keep visually consistent. **Daniel confirmed extraction in Wave 1** ("yes DRY and SOLID!") — this is locked for the first implementation phase.
+
+Minimum surface in Wave 1:
 
 - **`TrackCard.razor`** — both the public gallery and the CMS list render tracks. Today's CMS list (CMS Wave 1) renders a table; a future CMS view could embed `TrackCard` previews, and the public-side card must not drift visually. Move it here.
 - **`TracksGallery.razor`** — used by the public gallery today. The CMS does not need the gallery layout, but if any CMS preview surface ever wants it (e.g. "preview as listener sees it"), pre-shared is cheaper than retroactive extraction.
@@ -145,7 +148,7 @@ Things both apps render and want to keep visually consistent:
 - **MudBlazor palette objects.** Currently inline in `MainLayout.razor`. Promote to a `DeepDrftPalettes.cs` (static `MudTheme Light` / `MudTheme Dark`) in the shared RCL. The CMS host applies the same palettes so the staff side reads as the same product.
 - **Font-loading `<link>` helpers.** A `DeepDrftFonts` static or `<DeepDrftFontLinks />` component so both apps emit the same Google Fonts request.
 
-### 3.4 Audio player stack — open question
+### 3.4 Audio player stack — Wave 1: public only, eventual extraction locked
 
 The player stack today lives entirely in `DeepDrftWeb.Client/`:
 
@@ -153,12 +156,11 @@ The player stack today lives entirely in `DeepDrftWeb.Client/`:
 - `AudioPlayerProvider.razor`, `AudioPlayerBar.razor`, `PlayerControls.razor`, `TimestampLabel.razor`, `VolumeControls.razor`, `SpectrumVisualizer.razor`.
 - `TrackMediaClient` (HTTP client for `DeepDrftContent`).
 
-The public site needs all of it. Whether the **CMS** needs it is the open question (Q4 in §10):
+**Wave 1 decision:** Audio player stack lives in `DeepDrftPublic.Client` (public site only). The CMS does not preview audio in-browser during Wave 1. CMS users can verify uploads by navigating to the public site in another tab.
 
-- **Option A — Public site only.** Audio player stack moves into `DeepDrftSite.Client`. The CMS never previews audio in-browser. CMS users wanting to verify an upload navigate to the public site in another tab. **Simplest.**
-- **Option B — Shared via `DeepDrftShared.Client`.** The audio player stack moves into the shared RCL and is consumed by both apps. The CMS detail page (`/cms/tracks/{id}`) gains an in-place preview player. **More work; modestly more useful.**
+**Forward-looking constraint** (Daniel): "Previewing tracks using a shared library of audio streaming components is an eventual must." This means the audio-player stack's **eventual home** is a shared library (e.g. `DeepDrftShared.Audio` or similar), not `DeepDrftPublic.Client` in perpetuity. **Staff-engineer should design the Wave 1 placement (public-only stack structure) so that extraction to a shared library later is mechanical, not a rewrite.** The abstraction behind `IPlayerService` is already in place; use this to preserve the seam cleanly. When a future "preview in CMS" need confirms (likely in a later wave), the extraction is a move operation, not a rearchitecture.
 
-Recommendation: **Option A in Wave 1, leave Option B as a future move.** The audio player carries non-trivial complexity (streaming, seek, spectrum, dark-mode-aware visualiser, `DotNetObjectReference` lifetimes) and consolidating it into a shared RCL for a CMS use case that isn't on the immediate roadmap is unnecessary work today. If a future "preview in CMS" need arises, the player moves to shared then — its surface is already abstracted behind `IPlayerService`.
+**Wave 1 does not extract this to shared yet.** The complexity (streaming, seek, spectrum, dark-mode-aware visualiser, `DotNetObjectReference` lifetimes) and the CMS's current non-requirement keep this in place for now.
 
 ### 3.5 TypeScript interop — stays with the public host
 
@@ -224,63 +226,24 @@ App.razor                           static SSR (host markup, AuthorizeRouteView 
 
 ---
 
-## 5. API ownership — where does `api/track/page` live?
+## 5. API ownership — locked by Daniel 2026-05-19
 
 `DeepDrftWeb` today owns one controller — `TrackController` — exposing `GET api/track/page` against `DeepDrftContext` (Postgres metadata). It also owns three CMS-internal controllers (`CmsUploadController`, `CmsEditController`, `CmsDeleteController`).
 
-After the split, the CMS controllers follow the CMS — they require `[Authorize(Roles="Admin")]` and live in `DeepDrftCmsHost`. The question is the public read endpoint.
+After the split, the CMS controllers follow the CMS — they require `[Authorize(Roles="Admin")]` and live in `DeepDrftManager`. The public read endpoint ownership is locked:
 
-### 5.1 Option A — Metadata API stays with the public site (recommended)
+### 5.1 Decision: Both hosts reference services directly
 
-`GET api/track/page` lives in `DeepDrftSite` (the renamed/repurposed `DeepDrftWeb`). The public WASM client calls its own host. The CMS host, when it needs to read paged tracks, calls **across to the public site** via HTTP.
+**Locked decision:** Neither host talks to the other via HTTP for metadata reads. Instead:
 
-**Pros:**
-- Public site is fully self-contained: it hosts its WASM bundle **and** the API that bundle calls. No cross-host dependency for the listener experience.
-- Anonymous endpoint stays anonymous; no auth middleware to step around.
-- Same-origin: WASM → `/api/track/page` works with no CORS configuration.
-- Mirrors today's shape — minimum surgery.
+- **Public host (`DeepDrftPublic`)** references `DeepDrftData` for reads. The WASM client calls its own host's `GET api/track/page` endpoint. Same-origin, no CORS configuration needed.
+- **CMS host (`DeepDrftManager`)** also references `DeepDrftData` directly (already required for write paths). For reading paged tracks in `/cms/tracks` list pages, the CMS host calls `TrackService` in-process, not cross-host via HTTP.
 
-**Cons:**
-- CMS reads cross a host boundary (extra hop for `/cms/tracks` list). In practice negligible — paged metadata is small, and the CMS list is a low-traffic surface.
-- Public site now serves both the WASM bundle and an API. Two responsibilities in one host. Defensible (the API exists to feed the bundle) but not single-purpose.
+**Why:** Both hosts already need `DeepDrftData` (public for reads, CMS for reads+writes). Having the CMS read via direct service call instead of HTTP keeps the architecture simpler and removes a cross-host dependency. The "one source of truth, multiple views" rule is preserved — both hosts consume the same `PagedResult<TrackEntity>` contract; only the transport path differs (WASM → HTTP for public, in-process for CMS).
 
-### 5.2 Option B — Dedicated metadata-API host (`DeepDrftApi` or `DeepDrftMetadata`)
+### 5.2 What changed from the design's earlier three-option sketch
 
-A third ASP.NET Core project owns `GET api/track/page`. Both the public site (WASM → cross-host) and the CMS host (server-side → cross-host) call into it.
-
-**Pros:**
-- Each host is single-purpose: public site is presentation, CMS is admin, metadata API is data. Clean separation.
-- Future-proofs against "what if a mobile app wants metadata too" — the API exists independently of any UI.
-
-**Cons:**
-- Three hosts instead of two. More deploy units, more nginx routes, more systemd services, more cert wiring.
-- The public WASM bundle now does **cross-origin** calls to the metadata API. CORS needs configuration. Either that or nginx-rewrite the public site's `/api/track/page` to the metadata host (which trades the CORS problem for a path-routing problem).
-- Justified only if the API is reused outside the public site. Today it isn't.
-
-### 5.3 Option C — Metadata API lives in the CMS host
-
-`GET api/track/page` is hosted on `DeepDrftCmsHost`. Public site calls cross-host.
-
-**Pros:**
-- The CMS host already references `DeepDrftData` for writes; adding the read endpoint there is zero new wiring.
-- Public site becomes presentation-only (no `DeepDrftData` reference).
-
-**Cons:**
-- The CMS host is auth-gated and `InteractiveServer`. Adding an anonymous controller alongside is fine technically (controllers and Blazor pages share the host but not the auth pipeline) but conceptually muddles the host's role.
-- The CMS host becomes a critical-path dependency for **anonymous** public traffic. If the CMS host goes down, the public site's track gallery breaks.
-- Same cross-origin / CORS issue as Option B from the WASM client's perspective.
-
-### 5.4 Recommendation
-
-**Option A.** Public site owns the metadata read endpoint. It's the lightest surgery, preserves the same-origin contract, and matches the principle that the host that serves the UI also serves the UI's data API. Revisit only if a non-UI client (mobile, third-party) starts consuming metadata.
-
-The CMS host's `/cms/tracks` list pages call `GET api/track/page` cross-host (a named `IHttpClientFactory` client pointed at the public site, like the existing `DeepDrft.Content.Cms` client points at `DeepDrftContent`). No auth header needed — the endpoint is anonymous.
-
-**Implication for the CMS host's `DeepDrftData` reference:** it still needs `DeepDrftData` for the write path (Edit/Delete) but could read paged tracks via HTTP. Two choices:
-- **Read via HTTP** for consistency with how the CMS reaches `DeepDrftContent`. Cleaner conceptually.
-- **Read via direct service call** (CMS host has `DeepDrftData` referenced anyway). Faster path, no HTTP roundtrip for the CMS list page.
-
-The "one source of truth, multiple views" rule (`user_one_source_multiple_views`) is preserved either way — the VM contract is `PagedResult<TrackEntity>` either way; only the transport differs. **Recommend: direct service call for the CMS** since the CMS host already has the dependency, and reserve the HTTP path for the public WASM. Flag as Q5 in §10 if Daniel wants the stricter host-boundary discipline.
+The three options (§5.1–5.3 in the original draft) have been collapsed into this single locked shape. Host-boundary discipline is achieved at the architecture level (two separate applications) rather than enforced at the service-call level.
 
 ---
 
@@ -288,93 +251,65 @@ The "one source of truth, multiple views" rule (`user_one_source_multiple_views`
 
 All present in `CMS-PLAN.md` and landed in CMS Wave 1; preserved here for completeness in the new host. **Nothing about the auth model changes in the split.**
 
-- **AuthBlocks substrate** (`Cerebellum.AuthBlocks*` 10.3.32) — `AddAuthBlocks(...)`, `await app.Services.UseAuthBlocksStartupAsync()`, `app.MapAuthBlocks()` all in `DeepDrftCmsHost/Program.cs`.
+- **AuthBlocks substrate** (`Cerebellum.AuthBlocks*` 10.3.32) — `AddAuthBlocks(...)`, `await app.Services.UseAuthBlocksStartupAsync()`, `app.MapAuthBlocks()` all in `DeepDrftManager/Program.cs`.
 - **AuthBlocksWeb pages** (`/account/login`, `/account/logout`) — exposed by adding `typeof(AuthBlocksWeb._Imports).Assembly` to the CMS host's `AddAdditionalAssemblies`.
 - **JWT in localStorage** via `JwtAuthenticationStateProvider`. CMS host calls `AuthBlocksWeb.Startup.ConfigureAuthServices` server-side; no WASM client means no `AddAuthenticationStateDeserialization` bridge needed.
 - **Auth DB separate from main DB.** `ConnectionStrings:Auth` and `ConnectionStrings:DefaultConnection` are different Postgres databases (or the same instance with different DBs — they share an engine, not a context). The CMS host wires both.
 - **`Admin` role gate** via `[HierarchicalRoleAuthorize("Admin")]` on every CMS page and `[Authorize(Roles = "Admin")]` on every CMS API endpoint.
-- **Stealth routing.** Unauthorized hits on `/cms/*` return 404, not 401, not redirect. `CmsStealthRoutingHandler` (today in `DeepDrftWeb/Middleware/`) follows into the CMS host. Path scope is now naturally `/cms/*` because the CMS host serves nothing else routable from outside auth.
-
-**One thing to verify** (Q6 in §10): the stealth-routing 404 behaviour currently applies only to `/cms/*` because that was the only protected surface in a mixed host. In the dedicated CMS host, more of the surface is protected by default — but `/account/login` is anonymous, the auth API endpoints under `/api/auth/*` are anonymous, and the host's static assets are anonymous. The 404 handler must still target only the `[HierarchicalRoleAuthorize]`-failed cases, not all 401s, or `/account/login` discovery breaks (a legitimate anonymous user with no JWT would get 404 on the login page itself, which is wrong).
+- **Stealth routing (obsolete).** Previous design used stealth routing (404 on unauthorized `/cms/*` hits) for access control in a mixed host. With the CMS now in a separate host, access control is at the host boundary itself via the nginx deployment topology (§7). The `CmsStealthRoutingHandler` middleware is no longer necessary and should be removed from the codebase as part of the split.
 
 **Admin seeding** (`AdminUserSettings` in `authblocks.json`) carries over unchanged. The seed user is created on first boot of the CMS host.
 
 ---
 
-## 7. Deployment topology
+## 7. Deployment topology — locked by Daniel 2026-05-19
 
 The repo currently deploys two systemd services (`deepdrft-content`, `deepdrft-web`) on each host (dch6 beta, prod.cerebellumsoftworks.com prod) via `dch5-publish-deploy.sh`. The split adds a third unit.
 
-### 7.1 Recommendation — path-based routing on a single domain
+### 7.1 Locked decision — subdomain split
 
 ```
-                            nginx (Let's Encrypt cert for deepdrft.com)
-                              │
-            ┌─────────────────┼─────────────────┬───────────────────┐
-            │                 │                 │                   │
-        location /        location /cms     location /api/      location /api/
-                                            track/{id}          auth, /api/users,
-                                                                etc.  (proxied
-                                                                from CMS host)
-            │                 │                 │                   │
-            ▼                 ▼                 ▼                   ▼
-       DeepDrftSite      DeepDrftCmsHost   DeepDrftContent     DeepDrftCmsHost
-       systemd unit      systemd unit      systemd unit        (same as /cms)
-       :5001             :5002             :5003               :5002
-```
-
-Three systemd units per host (`deepdrft-site`, `deepdrft-cms`, `deepdrft-content`). nginx terminates TLS once, routes by path:
-
-- `/` and `/_framework/*` and `/api/track/page` → `DeepDrftSite`.
-- `/cms/*` and `/account/*` (login/logout) and `/api/auth/*`, `/api/users/*`, `/api/roles/*` → `DeepDrftCmsHost`.
-- `/api/track/{id}` and `/api/track/upload` → `DeepDrftContent`.
-
-**Pros:**
-- One domain, one cert. No CORS between public WASM and the metadata API (same origin).
-- Browser sees one site; the architecture is invisible.
-- The "CMS is on the same domain at `/cms`" matches the stealth-routing intent (a snooper hitting `https://deepdrft.com/cms/tracks` gets 404, identical to any unmatched path).
-- Path routing is what nginx is good at; no new tooling.
-
-**Cons:**
-- Two locations on the CMS host (`/cms/*` and `/account/*`). nginx config has to know about both.
-- A misconfigured `/account/login` link from the public site (linking to `/account/login` rather than `/cms/account/login`) needs nginx to route `/account/*` to the CMS host explicitly — easy to forget when the CMS host is mostly known by its `/cms` prefix.
-
-### 7.2 Alternative — subdomain split
-
-```
-deepdrft.com           → DeepDrftSite (public)
-cms.deepdrft.com       → DeepDrftCmsHost (staff)
+deepdrft.com           → DeepDrftPublic (public site)
+manage.deepdrft.com    → DeepDrftManager (CMS host)
 content.deepdrft.com   → DeepDrftContent (binary API)
-api.deepdrft.com       → DeepDrftSite's track/page endpoint (optional)
 ```
 
-**Pros:**
+Three systemd units per host (`deepdrft-public`, `deepdrft-manager`, `deepdrft-content`). nginx terminates TLS for both main domain and subdomains, routes by hostname:
+
+- `deepdrft.com` and `*.deepdrft.com` → appropriate upstream (public, manager, or content).
+- Each upstream gets its own nginx server block.
+
+**Topology notes:**
+- Public WASM calls `GET /api/track/page` on its own host (deepdrft.com — same origin).
+- Public WASM calls `GET /api/track/{id}` cross-origin to `content.deepdrft.com` (existing CORS config applies).
+- Naming: Daniel proposed `manage.deepdrft.com` for the CMS subdomain (alternatives like `admin.` or `cms.` are also workable; final subdomain is Daniel's call if different).
+
+**Advantages of subdomain over path-based:**
 - Each host has one nginx server block. Cleaner config.
-- CMS can be IP-restricted at the nginx layer (`allow <home-IP>; deny all;` on `cms.deepdrft.com`) without affecting the public site. Layered defence on top of the auth gate.
-- "cms.deepdrft.com" is unambiguous in browser history and link shares.
+- CMS can be IP-restricted at the nginx layer (`allow <home-IP>; deny all;` on the subdomain) without affecting the public site. Layered defence on top of the auth gate.
+- Unambiguous in browser history and link shares.
+- The separate host boundary *is* the access-control mechanism; stealth routing is no longer needed.
 
-**Cons:**
-- Three certs (or one wildcard, which costs more / requires DNS-challenge ACME).
-- Public WASM bundle calls **cross-origin** to anything on `content.deepdrft.com` (already cross-origin today, so the CORS config exists). If the metadata API is hosted on `api.deepdrft.com`, that's a new cross-origin path.
-- Stealth routing changes flavour — the CMS hostname *does* announce its existence by DNS. Mitigated by binding `cms.deepdrft.com` to a non-routable IP behind a VPN, but that's a bigger lift than the current setup.
+### 7.2 Certificate and DNS
 
-### 7.3 Recommendation summary
+- Use a **wildcard cert** (`*.deepdrft.com`) to cover both public and all subdomains, or **separate certs** if the hosting provider charges per-cert. Confirm with Daniel.
+- DNS records: `deepdrft.com` A record, `manage.deepdrft.com` CNAME or A record, `content.deepdrft.com` CNAME or A record.
 
-**Recommend path-based routing (§7.1).** The current deploy already nginx-proxies; adding a third location is small. Subdomain split is the right call **if** Daniel wants IP-restrictable CMS access as a hard requirement; until then, the stealth-routing 404 is enough.
+### 7.3 Why stealth routing is now obsolete
 
-Q7 in §10.
+Access control in the old design relied on stealth routing (404 on unauthorized `/cms/*` hits) because the CMS shared a host with the public site. With separate hosts on separate subdomains, unauthorized access to `manage.deepdrft.com` is **already blocked at the host boundary** — the user would need to resolve the CMS subdomain in the first place (network-level restriction or nginx auth) or pass an auth token (AuthBlocks JWT). The 404 masking is no longer necessary for security and adds no value.
 
-### 7.4 Deploy-script changes
+### 7.4 Deploy-script changes (locked by §8.2 Phase 5)
 
 `dch5-publish-deploy.sh` publishes two projects today. The split makes it three:
 
-- Publish `DeepDrftSite` (was `DeepDrftWeb`).
-- Publish `DeepDrftCmsHost` (new).
+- Publish `DeepDrftPublic` (was `DeepDrftWeb`; renamed in Phase 4).
+- Publish `DeepDrftManager` (new; created in Phase 1).
 - Publish `DeepDrftContent` (unchanged).
 - Three `*.tar.gz` artefacts, three `scp`/`tar`/`restart` cycles.
-- Three EF migration paths to consider — `DeepDrftContext` migrations apply against the metadata DB (driven by whichever host owns the read endpoint and the writes), `AuthDbContext` migrations apply against the auth DB on first run of the CMS host (`UseAuthBlocksStartupAsync` handles this automatically).
+- Three EF migration paths to consider — `DeepDrftContext` migrations apply against the metadata DB (driven by the public host for reads and the CMS host for writes), `AuthDbContext` migrations apply against the auth DB on first run of the CMS host (`UseAuthBlocksStartupAsync` handles this automatically).
 
-The deploy script edit is a staff-engineer task once §10 Q1 (naming) and Q7 (topology) settle.
+The deploy script and nginx config edits are finalized in Phase 5.
 
 ---
 
@@ -382,41 +317,38 @@ The deploy script edit is a staff-engineer task once §10 Q1 (naming) and Q7 (to
 
 The temptation is to do the split atomically. Don't. The split has too many moving parts (project renames, file moves, deploy-script edits, nginx config) and atomic-everything would mean an unreviewable single change.
 
-### 8.1 Smallest first slice — "public home page renders correctly"
+### 8.1 Phase 0 — no-op (band-aid code survives; split fixes the runtime)
 
-**Phase 0: stabilise current `dev`** (small, lands first, can be staff-engineer's first commit).
+**Locked decision (Daniel):** Revert the diagnostic edits made during this session so the band-aid code survives in `dev` intact. The source will remain broken until the split lands, but the diagnostic commits are reverted so they don't pollute the history.
 
-Before touching the split, restore the public site to a non-band-aid state on `dev`. The current `MainLayout.razor` (`<div>@Body</div>` one-liner) is unshippable — it has no nav, no theme switcher, no footer. Either:
+The current `MainLayout.razor` (`<div>@Body</div>` one-liner) is unshippable, but the split fixes this. Phase 0 is "do nothing and wait for the split" — no restoration work on `dev` itself. When the split lands (§8.2 Phase 2), `MainLayout` is restored as part of stripping AuthBlocks from the public host.
 
-- **(a)** Roll forward: a tiny restoration commit that puts the chrome back in `MainLayout` with the *minimum* `[Inject]`s needed (likely none — see §4.1), accepting that it still runs in the entangled host. The home page now renders with chrome but the architectural problem isn't fixed. This gives Daniel a presentable site **while** the split work proceeds in a worktree.
-- **(b)** Skip Phase 0 and go straight to the split — accept that `dev` is broken-with-chrome-gone until the split lands.
-
-**Recommend (a).** A demo-grade home page during the split work is valuable; the chrome restoration is a known-shape change.
+**Why:** The split work is the architectural fix. Putting chrome back on `dev` now would be a temporary fix that Phase 2 would immediately undo. The revert-for-safety approach means the split's intermediate commits are clean (no conflicting band-aid removals to reconcile).
 
 ### 8.2 Phased split (worktree-friendly)
 
-**Phase 1: Stand up `DeepDrftCmsHost` as a new project alongside the existing `DeepDrftWeb`.**
+**Phase 1: Stand up `DeepDrftManager` as a new project alongside the existing `DeepDrftWeb`.**
 
-- New `DeepDrftCmsHost` project. `Microsoft.NET.Sdk.Web`. References `DeepDrftCms` (existing RCL), `DeepDrftData`, `DeepDrftModels`, AuthBlocks packages.
-- Copy `DeepDrftWeb/Program.cs` + `Startup.cs` + `Middleware/CmsStealthRoutingHandler.cs` into `DeepDrftCmsHost/`, strip out everything that isn't CMS (the public-site MudBlazor host, the `DeepDrftWeb.Client` reference, the `TrackController`, the TypeScript pipeline).
+- New `DeepDrftManager` project. `Microsoft.NET.Sdk.Web`. References `DeepDrftCms` (existing RCL), `DeepDrftData`, `DeepDrftModels`, AuthBlocks packages.
+- Copy `DeepDrftWeb/Program.cs` + `Startup.cs` into `DeepDrftManager/`, strip out everything that isn't CMS (the public-site MudBlazor host, the `DeepDrftWeb.Client` reference, the `TrackController`, the TypeScript pipeline). **Do not copy `CmsStealthRoutingHandler`** — it is obsolete in the subdomain topology (§7).
 - Wire `app.MapRazorComponents<App>().AddInteractiveServerRenderMode().AddAdditionalAssemblies(typeof(DeepDrftCms._Imports).Assembly, typeof(AuthBlocksWeb._Imports).Assembly)`. **No** `AddInteractiveWebAssemblyRenderMode`. **No** client assembly.
 - Spin it up on a third port locally. Verify `/cms/tracks` works against the existing Postgres metadata DB and the existing Auth DB.
 - `DeepDrftWeb` is unchanged — both hosts can run concurrently against the same DB during this phase. The CMS lives in both hosts temporarily; that's fine, they share the underlying data.
 
-**Exit criterion:** CMS host stands up, `/account/login` works against the seeded admin, `/cms/tracks` renders. Public site continues to run from `DeepDrftWeb` exactly as today (still entangled, still using band-aid MainLayout — see Phase 0).
+**Exit criterion:** CMS host stands up, `/account/login` works against the seeded admin, `/cms/tracks` renders. Public site continues to run from `DeepDrftWeb` exactly as today (still entangled, still using band-aid MainLayout).
 
 **Phase 2: Strip AuthBlocks out of `DeepDrftWeb`.**
 
 - Remove the `AddAuthBlocks(...)`, `MapAuthBlocks()`, `UseAuthBlocksStartupAsync()` from `DeepDrftWeb/Program.cs`.
 - Remove `AddCascadingAuthenticationState` (the implicit registration via `AuthBlocksWeb.Startup.ConfigureAuthServices`).
 - Remove the `AuthBlocksWeb` assembly from `AddAdditionalAssemblies`.
-- Remove the `DeepDrftCms` reference from `DeepDrftWeb` — the CMS now lives only in `DeepDrftCmsHost`.
+- Remove the `DeepDrftCms` reference from `DeepDrftWeb` — the CMS now lives only in `DeepDrftManager`.
 - Remove the CMS controllers (`CmsUploadController`, `CmsEditController`, `CmsDeleteController`) from `DeepDrftWeb/Controllers/` — they move to the CMS host.
 - Remove `[AllowAnonymous]` attributes from `Home.razor` / `TracksView.razor` (no longer needed).
 - Remove the `JwtAuthenticationStateProvider` registration from `DeepDrftWeb.Client.Startup` (and from `DeepDrftWeb.Client.Program.cs`'s `AuthBlocksWeb.Client.Startup.ConfigureServices(builder.Services)` call) — only the CMS needs it.
-- Restore `MainLayout.razor` to its full chrome state from before the band-aids (the rendition that existed pre-`d31a08b`-era, adapted to current pages). With AuthBlocks gone, `[Inject]`s in the layout work normally.
+- Restore `MainLayout.razor` to its full chrome state from before the band-aids (the rendition that existed pre-band-aid era, adapted to current pages). With AuthBlocks gone, `[Inject]`s in the layout work normally.
 
-**Exit criterion:** Public site (`DeepDrftWeb` still by its old name) renders home page with chrome, prerenders correctly, no hangs. CMS continues to work from `DeepDrftCmsHost`. The hosts run side-by-side.
+**Exit criterion:** Public site (`DeepDrftWeb` still by its old name) renders home page with chrome, prerenders correctly, no hangs. CMS continues to work from `DeepDrftManager`. The hosts run side-by-side.
 
 **Phase 3: Extract `DeepDrftShared.Client` (optional, can run in parallel with 2).**
 
@@ -426,19 +358,20 @@ Before touching the split, restore the public site to a non-band-aid state on `d
 
 **Exit criterion:** Both apps render `TrackCard` from the shared RCL. Visual parity confirmed.
 
-**Phase 4: Rename `DeepDrftWeb` → `DeepDrftSite`, `DeepDrftWeb.Client` → `DeepDrftSite.Client`.**
+**Phase 4: Rename `DeepDrftWeb` → `DeepDrftPublic`, `DeepDrftWeb.Client` → `DeepDrftPublic.Client`.**
 
 - Project file renames, namespace renames, csproj reference updates, solution file edits.
 - Deploy script edits.
-- `dch6` directory rename (`/deepdrft/web` → `/deepdrft/site`) + systemd unit rename.
+- `dch6` directory rename (`/deepdrft/web` → `/deepdrft/public`) + systemd unit rename (`deepdrft-web` → `deepdrft-public`).
 
 **Exit criterion:** All references converge on the new names. The rename is a single staff-engineer pass; doing it last means the split has been validated under the old names first.
 
 **Phase 5: nginx and deploy topology.**
 
-- Edit `dch5-publish-deploy.sh` to publish three projects.
-- Add the `DeepDrftCmsHost` systemd unit.
-- nginx config: add the `/cms/*` and `/account/*` location blocks.
+- Edit `dch5-publish-deploy.sh` to publish three projects: `DeepDrftPublic`, `DeepDrftManager`, `DeepDrftContent`.
+- Add the `DeepDrftManager` systemd unit (`deepdrft-manager`).
+- nginx config: add subdomain server blocks for `manage.deepdrft.com` (or Daniel's chosen subdomain) and `content.deepdrft.com`, routing each to the appropriate upstream.
+- Confirm with Daniel on the CMS subdomain name (proposed: `manage.deepdrft.com`).
 - Verify on `dch6` first; promote to prod when stable.
 
 ### 8.3 Can the public site stand up first while CMS stays in the entangled host?
@@ -453,10 +386,10 @@ The inverse — public site stands up dedicated first, CMS stays in the entangle
 
 The band-aid work since the entanglement was discovered exists only to make the entangled host limp along. Once the split lands, these become removable. **None of these are wrong** — they're correct fixes for the wrong-shaped architecture. The work survives in `Cerebellum.AuthBlocks` upstream where relevant; only the DeepDrftHome-side adaptations are scoped here.
 
-### 9.1 Removable from `DeepDrftWeb` / `DeepDrftSite` once split lands
+### 9.1 Removable from `DeepDrftWeb` / `DeepDrftPublic` once split lands
 
 - `[AllowAnonymous]` attributes on `Home.razor` and `TracksView.razor`. The public host has no `[Authorize]` policy to escape.
-- The `AuthBlocksWeb` assembly entry in `AddAdditionalAssemblies`. The public host does not need to know about `/account/login` — it links to it cross-host (or cross-path via nginx).
+- The `AuthBlocksWeb` assembly entry in `AddAdditionalAssemblies`. The public host does not need to know about `/account/login` — it links to it cross-subdomain.
 - `AuthBlocksWeb.Startup.ConfigureAuthServices(builder.Services, baseUrl)` call.
 - `AuthBlocksWeb.Client.Startup.ConfigureServices(builder.Services)` call in `DeepDrftWeb.Client.Program.cs`.
 - The `Cerebellum.AuthBlocks*` package references in `DeepDrftWeb.csproj` and `DeepDrftWeb.Client.csproj`.
@@ -467,6 +400,7 @@ The band-aid work since the entanglement was discovered exists only to make the 
 - The `JwtAuthenticationStateProvider` and related auth-prerender-bridge wiring on the client.
 - The `@rendermode InteractiveServer` declarations on AuthBlocks pages (those pages aren't in this host anymore).
 - The `<NotAuthorized>` redirect-to-login branch in `Routes.razor` (no auth in this host).
+- **`CmsStealthRoutingHandler` middleware** (from `DeepDrftWeb/Middleware/` or wherever it lives). Stealth routing is obsolete in a subdomain topology; access control is at the host boundary.
 
 ### 9.2 Removable from the entangled `MainLayout.razor`
 
@@ -489,26 +423,31 @@ The prerender-safety rewrites to `JwtAuthenticationStateProvider` in `Cerebellum
 
 ---
 
-## 10. Open questions for Daniel
+## 10. Decisions — resolved by Daniel 2026-05-19
 
-These genuinely need decisions before staff-engineer can execute. Numbered for citation.
+All open questions from the design draft have been resolved. Answers are folded throughout the document above. Summary for reference:
 
-1. **Project names.** `DeepDrftSite` vs. `DeepDrftPublic` vs. rename-in-place `DeepDrftWeb`? `DeepDrftCmsHost` vs. `DeepDrftCms.Host` vs. promoting `DeepDrftCms` to a host (collapsing the RCL+host pair)? `DeepDrftShared.Client` for the new shared RCL — acceptable?
-2. **Shared RCL — yes/no in Wave 1.** Recommendation: yes, with the minimum surface (palette objects, fonts, `DDIcons`, `TrackCard`). But if Daniel prefers to land the split first and extract shared bits as a follow-up, that's a defensible sequencing.
-3. **Single `App.razor` host page or per-app divergence.** Recommendation: per-app. The public site's `App.razor` keeps the dark-mode preconnect, font links, the `DeepDrftAudio` module import. The CMS's `App.razor` is the AuthBlocks-aware version (cascading auth state, MudBlazor + BlazorBlocks chrome). They diverge.
-4. **Audio player in CMS — yes/no.** §3.4 Option A (player only in public) vs. Option B (player in shared RCL, CMS gets preview). Recommendation: A for Wave 1.
-5. **CMS reads — direct service call vs. HTTP across to public site.** Recommendation: direct service call (CMS host has `DeepDrftData` referenced for writes; reusing the dependency for reads is free). If Daniel wants the stricter host-boundary discipline (no DB access from anything but the host that owns the API), flip to HTTP. The VM contract is the same either way.
-6. **Stealth routing scope.** Confirm: only `[HierarchicalRoleAuthorize]`-failed cases return 404. `/account/login` (anonymous-allowed) still serves 200 to unauthenticated users. The middleware predicate must distinguish.
-7. **Deployment topology.** Path-based on `deepdrft.com` (recommended) vs. subdomain split (`cms.deepdrft.com`). Subdomain split is required if Daniel wants IP-restricted CMS access; otherwise path-based is lighter.
-8. **CMS first-paint experience.** Today the CMS is `InteractiveServer` and that's fine for a logged-in workflow. Confirm prerender is off for `/cms/*` (recommended) — keeps the auth gate honest at the page level rather than relying on the stealth handler to clean up after a prerendered anonymous response.
-9. **BlazorBlocks adoption depth.** Daniel said "CMS should be based on BlazorBlocks and AuthBlocks." `Cerebellum.BlazorBlocks.Web` provides "entity management views, modals, and form scaffolding" — does the CMS Wave 1 surface (track list/edit/delete) get rebuilt on BlazorBlocks scaffolding, or does the existing `DeepDrftCms` RCL keep its bespoke pages and BlazorBlocks comes in for Wave 2 (user admin, audit log, etc.)? The split is independent of this, but staff-engineer needs to know whether to refactor or preserve in Phase 1.
-10. **Phase 0 chrome restoration on `dev`.** Yes (restore MainLayout to presentable state on `dev` now, before split work begins) or no (live with the one-liner until the split lands)? Recommendation: yes. The home page should be presentable while the structural work happens in a worktree.
+| Q | Answer | Where locked |
+|---|--------|---|
+| 1. Project names | `DeepDrftPublic` (public host), `DeepDrftManager` (CMS host), `DeepDrftShared.Client` (shared RCL). Rename `DeepDrftCms` RCL to `DeepDrftManager.Cms` is staff-engineer's call. | §2.1–2.2 |
+| 2. Shared RCL in Wave 1 | **Yes, locked.** Extraction of `TrackCard`, `TracksGallery`, `DDIcons`, palette objects, font helpers to `DeepDrftShared.Client` is mandatory in Wave 1. (Daniel: "yes DRY and SOLID!") | §3.3 |
+| 3. Per-app `App.razor` | Confirmed. Public and CMS hosts diverge at the `App.razor` level (dark-mode prerender bridge in public; auth cascade in CMS). | §4.1–4.2 |
+| 4. Audio player in CMS | **Not in Wave 1.** Stack lives in `DeepDrftPublic.Client`. **Forward-looking constraint (locked):** eventual extraction to a shared `*.Audio` library is required; staff-engineer must design Wave 1 placement to make extraction mechanical. | §3.4 |
+| 5. CMS metadata reads | **Both hosts reference services directly.** Public host calls `TrackService` for `/api/track/page` reads; CMS host calls `TrackService` in-process for list pages. No cross-host HTTP for metadata. Hosts do not talk to each other. | §5 |
+| 6. Stealth routing | **Obsolete.** Access control is now at the host boundary (subdomain topology). `CmsStealthRoutingHandler` is removed. | §6, §9.1 |
+| 7. Deploy topology | **Subdomain split, locked.** `deepdrft.com` → public, `manage.deepdrft.com` → CMS (final subdomain name is Daniel's call), `content.deepdrft.com` → content. Nginx routes by hostname, not path. | §7 |
+| 8. CMS prerender | **Off.** CMS pages (`InteractiveServer`) do not prerender. The auth gate is enforced at the circuit level, not at a prerender hook. | §4.2 |
+| 9. BlazorBlocks adoption | **Staff-engineer decision at implementation time.** Directive: adopt BlazorBlocks where the fit is good; no mandate to refactor existing CMS pages in Phase 1 just to adopt it. Evaluate depth during Phase 1 planning. | §8.2 Phase 1 |
+| 10. Phase 0 chrome on `dev` | **No restoration.** Revert the diagnostic edits so `dev` stays broken but clean. The split (Phase 2) fixes the runtime. Restoring chrome now would be temporary and immediately undone. | §8.1 |
 
 ---
 
 ## 11. Working with this document
 
-- This doc captures the **shape**, not the implementation. Staff-engineer takes the answers to §10, follows §8's phased plan, executes.
+**Status as of 2026-05-19:** All decisions locked (§10). This document is now the authoritative design for the two-app split. Staff-engineer executes per §8's phased plan.
+
+- This doc captures the **shape**, not the implementation. Staff-engineer follows §8's phased rollout plan and executes.
+- **The design is locked.** §10 contains the resolved decisions (named by Daniel 2026-05-19). Do not re-open these questions unless Daniel changes direction.
 - When phases land, archive their entries here to `COMPLETED.md` with the original "What / Why / Shape" body preserved (per `CONTEXT.md §6`).
-- The supersession against `CMS-PLAN.md §2` (which placed the CMS inside `DeepDrftWeb`) takes effect once Daniel signs off — at that point doc-keeper updates `CMS-PLAN.md` to point here for the host shape, and the CMS-PLAN's auth/wave content remains authoritative for the CMS feature roadmap.
+- The supersession against `CMS-PLAN.md §2` (which placed the CMS inside `DeepDrftWeb`) takes effect now. Doc-keeper updates `CMS-PLAN.md` to point here for the host shape; the CMS-PLAN's auth/wave content remains authoritative for the CMS feature roadmap.
 - Cross-reference rather than duplicate. If `PLAN.md` adds an item that touches the split (e.g. metadata-API extension), the new item points here for the host context.
