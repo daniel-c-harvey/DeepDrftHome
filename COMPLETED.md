@@ -10,6 +10,30 @@ Newest entries at the top. Group by phase/wave header (mirroring `PLAN.md` / `CM
 
 **Status:** All sub-items landed on 2026-05-18.
 
+### W1.0 `DeepDrftContext` Postgres migration
+
+**Landed 2026-05-18.**
+
+Rewrite all existing EF Core migrations from SQLite to PostgreSQL. Update the `DeepDrftWeb` and `DeepDrftCli` connection strings in config. Migrate any existing data from `../Database/deepdrft.db` to Postgres. Verify the existing `api/track/page` and `api/track/{id}` endpoints function against the new backend. This is a prerequisite for W1.2 (which also runs migrations for AuthDbContext against the same Postgres instance).
+
+### W1.1 `DeepDrftCms` RCL skeleton
+
+**Landed 2026-05-18.**
+
+Project created, added to solution, referenced from `DeepDrftWeb`. Empty `Pages/Cms/Index.razor` mounted at `/cms` returning a "CMS — under construction" placeholder, proving the mount works.
+
+### W1.2 AuthBlocks integration + login
+
+**Landed 2026-05-18.**
+
+Reference `Cerebellum.AuthBlocks`, `Cerebellum.AuthBlocks.Web`, `Cerebellum.AuthBlocks.Models` from `DeepDrftWeb`; reference `Cerebellum.AuthBlocks.Web` from `DeepDrftWeb.Client`. Call `AddAuthBlocks(...)` in `Program.cs` with JWT secret/issuer/audience, Mailtrap email connection, Postgres connection string, and `AdminUserSettings` from `environment/authblocks.json`. Call `await app.Services.UseAuthBlocksStartupAsync()` post-build. Call `app.MapAuthBlocks()` to mount `/api/auth/*` routes. Add the `AuthBlocksWeb` assembly to `AddAdditionalAssemblies` so the bundled `/account/login` and `/account/logout` pages resolve. In `DeepDrftWeb.Client.Startup`, call `AuthBlocksWeb.Client.Startup.ConfigureServices(builder.Services)` for the prerender→WASM auth-state bridge. Add `CreatedByUserId : long?` column to `TrackEntity` via a nullable migration. Provision local Postgres (docker-compose) and document the dev setup. Includes `CmsStealthRoutingHandler` — a custom `IAuthorizationMiddlewareResultHandler` that returns 404 for any `/cms/*` hit that fails authorization, honouring the stealth-routing constraint: unauthorized access to admin routes returns 404, not 401 or redirect.
+
+---
+
+## CMS Wave 1 (legacy section header for reference)
+
+**Status:** All sub-items landed on 2026-05-18.
+
 Goal was: A logged-in collective member can do everything the CLI does today, from a browser.
 
 ### W1.3 CMS track list

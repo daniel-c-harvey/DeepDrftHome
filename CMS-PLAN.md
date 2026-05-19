@@ -249,11 +249,9 @@ Themes, not dates. The order between waves is sequential (each depends on its pr
 
 ### Wave 1 — Auth + scaffolding + parity
 
-**Goal:** A logged-in collective member can do everything the CLI does today, from a browser.
+**Status: Landed 2026-05-18. See `COMPLETED.md` for full item details.**
 
-- **W1.0 `DeepDrftContext` Postgres migration.** Rewrite all existing EF Core migrations from SQLite to PostgreSQL. Update the `DeepDrftWeb` and `DeepDrftCli` connection strings in config. Migrate any existing data from `../Database/deepdrft.db` to Postgres. Verify the existing `api/track/page` and `api/track/{id}` endpoints function against the new backend. This is a prerequisite for W1.2 (which also runs migrations for AuthDbContext against the same Postgres instance).
-- **W1.1 `DeepDrftCms` RCL skeleton.** Project created, added to solution, referenced from `DeepDrftWeb`. Empty `Pages/Cms/Index.razor` mounted at `/cms` returning a "CMS — under construction" placeholder, proving the mount works.
-- **W1.2 AuthBlocks integration + login.** Reference `Cerebellum.AuthBlocks`, `Cerebellum.AuthBlocks.Web`, `Cerebellum.AuthBlocks.Models` from `DeepDrftWeb`; reference `Cerebellum.AuthBlocks.Web` from `DeepDrftWeb.Client`. Call `AddAuthBlocks(...)` in `Program.cs` with JWT secret/issuer/audience, Mailtrap email connection, Postgres connection string, and `AdminUserSettings` from `environment/authblocks.json`. Call `await app.Services.UseAuthBlocksStartupAsync()` post-build. Call `app.MapAuthBlocks()` to mount `/api/auth/*` routes. Add the `AuthBlocksWeb` assembly to `AddAdditionalAssemblies` so the bundled `/account/login` and `/account/logout` pages resolve. In `DeepDrftWeb.Client.Startup`, call `AuthBlocksWeb.Client.Startup.ConfigureServices(builder.Services)` for the prerender→WASM auth-state bridge. Add `CreatedByUserId : long?` column to `TrackEntity` via a nullable migration. Provision local Postgres (docker-compose) and document the dev setup. Acceptance: (a) authenticated `Admin` visiting `/cms/*` lands successfully; (b) **anonymous or insufficient-role access to any `/cms/*` route returns 404** (not a redirect, not a 401 — per §3.4 stealth-routing constraint); (c) `/account/login` remains publicly reachable and does not redirect signed-in non-admins to any `/cms/*` route.
+This wave delivered a logged-in collective member the ability to do everything the CLI does today from a browser. All sub-items (W1.0 Postgres migration, W1.1 RCL skeleton, W1.2 AuthBlocks + stealth routing) are complete.
 
 ### Wave 2 — Operations the CLI never had
 
