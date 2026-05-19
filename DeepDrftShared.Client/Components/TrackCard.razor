@@ -1,6 +1,6 @@
-﻿<MudCard Class="deepdrft-track-card-container"
+<MudCard Class="deepdrft-track-card-container"
          Elevation="4">
-    
+
     @if (!string.IsNullOrEmpty(TrackModel?.ImagePath))
     {
         <div class="deepdrft-track-card-bg" style="background-image: url('@TrackModel.ImagePath');">
@@ -12,49 +12,49 @@
                   Elevation="0">
         </MudPaper>
     }
-    
+
     <MudCardContent Class="deepdrft-track-card-content">
-        
+
         <div class="deepdrft-track-info-top">
-            <MudText Typo="Typo.subtitle1" 
+            <MudText Typo="Typo.subtitle1"
                      Color="Color.Surface"
                      Class="text-truncate mb-1">
                 @TrackModel?.TrackName
             </MudText>
-            
-            <MudText Typo="Typo.caption" 
+
+            <MudText Typo="Typo.caption"
                      Color="Color.Surface"
                      Class="text-truncate mb-2">
                 @TrackModel?.Artist
             </MudText>
         </div>
-        
+
         <div class="deepdrft-track-info-middle">
             @if (!string.IsNullOrEmpty(TrackModel?.Album))
             {
-                <MudText Typo="Typo.caption" 
+                <MudText Typo="Typo.caption"
                          Color="Color.Surface"
                          Class="text-truncate">
                     @TrackModel.Album
                 </MudText>
             }
-            
+
             @if (!string.IsNullOrEmpty(TrackModel?.Genre))
             {
-                <MudChip T="string" 
-                         Size="Size.Small" 
-                         Variant="Variant.Filled" 
+                <MudChip T="string"
+                         Size="Size.Small"
+                         Variant="Variant.Filled"
                          Color="Color.Primary"
                          Class="deepdrft-genre-chip">
                     @TrackModel.Genre
                 </MudChip>
             }
         </div>
-        
+
         <div class="deepdrft-track-info-bottom">
             @if (TrackModel?.ReleaseDate.HasValue == true)
             {
-                <MudText Typo="Typo.caption" 
+                <MudText Typo="Typo.caption"
                          Color="Color.Surface">
                     @TrackModel.ReleaseDate.Value.Year
                 </MudText>
@@ -63,13 +63,13 @@
             {
                 <div></div>
             }
-            
-            <MudFab Color="Color.Primary" 
+
+            <MudFab Color="Color.Primary"
                     Size="Size.Medium"
                     StartIcon="@PlayPauseIcon"
                     OnClick="@PlayClick"/>
         </div>
-        
+
     </MudCardContent>
-    
+
 </MudCard>

@@ -2,6 +2,7 @@
 @using DeepDrftWeb.Client.Controls.AudioPlayerBar
 @using DeepDrftWeb.Client.Services
 @using DeepDrftWeb.Client.Common
+@using DeepDrftShared.Client.Common
 @using Microsoft.AspNetCore.Components
 @inherits LayoutComponentBase
 @implements IDisposable
@@ -68,70 +69,17 @@
         // Register to persist state when prerendering completes
         _persistingSubscription = PersistentState.RegisterOnPersisting(PersistDarkMode);
 
+        // Palettes + typography live in DeepDrftShared.Client.Common.DeepDrftPalettes
+        // so the CMS host can reuse them. We wrap into ThemeManagerTheme to keep
+        // the MudBlazor.ThemeManager integration intact.
         _themeManager = new ThemeManagerTheme
         {
-            Theme =
-            {
-                PaletteDark = _darkPalette,
-                PaletteLight = _lightPalette,
-                Typography = new Typography()
-                {
-                    Default = new DefaultTypography()
-                    {
-                        FontFamily = new[] {"DM Sans", "sans-serif"}
-                    },
-                    H1 = new H1Typography()
-                    {
-                        FontFamily = new[] {"Cormorant Garamond", "Georgia", "serif"}
-                    },
-                    H2 = new H2Typography()
-                    {
-                        FontFamily = new[] {"Cormorant Garamond", "Georgia", "serif"}
-                    },
-                    H3 = new H3Typography()
-                    {
-                        FontFamily = new[] {"Cormorant Garamond", "Georgia", "serif"}
-                    },
-                    H4 = new H4Typography()
-                    {
-                        FontFamily = new[] {"Cormorant Garamond", "Georgia", "serif"}
-                    },
-                    // Extended to H5/H6 beyond spec — keeps heading hierarchy consistent in Cormorant Garamond
-                    H5 = new H5Typography()
-                    {
-                        FontFamily = new[] {"Cormorant Garamond", "Georgia", "serif"}
-                    },
-                    H6 = new H6Typography()
-                    {
-                        FontFamily = new[] {"Cormorant Garamond", "Georgia", "serif"}
-                    },
-                    Subtitle1 = new Subtitle1Typography()
-                    {
-                        FontFamily = new[] {"Geist Mono", "monospace"}
-                    },
-                    Body1 = new Body1Typography()
-                    {
-                        FontFamily = new[] {"DM Sans", "sans-serif"}
-                    },
-                    Body2 = new Body2Typography()
-                    {
-                        FontFamily = new[] {"DM Sans", "sans-serif"}
-                    },
-                    Caption = new CaptionTypography()
-                    {
-                        FontFamily = new[] {"Geist Mono", "monospace"}
-                    },
-                    Button = new ButtonTypography()
-                    {
-                        FontFamily = new[] {"Geist Mono", "monospace"}
-                    }
-                }
-            }
+            Theme = DeepDrftPalettes.Default,
         };
 
         StateHasChanged();
     }
-    
+
     private ThemeManagerTheme _themeManager;
     public bool _themeManagerOpen = false;
 
@@ -145,69 +93,6 @@
         _themeManager = value;
         StateHasChanged();
     }
-
-    // Wireframe light palette - navy / green / warm off-white
-    private readonly PaletteLight _lightPalette = new()
-    {
-        Primary = "#0D1B2A",                              // Navy - text, buttons
-        PrimaryDarken = "#162437",                        // Navy-mid - hover, elevated surfaces
-        Secondary = "#1A3C34",                            // Deep green - italic emphasis
-        Tertiary = "#3D7A68",                             // Green-accent - interactive hovers/active/icons
-        Background = "#FAFAF8",                           // Warm off-white
-        BackgroundGray = "#F0F2F0",                       // Slight warm gray for contrast
-        Surface = "#FAFAF8",
-        AppbarBackground = "rgba(250,250,248,0.88)",
-        AppbarText = "#0D1B2A",
-        TextPrimary = "#0D1B2A",
-        TextSecondary = "#8A9BB0",                        // Muted - secondary text, nav at rest
-        TextDisabled = "rgba(13,27,42,0.38)",
-        ActionDefault = "#8A9BB0",
-        ActionDisabled = "rgba(13,27,42,0.26)",
-        ActionDisabledBackground = "rgba(13,27,42,0.12)",
-        Divider = "rgba(13,27,42,0.10)",
-        DividerLight = "rgba(13,27,42,0.06)",
-        TableLines = "rgba(13,27,42,0.10)",
-        LinesDefault = "rgba(13,27,42,0.10)",
-        LinesInputs = "rgba(13,27,42,0.30)",
-        OverlayLight = "rgba(250,250,248,0.5)",
-        OverlayDark = "rgba(13,27,42,0.5)",
-        // Semantic (Info/Success/Warning/Error) intentionally left at MudBlazor defaults
-    };
-
-    // Wireframe dark palette - navy ground / green-accent / off-white
-    // Mirrors the light palette's vocabulary on a dark ground; the coral/lowcountry
-    // identity has been retired. On dark, green-accent (#3D7A68) becomes the primary
-    // interactive colour and off-white (#FAFAF8) becomes the secondary emphasis.
-    private readonly PaletteDark _darkPalette = new()
-    {
-        Primary = "#3D7A68",                              // Green-accent - interactive colour on dark
-        PrimaryDarken = "#2A5C4F",                        // Green-light - hover/pressed
-        Secondary = "#FAFAF8",                            // Off-white - secondary emphasis
-        Tertiary = "#1A3C34",                             // Deep green - tertiary accent
-        Background = "#0D1B2A",                           // Navy - the light palette's primary as the dark ground
-        Surface = "#162437",                              // Navy-mid - elevated cards/panels
-        AppbarBackground = "rgba(13,27,42,0.92)",         // Semi-opaque navy
-        AppbarText = "#FAFAF8",
-        DrawerBackground = "#162437",                     // Navy-mid
-        DrawerText = "#FAFAF8",
-        DrawerIcon = "#8A9BB0",                           // Muted
-        // TextPrimary (#FAFAF8) on Background (#0D1B2A): contrast ratio ~16.5:1 - passes WCAG AA (≥4.5:1)
-        TextPrimary = "#FAFAF8",
-        // TextSecondary (#8A9BB0) on Background (#0D1B2A): contrast ratio ~6.1:1 - passes WCAG AA for normal text
-        TextSecondary = "#8A9BB0",
-        TextDisabled = "rgba(250,250,248,0.38)",
-        ActionDefault = "#8A9BB0",
-        ActionDisabled = "rgba(250,250,248,0.26)",
-        ActionDisabledBackground = "rgba(250,250,248,0.12)",
-        Divider = "rgba(250,250,248,0.10)",
-        DividerLight = "rgba(250,250,248,0.06)",
-        TableLines = "rgba(250,250,248,0.10)",
-        LinesDefault = "rgba(250,250,248,0.10)",
-        LinesInputs = "rgba(250,250,248,0.30)",
-        OverlayLight = "rgba(13,27,42,0.5)",
-        OverlayDark = "rgba(0,0,0,0.7)",
-        // Semantic (Info/Success/Warning/Error) intentionally left at MudBlazor defaults
-    };
 
     // Theme wrapper class for CSS targeting
     private string ThemeWrapperClass => _isDarkMode ? "deepdrft-theme-dark" : "deepdrft-theme-light";

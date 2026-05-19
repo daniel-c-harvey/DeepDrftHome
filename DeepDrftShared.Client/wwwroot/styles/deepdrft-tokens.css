@@ -1,0 +1,96 @@
+/* DeepDrft design tokens — shared palette layer.
+   Consumed by both DeepDrftWeb (public site, light + dark) and the CMS host
+   (light only). Page-specific styling lives in the consuming host's own
+   stylesheet (e.g. DeepDrftWeb/wwwroot/styles/deepdrft-styles.css). */
+
+/* Light theme - wireframe palette (navy / green / warm off-white) */
+:root {
+    /* Wireframe tokens - source of truth */
+    --deepdrft-navy: #0D1B2A;
+    --deepdrft-navy-mid: #162437;
+    --deepdrft-green: #1A3C34;
+    --deepdrft-green-light: #2A5C4F;
+    --deepdrft-green-accent: #3D7A68;
+    --deepdrft-muted: #8A9BB0;
+    --deepdrft-white: #FAFAF8;
+    --deepdrft-border: rgba(13, 27, 42, 0.10);
+    --deepdrft-border-green: rgba(26, 60, 52, 0.20);
+
+    /* Wireframe font stack */
+    --deepdrft-font-display: "Cormorant Garamond", Georgia, serif;
+    --deepdrft-font-mono: "Geist Mono", monospace;
+    --deepdrft-font-body: "DM Sans", sans-serif;
+
+    /* Legacy palette aliases - mapped onto wireframe tokens.
+       Existing utility classes (.deepdrft-card-*, .deepdrft-chip-*, .deepdrft-text-*)
+       still reference these names; they will be retired in Phase 0.3/0.4 when
+       Home.razor is rewritten. Until then, alias to the closest wireframe colour. */
+    --deepdrft-primary: var(--deepdrft-navy);
+    --deepdrft-secondary: var(--deepdrft-green);
+    --deepdrft-tertiary: var(--deepdrft-green-accent);
+    --deepdrft-quaternary: var(--deepdrft-muted);
+    --deepdrft-quinary: var(--deepdrft-green-light);
+    --deepdrft-senary: var(--deepdrft-navy-mid);
+
+    /* Surfaces */
+    --deepdrft-surface: var(--deepdrft-white);
+    --deepdrft-background: var(--deepdrft-white);
+    --deepdrft-surface-alpha: rgba(250, 250, 248, 0.88);
+
+    /* Theme-aware aliases */
+    --theme-primary: var(--deepdrft-primary);
+    --theme-secondary: var(--deepdrft-secondary);
+    --theme-tertiary: var(--deepdrft-tertiary);
+    --theme-quaternary: var(--deepdrft-quaternary);
+    --theme-quinary: var(--deepdrft-quinary);
+    --theme-senary: var(--deepdrft-senary);
+    --theme-surface: var(--deepdrft-surface);
+    --theme-surface-soft: var(--deepdrft-muted);
+
+    /* Gradient colors */
+    --gradient-base: var(--deepdrft-white);
+    --gradient-accent: var(--deepdrft-navy);
+    --gradient-warm: var(--deepdrft-green);
+    --gradient-light: var(--deepdrft-green-accent);
+
+    /* Legacy font aliases retired in Phase 0.1 — all consumers now use --deepdrft-font-*.
+       Palette aliases (--deepdrft-primary, --theme-*, etc.) remain; they still have
+       consumers and are scheduled for retirement in Phase 0.3/0.4. */
+}
+
+/* Dark theme - wireframe palette (navy ground / green-accent / off-white).
+   Mirrors the light palette's vocabulary on a dark ground. Same alias structure
+   as :root so utility classes (.deepdrft-chip-*, .deepdrft-border-*, .deepdrft-text-*)
+   resolve coherently across themes. */
+.deepdrft-theme-dark {
+    /* Legacy palette aliases - mapped onto wireframe tokens.
+       On dark, green-accent becomes the primary interactive colour and
+       off-white becomes the secondary emphasis. */
+    --deepdrft-primary: var(--deepdrft-green-accent);
+    --deepdrft-secondary: var(--deepdrft-white);
+    --deepdrft-tertiary: var(--deepdrft-green);
+    --deepdrft-quaternary: var(--deepdrft-muted);
+    --deepdrft-quinary: var(--deepdrft-green-light);
+    --deepdrft-senary: var(--deepdrft-navy-mid);
+
+    /* Surfaces - navy ground, navy-mid elevated */
+    --deepdrft-surface: var(--deepdrft-navy-mid);
+    --deepdrft-background: var(--deepdrft-navy);
+    --deepdrft-surface-alpha: rgba(13, 27, 42, 0.92);
+
+    /* Theme-aware aliases */
+    --theme-primary: var(--deepdrft-primary);
+    --theme-secondary: var(--deepdrft-secondary);
+    --theme-tertiary: var(--deepdrft-tertiary);
+    --theme-quaternary: var(--deepdrft-quaternary);
+    --theme-quinary: var(--deepdrft-quinary);
+    --theme-senary: var(--deepdrft-senary);
+    --theme-surface: var(--deepdrft-white);
+    --theme-surface-soft: var(--deepdrft-muted);
+
+    /* Gradient colors */
+    --gradient-base: var(--deepdrft-navy);
+    --gradient-accent: var(--deepdrft-green-accent);
+    --gradient-warm: var(--deepdrft-green);
+    --gradient-light: var(--deepdrft-green-light);
+}
