@@ -53,9 +53,9 @@ public class TrackConfiguration : BaseEntityConfiguration<TrackEntity>
         builder.Property(e => e.CreatedByUserId)
             .HasColumnName("created_by_user_id");
 
-        // Explicit index on is_deleted so soft-delete global query filters are
-        // not full table scans. base.Configure may or may not add this depending
-        // on the BlazorBlocks.Data version; declaring it here guarantees it.
+        // Names the is_deleted index explicitly. BaseEntityConfiguration.Configure already
+        // calls HasIndex(e => e.IsDeleted); this adds HasDatabaseName so EF always uses
+        // "IX_track_is_deleted" regardless of auto-naming conventions.
         builder.HasIndex(e => e.IsDeleted).HasDatabaseName("IX_track_is_deleted");
     }
 }
