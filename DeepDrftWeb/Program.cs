@@ -2,6 +2,8 @@ using AuthBlocksLib;
 using AuthBlocksLib.Options;
 using DeepDrftCms;
 using DeepDrftWeb;
+using DeepDrftWeb.Middleware;
+using Microsoft.AspNetCore.Authorization;
 using MudBlazor.Services;
 using DeepDrftWeb.Components;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -63,6 +65,11 @@ builder.Services.AddAuthBlocks(options =>
             ?? throw new InvalidOperationException("AuthBlocks:Admin:Password is required")
     };
 });
+
+// CMS stealth routing: unauthorized /cms/* requests return 404, not a redirect.
+// This prevents the CMS from revealing its own existence to unauthenticated callers.
+// See CMS-PLAN §3.4.
+builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, CmsStealthRoutingHandler>();
 
 // AuthBlocksWeb: Blazor JWT client services (auth API is mounted on this same host via MapAuthBlocks).
 // AuthBlocksWeb.Startup.ConfigureAuthServices registers AddCascadingAuthenticationState server-side.
