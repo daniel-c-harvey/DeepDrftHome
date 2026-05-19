@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftWeb.Services", "DeepDrftWeb.Services\DeepDrftWeb.Services.csproj", "{0B1ABD2E-ACC4-40B2-A80E-CC47CF209C74}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftData", "DeepDrftData\DeepDrftData.csproj", "{0B1ABD2E-ACC4-40B2-A80E-CC47CF209C74}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftModels", "DeepDrftModels\DeepDrftModels.csproj", "{2507F960-A210-40A3-999D-368A6D067350}"
 EndProject

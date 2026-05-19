@@ -1,6 +1,7 @@
-using DeepDrftWeb.Services.Data;
-using DeepDrftWeb.Services.Repositories;
-using DeepDrftWeb.Services;
+using DeepDrftData;
+using DeepDrftData.Data;
+using DeepDrftData.Repositories;
+using DeepDrftWeb.Services; // DarkModeService namespace (within this host project)
 using Microsoft.EntityFrameworkCore;
 
 namespace DeepDrftWeb;
@@ -26,10 +27,14 @@ public static class Startup
             .AddHttpContextAccessor()
             .AddScoped<DarkModeService>();
 
-        // Add Track services
+        // Add Track services. TrackManager implements ITrackService for backward compatibility
+        // with controllers and CMS pages that inject the interface; resolving ITrackService
+        // returns the same scoped TrackManager instance so the manager surface (DTO-space)
+        // and the service surface (entity-space) share state.
         builder.Services
             .AddScoped<TrackRepository>()
-            .AddScoped<ITrackService, TrackService>();
+            .AddScoped<TrackManager>()
+            .AddScoped<ITrackService>(sp => sp.GetRequiredService<TrackManager>());
 
         // CMS → DeepDrftContent client. The API key is required up front (no lazy resolution)
         // so a misconfiguration surfaces at startup instead of on the first delete attempt.
@@ -44,13 +49,13 @@ public static class Startup
             client.DefaultRequestHeaders.Add("ApiKey", contentApiKey);
         });
     }
-    
+
     public static string GetKestrelUrl(this WebApplicationBuilder builder)
     {
         // Check all the places Kestrel URL can be configured
-        var urls = builder.Configuration["ASPNETCORE_URLS"] 
+        var urls = builder.Configuration["ASPNETCORE_URLS"]
                    ?? builder.Configuration["urls"];
-                  
+
         if (!string.IsNullOrEmpty(urls))
         {
             return urls.Split(';')[0].Trim();
@@ -60,15 +65,15 @@ public static class Startup
         var kestrelSection = builder.Configuration.GetSection("Kestrel:Endpoints");
         var firstEndpoint = kestrelSection.GetChildren().FirstOrDefault();
         var endpointUrl = firstEndpoint?["Url"];
-        
+
         if (!string.IsNullOrEmpty(endpointUrl))
         {
             return endpointUrl;
         }
 
         // ASP.NET Core defaults
-        return builder.Environment.IsDevelopment() 
-            ? "https://localhost:5001" 
+        return builder.Environment.IsDevelopment()
+            ? "https://localhost:5001"
             : "http://localhost:5000";
     }
 }

@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DeepDrftContent.Services\DeepDrftContent.Services.csproj" />
+    <ProjectReference Include="..\DeepDrftContent.Data\DeepDrftContent.Data.csproj" />
   </ItemGroup>
 
 </Project>

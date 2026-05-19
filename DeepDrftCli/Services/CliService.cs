@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
-using DeepDrftContent.Services;
+using DeepDrftContent.Data;
 using DeepDrftModels.Entities;
 using NetBlocks.Models;
 using DeepDrftCli.Utils;
@@ -13,13 +13,13 @@ namespace DeepDrftCli.Services;
 public class CliService
 {
     private readonly ILogger<CliService> _logger;
-    private readonly DeepDrftWeb.Services.ITrackService _webTrackService;
-    private readonly DeepDrftContent.Services.TrackService _contentTrackService;
+    private readonly DeepDrftData.ITrackService _webTrackService;
+    private readonly DeepDrftContent.Data.TrackService _contentTrackService;
 
     public CliService(
         ILogger<CliService> logger,
-        DeepDrftWeb.Services.ITrackService webTrackService,
-        DeepDrftContent.Services.TrackService contentTrackService)
+        DeepDrftData.ITrackService webTrackService,
+        DeepDrftContent.Data.TrackService contentTrackService)
     {
         _logger = logger;
         _webTrackService = webTrackService;

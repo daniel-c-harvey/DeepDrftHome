@@ -1,7 +1,7 @@
-using DeepDrftContent.Services.Audio;
-using DeepDrftContent.Services.Constants;
-using DeepDrftContent.Services.FileDatabase.Models;
-using DeepDrftContent.Services.FileDatabase.Services;
+using DeepDrftContent.Data.Audio;
+using DeepDrftContent.Data.Constants;
+using DeepDrftContent.Data.FileDatabase.Models;
+using DeepDrftContent.Data.FileDatabase.Services;
 using DeepDrftContent.Middleware;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,7 +11,7 @@ namespace DeepDrftContent.Controllers;
 [Route("api/[controller]")]
 public class TrackController : ControllerBase
 {
-    private readonly DeepDrftContent.Services.TrackService _trackService;
+    private readonly DeepDrftContent.Data.TrackService _trackService;
     private readonly WavOffsetService _wavOffsetService;
     private readonly ILogger<TrackController> _logger;
 
@@ -19,11 +19,11 @@ public class TrackController : ControllerBase
     // AudioBinaryDto over the wire, not a WAV file path. TrackService.AddTrackFromWavAsync is
     // file-path-oriented and not applicable here. If a file-upload flow is added in future,
     // route it through TrackService instead.
-    private readonly DeepDrftContent.Services.FileDatabase.Services.FileDatabase _fileDatabase;
+    private readonly DeepDrftContent.Data.FileDatabase.Services.FileDatabase _fileDatabase;
 
     public TrackController(
-        DeepDrftContent.Services.TrackService trackService,
-        DeepDrftContent.Services.FileDatabase.Services.FileDatabase fileDatabase,
+        DeepDrftContent.Data.TrackService trackService,
+        DeepDrftContent.Data.FileDatabase.Services.FileDatabase fileDatabase,
         WavOffsetService wavOffsetService,
         ILogger<TrackController> logger)
     {
@@ -245,7 +245,7 @@ public class TrackController : ControllerBase
         // Direct FileDatabase write: this endpoint receives an already-processed AudioBinaryDto,
         // not a WAV file, so TrackService.AddTrackFromWavAsync does not apply. See constructor comment.
         var success = await _fileDatabase.RegisterResourceAsync(
-            DeepDrftContent.Services.Constants.VaultConstants.Tracks, trackId, audioBinary);
+            DeepDrftContent.Data.Constants.VaultConstants.Tracks, trackId, audioBinary);
         return success ? Ok() : BadRequest("Failed to store audio track");
     }
 

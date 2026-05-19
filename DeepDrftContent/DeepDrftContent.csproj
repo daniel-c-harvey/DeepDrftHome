@@ -12,7 +12,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\DeepDrftModels\DeepDrftModels.csproj" />
-      <ProjectReference Include="..\DeepDrftContent.Services\DeepDrftContent.Services.csproj" />
+      <ProjectReference Include="..\DeepDrftContent.Data\DeepDrftContent.Data.csproj" />
     </ItemGroup>
 
     <ItemGroup>
