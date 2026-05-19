@@ -1,0 +1,70 @@
+@rendermode InteractiveServer
+@inherits LayoutComponentBase
+
+<MudThemeProvider IsDarkMode="false" Theme="@_theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Dense="true" Elevation="1" Color="Color.Primary">
+        <MudText Typo="Typo.h6" Class="ml-3" Style="font-family: 'DM Sans', sans-serif; letter-spacing: 0.05em;">
+            Deep Drft — Admin
+        </MudText>
+        <MudSpacer />
+        <MudTooltip Text="Back to site">
+            <MudIconButton Icon="@Icons.Material.Filled.Home"
+                           Href="/"
+                           Color="Color.Inherit" />
+        </MudTooltip>
+    </MudAppBar>
+    <MudMainContent Class="pt-14 pb-8">
+        <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    // Light palette from MainLayout — keeps the CMS visually consistent with the public site.
+    private readonly MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary           = "#0D1B2A",
+            PrimaryDarken     = "#162437",
+            Secondary         = "#1A3C34",
+            Tertiary          = "#3D7A68",
+            Background        = "#FAFAF8",
+            BackgroundGray    = "#F0F2F0",
+            Surface           = "#FAFAF8",
+            AppbarBackground  = "#0D1B2A",
+            AppbarText        = "#FAFAF8",
+            TextPrimary       = "#0D1B2A",
+            TextSecondary     = "#8A9BB0",
+            Divider           = "rgba(13,27,42,0.10)",
+            TableLines        = "rgba(13,27,42,0.10)",
+        },
+        Typography = new Typography
+        {
+            Default    = new DefaultTypography  { FontFamily = new[] { "DM Sans",             "sans-serif" } },
+            H1         = new H1Typography       { FontFamily = new[] { "Cormorant Garamond",  "Georgia", "serif" } },
+            H2         = new H2Typography       { FontFamily = new[] { "Cormorant Garamond",  "Georgia", "serif" } },
+            H3         = new H3Typography       { FontFamily = new[] { "Cormorant Garamond",  "Georgia", "serif" } },
+            H4         = new H4Typography       { FontFamily = new[] { "Cormorant Garamond",  "Georgia", "serif" } },
+            H5         = new H5Typography       { FontFamily = new[] { "Cormorant Garamond",  "Georgia", "serif" } },
+            H6         = new H6Typography       { FontFamily = new[] { "Cormorant Garamond",  "Georgia", "serif" } },
+            Subtitle1  = new Subtitle1Typography{ FontFamily = new[] { "Geist Mono",          "monospace" } },
+            Body1      = new Body1Typography    { FontFamily = new[] { "DM Sans",             "sans-serif" } },
+            Body2      = new Body2Typography    { FontFamily = new[] { "DM Sans",             "sans-serif" } },
+            Caption    = new CaptionTypography  { FontFamily = new[] { "Geist Mono",          "monospace" } },
+            Button     = new ButtonTypography   { FontFamily = new[] { "Geist Mono",          "monospace" } },
+        }
+    };
+}
