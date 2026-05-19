@@ -14,6 +14,14 @@ Recommendation up front, reasoning after.
 
 ## 0. Recommendation (TL;DR)
 
+**Decision status (Daniel, 2026-05-18):**
+
+- **Confirmed:** Decision #1 (BlazorBlocks data lift on the SQL side) and Decision #3 (rename `*.Services` → `*.Data`). Both fold into CMS-PLAN Wave 1.0 alongside the Postgres migration.
+- **Deferred:** Decision #2 (`DeepDrftApi` shared controller library). Premature with one SQL-backed entity; revisit when the image vault (`PLAN.md §2.1`) lands and brings a second SQL controller.
+- **Confirmed holds (no change):** Decision #4 (CMS as RCL mounted into `DeepDrftWeb`) and Decision #5 (two-host split between `DeepDrftWeb` and `DeepDrftContent`).
+
+Original recommendation, retained as the record:
+
 - **Keep** the SQL data layer and the FileDatabase data layer in **separate projects**. They are different storage systems with different invariants, not two repositories over one database. The split is load-bearing, not vestigial.
 - **Rename** the two `*.Services` libraries to match their actual role and reduce ambiguity: `DeepDrftWeb.Services` → `DeepDrftData` (or `DeepDrftMeta.Data`), `DeepDrftContent.Services` → `DeepDrftContent.Data`. Lift their host-agnostic seams (repository / manager) onto the **BlazorBlocks Data + Models** base types so the SQL side gets `BaseEntity`, `IRepository`, `Manager`, and `ClassifiedDbError` for free.
 - **Introduce** a new `DeepDrftApi` class library that holds the controller bases and DTOs the two ASP.NET hosts share. Hosts stay as hosts — `DeepDrftWeb` and `DeepDrftContent` — but their controllers thin out and inherit from `ModelController<,,>` (BlazorBlocks) or a DeepDrft-local extension of it.
@@ -193,7 +201,7 @@ DeepDrftHome.sln
 
 ### 3.6 What conflicts with CMS-PLAN.md
 
-- **`CMS-PLAN.md §2` (Solution structure).** References `DeepDrftWeb.Services` and `DeepDrftContent.Services` by their current names. If this proposal is adopted, the rename happens *before* CMS Wave 1.2 lands (the RCL references the renamed projects). Wave 1.0 (Postgres migration) is the natural moment to do the rename and the BlazorBlocks lift together — same files are already being edited.
+- **`CMS-PLAN.md §2` (Solution structure).** **Confirmed (2026-05-18):** the rename (`DeepDrftWeb.Services` → `DeepDrftData`, `DeepDrftContent.Services` → `DeepDrftContent.Data`) and the BlazorBlocks data lift fold into CMS Wave 1.0 alongside the Postgres migration — same files are already being edited. CMS-PLAN §2.1 and §2.2 have been updated to the new project names; Wave 1.2 and downstream references consume the renamed projects from the start.
 - **`CMS-PLAN.md §5` (dual-write).** Unchanged. Option B (HTTP proxy through `DeepDrftContent`) still applies. `DeepDrftWeb` still does not reference `DeepDrftContent.Data` directly. (The new `POST api/track/upload` controller on `DeepDrftContent` is the *only* writer that touches `DeepDrftContent.Data`.)
 - **`CMS-PLAN.md §3.2` (CreatedByUserId).** Subsumed by the `BaseEntity` lift if it includes a `CreatedByUserId` field on `BaseEntity` itself, or added separately if `BaseEntity` doesn't have it. Either way, the column lands in the same migration.
 - **`CMS-PLAN.md §6 Wave 1`.** Wave 1.0 (Postgres) becomes "Postgres migration **+ BlazorBlocks data lift + project rename**" if Daniel approves this proposal. Wave 1.1 onwards is unaffected in shape, but the references update.
@@ -248,12 +256,12 @@ The CMS surface gets cheaper to build, not more expensive — the upfront cost i
 
 ## 6. Decision points for Daniel
 
-These are the load-bearing yes/nos. The rest of the proposal flexes around them.
+These are the load-bearing yes/nos. The rest of the proposal flexes around them. **All resolved (2026-05-18):**
 
-1. **Adopt BlazorBlocks data primitives for the SQL side?** (`BaseEntity`, `Repository`, `Manager`, `ClassifiedDbError`, BlazorBlocks `PagedResult`/`PagedQuery`.) — Recommended yes. The biggest payoff for the least churn.
-2. **Add `DeepDrftApi` as a shared controller library?** — Recommended yes, but lower priority. Could be deferred until the second SQL-side controller (Image) is on the horizon, since with one controller it's premature.
-3. **Rename `DeepDrftWeb.Services` and `DeepDrftContent.Services`?** — Recommended yes if (1) is approved. The rename is a cheap clarity win at the same migration boundary; doing it standalone is more churn than reward.
-4. **Keep the CMS as an RCL inside `DeepDrftWeb`?** — Recommended yes. No change from `CMS-PLAN.md`. Captured the trigger conditions for revisiting in §2.
-5. **Keep the two hosts (`DeepDrftWeb` + `DeepDrftContent`) split?** — Recommended yes. The dual-database / dual-host shape is right.
+1. **Adopt BlazorBlocks data primitives for the SQL side?** (`BaseEntity`, `Repository`, `Manager`, `ClassifiedDbError`, BlazorBlocks `PagedResult`/`PagedQuery`.) — **CONFIRMED.** `TrackEntity : BaseEntity`, `TrackRepository : Repository<DeepDrftContext, TrackEntity>`, `TrackService` becomes `TrackManager : Manager<...>`. BlazorBlocks paging contracts replace DeepDrft's parallel `PagingParameters<T>` / `PagedResult<T>`. Folds into CMS-PLAN Wave 1.0.
+2. **Add `DeepDrftApi` as a shared controller library?** — **DEFERRED.** With one SQL-backed entity (`TrackEntity`), the shared controller library is premature. Revisit when image-vault wiring (`PLAN.md §2.1`) lands and brings a second SQL controller. Until then, the SQL-side `TrackController` stays in `DeepDrftWeb`.
+3. **Rename `DeepDrftWeb.Services` and `DeepDrftContent.Services`?** — **CONFIRMED.** `DeepDrftWeb.Services` → `DeepDrftData`, `DeepDrftContent.Services` → `DeepDrftContent.Data`. Folds into CMS-PLAN Wave 1.0 alongside (1).
+4. **Keep the CMS as an RCL inside `DeepDrftWeb`?** — **CONFIRMED hold.** No change from `CMS-PLAN.md`. Trigger conditions for revisiting captured in §2.
+5. **Keep the two hosts (`DeepDrftWeb` + `DeepDrftContent`) split?** — **CONFIRMED hold.** The dual-database / dual-host shape stays.
 
-If (1) is no, the rest of this proposal mostly evaporates — the existing structure is fine and the discomfort is real but cosmetic. If (1) is yes, (2)–(3) follow naturally and (4)–(5) are confirmations of decisions already taken.
+Original recommendation guidance retained for the record: (1)+(3) are the load-bearing pair — they pay off together at the Postgres-migration boundary; (2) waits for a second SQL controller to justify the library; (4)+(5) are confirmations of decisions already taken in `CMS-PLAN.md` and `CONTEXT.md`.

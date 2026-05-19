@@ -35,8 +35,8 @@ Daniel said "if possible we will keep the CMS code in an RCL, with mountable pag
 ```
 DeepDrftCms                 Razor Class Library (RCL).
                             CMS pages, components, view models, page-route registration.
-                            References: DeepDrftModels, DeepDrftWeb.Services,
-                            DeepDrftContent.Services, Cerebellum.AuthBlocks.Web,
+                            References: DeepDrftModels, DeepDrftData,
+                            DeepDrftContent.Data, Cerebellum.AuthBlocks.Web,
                             Cerebellum.AuthBlocks.Models, MudBlazor.
                             Mounted into DeepDrftWeb via project reference + route discovery.
 ```
@@ -71,7 +71,7 @@ DeepDrftCms                 Razor Class Library (RCL).
 - `DeepDrftWeb` references three AuthBlocks packages (NuGet, published as `Cerebellum.AuthBlocks*` at version 10.3.16+):
   - `Cerebellum.AuthBlocks` — the `AddAuthBlocks`/`UseAuthBlocksStartupAsync`/`MapAuthBlocks` integration surface, JWT services, hierarchical role authorization handler.
   - `Cerebellum.AuthBlocks.Web` — the bundled MudBlazor login/logout/register pages, `JwtAuthenticationStateProvider`, `TokenService` (localStorage), and the `HierarchicalRoleAuthorizeAttribute` / `HierarchicalRoleAuthorizeView` used by the RCL.
-  - `Cerebellum.AuthBlocks.Models` — `ApplicationUser`, `ApplicationRole`, `SystemRole` constants. Transitively pulled by the other two; reference explicitly if `DeepDrftCms` or `DeepDrftWeb.Services` need the entity types.
+  - `Cerebellum.AuthBlocks.Models` — `ApplicationUser`, `ApplicationRole`, `SystemRole` constants. Transitively pulled by the other two; reference explicitly if `DeepDrftCms` or `DeepDrftData` need the entity types.
 - `DeepDrftWeb.Client` references `Cerebellum.AuthBlocks.Web` and calls `AuthBlocksWeb.Client.Startup.ConfigureServices(builder.Services)` to register `AddAuthorizationCore()`, `AddCascadingAuthenticationState()`, and `AddAuthenticationStateDeserialization()`. This is the prerender → WASM bridge for auth state, equivalent to what `DarkModeSettings` does today (see `CONTEXT.md §3.6`).
 - `DeepDrftCms` references `Cerebellum.AuthBlocks.Web` (for the authorize attribute / view) and `Cerebellum.AuthBlocks.Models` (for `SystemRoleConstants.Admin`).
 - A new `DeepDrftWeb/environment/authblocks.json` (or appsettings section) holds the JWT secret, issuer, audience, Mailtrap email connection, admin seed credentials, and Postgres connection string. Follows the same pattern as `apikey.json` — not in repo.
@@ -117,9 +117,18 @@ AuthBlocks's JWT-in-localStorage posture interacts with Blazor's prerender → W
 ### 3.4 Authorization wiring (concrete)
 
 - **Razor pages in the RCL:** `@attribute [HierarchicalRoleAuthorize("Admin")]` at the top of every `/cms/*` page. The bundled handler walks the role hierarchy.
+
+  **Stealth routing (hard constraint).** Non-admin and anonymous requests to any `/cms/*` route must return **404 Not Found**, not a 401 and not a redirect to `/account/login`. The CMS must not acknowledge its own existence to an unauthorized caller. This is a deliberate departure from the bundled `RedirectToLogin` pattern: the login redirect is appropriate for *intentional authenticated-but-wrong-role* access (a signed-in non-admin clicking a CMS link they shouldn't have been shown), but it is wrong for *anonymous discovery* — a redirect to `/account/login` on a hit to `/cms/tracks` reveals that the route exists.
+
+  Candidate implementation shapes (decide at build time, not here):
+  - A custom `IAuthorizationMiddlewareResultHandler` registered for the `/cms/*` route prefix that maps `AuthorizationFailure` to a `404` `StatusCodeResult` instead of the default challenge/forbid behaviour.
+  - A custom authorization policy attached to the CMS routes whose handler returns failure via `context.Fail(new AuthorizationFailureReason(..., "not found"))` and is paired with a result handler that translates that reason to 404.
+  - A route-level endpoint filter / middleware on the `/cms` prefix that inspects auth state before the standard authorization middleware runs and short-circuits to 404 when the caller is not in the `Admin` hierarchy.
+
+  Whichever shape lands, the `/account/login` page itself stays publicly available (the public site links to it). The login page must not auto-redirect a signed-in non-admin to `/cms/*` either — the CMS surface is invisible from outside the trust boundary.
 - **API endpoints in DeepDrftWeb:** `[Authorize(Roles = "Admin")]` on the new `api/cms/track` controller. The hierarchical handler is registered globally so the standard `[Authorize(Roles=...)]` attribute participates in hierarchy walks too.
 - **Anonymous public surface:** unaffected. `GET api/track/page` and `GET api/track/{id}` remain unauthenticated. The public gallery, player, and home page do not require login. Auth state on the public side is "anonymous or signed-in admin"; signed-in state surfaces only as a "CMS" link in the nav.
-- **Login UI:** consume the bundled pages at `/account/login`, `/account/logout`. Do not author CMS-specific login pages. `RedirectToLogin` handles the "I tried to visit `/cms/tracks` while anonymous" case.
+- **Login UI:** consume the bundled pages at `/account/login`, `/account/logout`. Do not author CMS-specific login pages. The bundled `RedirectToLogin` component is **not** used on `/cms/*` routes — those return 404 per the stealth-routing constraint above. `/account/login` is reached by direct navigation (the public-site nav, a bookmark, an admin invitation email), not by being redirected there from a CMS URL.
 - **First-run experience:** Daniel runs the app, AuthBlocks applies migrations against the Postgres `auth` schema, seeds `Admin` + `UserAdmin` roles, creates the admin user from `authblocks.json`. Daniel visits `/account/login`, authenticates, lands on `/cms/tracks`.
 
 ### 3.5 Database conflict — AuthBlocks is Postgres-only
@@ -156,7 +165,7 @@ The CMS replaces what the CLI does today (add, list, delete) and grows the small
 
 These are the minimum to retire `DeepDrftCli`.
 
-**`/cms/tracks`** — track list. The CMS's mirror of `list`. The `[HierarchicalRoleAuthorize("Admin")]` attribute combined with the bundled `RedirectToLogin` component routes unauthenticated visitors to `/account/login` automatically.
+**`/cms/tracks`** — track list. The CMS's mirror of `list`. The `[HierarchicalRoleAuthorize("Admin")]` attribute gates the page; per §3.4 stealth routing, anonymous or insufficient-role hits return 404, not a redirect.
 
 - Reads the same `PagedResult<TrackEntity>` that the public gallery reads (`GET api/track/page`). Per `user_one_source_multiple_views`, the CMS list is a different rendering of the same VM — table layout with admin affordances (edit, delete buttons), sort columns, optional row-level selection for bulk operations (see Wave 2).
 - Empty state mirrors the CLI's "No tracks found in database."
@@ -244,7 +253,7 @@ Themes, not dates. The order between waves is sequential (each depends on its pr
 
 - **W1.0 `DeepDrftContext` Postgres migration.** Rewrite all existing EF Core migrations from SQLite to PostgreSQL. Update the `DeepDrftWeb` and `DeepDrftCli` connection strings in config. Migrate any existing data from `../Database/deepdrft.db` to Postgres. Verify the existing `api/track/page` and `api/track/{id}` endpoints function against the new backend. This is a prerequisite for W1.2 (which also runs migrations for AuthDbContext against the same Postgres instance).
 - **W1.1 `DeepDrftCms` RCL skeleton.** Project created, added to solution, referenced from `DeepDrftWeb`. Empty `Pages/Cms/Index.razor` mounted at `/cms` returning a "CMS — under construction" placeholder, proving the mount works.
-- **W1.2 AuthBlocks integration + login.** Reference `Cerebellum.AuthBlocks`, `Cerebellum.AuthBlocks.Web`, `Cerebellum.AuthBlocks.Models` from `DeepDrftWeb`; reference `Cerebellum.AuthBlocks.Web` from `DeepDrftWeb.Client`. Call `AddAuthBlocks(...)` in `Program.cs` with JWT secret/issuer/audience, Mailtrap email connection, Postgres connection string, and `AdminUserSettings` from `environment/authblocks.json`. Call `await app.Services.UseAuthBlocksStartupAsync()` post-build. Call `app.MapAuthBlocks()` to mount `/api/auth/*` routes. Add the `AuthBlocksWeb` assembly to `AddAdditionalAssemblies` so the bundled `/account/login` and `/account/logout` pages resolve. In `DeepDrftWeb.Client.Startup`, call `AuthBlocksWeb.Client.Startup.ConfigureServices(builder.Services)` for the prerender→WASM auth-state bridge. Add `CreatedByUserId : long?` column to `TrackEntity` via a nullable migration. Provision local Postgres (docker-compose) and document the dev setup. Verify: anonymous visit to `/cms/anything` redirects to `/account/login`; authenticated `Admin` lands successfully.
+- **W1.2 AuthBlocks integration + login.** Reference `Cerebellum.AuthBlocks`, `Cerebellum.AuthBlocks.Web`, `Cerebellum.AuthBlocks.Models` from `DeepDrftWeb`; reference `Cerebellum.AuthBlocks.Web` from `DeepDrftWeb.Client`. Call `AddAuthBlocks(...)` in `Program.cs` with JWT secret/issuer/audience, Mailtrap email connection, Postgres connection string, and `AdminUserSettings` from `environment/authblocks.json`. Call `await app.Services.UseAuthBlocksStartupAsync()` post-build. Call `app.MapAuthBlocks()` to mount `/api/auth/*` routes. Add the `AuthBlocksWeb` assembly to `AddAdditionalAssemblies` so the bundled `/account/login` and `/account/logout` pages resolve. In `DeepDrftWeb.Client.Startup`, call `AuthBlocksWeb.Client.Startup.ConfigureServices(builder.Services)` for the prerender→WASM auth-state bridge. Add `CreatedByUserId : long?` column to `TrackEntity` via a nullable migration. Provision local Postgres (docker-compose) and document the dev setup. Acceptance: (a) authenticated `Admin` visiting `/cms/*` lands successfully; (b) **anonymous or insufficient-role access to any `/cms/*` route returns 404** (not a redirect, not a 401 — per §3.4 stealth-routing constraint); (c) `/account/login` remains publicly reachable and does not redirect signed-in non-admins to any `/cms/*` route.
 
 ### Wave 2 — Operations the CLI never had
 
