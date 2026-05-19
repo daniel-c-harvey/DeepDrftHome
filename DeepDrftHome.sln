@@ -20,6 +20,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftContent.Data", "Dee
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftCms", "DeepDrftCms\DeepDrftCms.csproj", "{81F1D47F-F892-45FB-9E35-D7775805FFD3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftManager", "DeepDrftManager\DeepDrftManager.csproj", "{E50071B2-A59F-4FB7-A435-5D966C538DDD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -150,6 +152,18 @@ Global
 		{81F1D47F-F892-45FB-9E35-D7775805FFD3}.Release|x64.Build.0 = Release|Any CPU
 		{81F1D47F-F892-45FB-9E35-D7775805FFD3}.Release|x86.ActiveCfg = Release|Any CPU
 		{81F1D47F-F892-45FB-9E35-D7775805FFD3}.Release|x86.Build.0 = Release|Any CPU
+		{E50071B2-A59F-4FB7-A435-5D966C538DDD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E50071B2-A59F-4FB7-A435-5D966C538DDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E50071B2-A59F-4FB7-A435-5D966C538DDD}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E50071B2-A59F-4FB7-A435-5D966C538DDD}.Debug|x64.Build.0 = Debug|Any CPU
+		{E50071B2-A59F-4FB7-A435-5D966C538DDD}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E50071B2-A59F-4FB7-A435-5D966C538DDD}.Debug|x86.Build.0 = Debug|Any CPU
+		{E50071B2-A59F-4FB7-A435-5D966C538DDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E50071B2-A59F-4FB7-A435-5D966C538DDD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E50071B2-A59F-4FB7-A435-5D966C538DDD}.Release|x64.ActiveCfg = Release|Any CPU
+		{E50071B2-A59F-4FB7-A435-5D966C538DDD}.Release|x64.Build.0 = Release|Any CPU
+		{E50071B2-A59F-4FB7-A435-5D966C538DDD}.Release|x86.ActiveCfg = Release|Any CPU
+		{E50071B2-A59F-4FB7-A435-5D966C538DDD}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

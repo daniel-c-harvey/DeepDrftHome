@@ -1,0 +1,6 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5433;Database=deepdrft;Username=postgres;Password=your-password-here",
+    "Auth": "Host=localhost;Port=5433;Database=deepdrft_auth;Username=postgres;Password=your-password-here"
+  }
+}
