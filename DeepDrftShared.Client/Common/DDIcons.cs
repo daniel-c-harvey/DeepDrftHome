@@ -1,10 +1,7 @@
-﻿namespace DeepDrftWeb.Client.Common;
+namespace DeepDrftShared.Client.Common;
 
 public static class DDIcons
 {
-    /// <summary>
-    /// Charleston gas lamp lantern - uses currentColor for theming
-    /// </summary>
     /// <summary>
     /// Charleston gas lamp lantern - uses currentColor for theming
     /// </summary>

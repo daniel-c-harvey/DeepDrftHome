@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DeepDrftModels\DeepDrftModels.csproj" />
+    <ProjectReference Include="..\DeepDrftShared.Client\DeepDrftShared.Client.csproj" />
   </ItemGroup>
 
   <ItemGroup>

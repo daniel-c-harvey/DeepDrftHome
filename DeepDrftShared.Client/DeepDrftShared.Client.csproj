@@ -7,22 +7,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <SupportedPlatform Remove="browser" />
+    <SupportedPlatform Include="browser" />
   </ItemGroup>
 
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.7" />
     <PackageReference Include="MudBlazor" Version="8.15.0" />
-    <PackageReference Include="Cerebellum.AuthBlocks.Web" Version="10.3.32" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\DeepDrftModels\DeepDrftModels.csproj" />
-    <ProjectReference Include="..\DeepDrftData\DeepDrftData.csproj" />
-    <ProjectReference Include="..\DeepDrftShared.Client\DeepDrftShared.Client.csproj" />
   </ItemGroup>
 
 </Project>
