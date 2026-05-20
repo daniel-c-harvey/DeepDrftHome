@@ -121,7 +121,7 @@ public class TrackController : ControllerBase
     }
 
     // POST api/track/upload: raw WAV in (multipart/form-data) + metadata → unpersisted TrackEntity out.
-    // Used by the CMS upload flow on DeepDrftWeb; that host proxies the upload here so it never
+    // Used by the CMS upload flow on DeepDrftPublic; that host proxies the upload here so it never
     // touches the vault disk path directly (Option B in CMS-PLAN §5).
     //
     // RequestSizeLimit/MultipartBodyLengthLimit set to 1 GB: WAV uploads can be tens to hundreds

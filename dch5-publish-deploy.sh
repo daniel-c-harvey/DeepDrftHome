@@ -3,8 +3,8 @@ eval $(ssh-agent -s)
 ssh-add /c/.ssh/deepdrft_dch6_ed25519
 
 CONTENT_PROJ="DeepDrftContent"
-WEB_PROJ="DeepDrftWeb"
-WEB_SERVICES_PROJ="DeepDrftWeb.Services"
+WEB_PROJ="DeepDrftPublic"
+WEB_SERVICES_PROJ="DeepDrftData"
 CONTENT_APP="deepdrft-content.tar.gz"
 WEB_APP="deepdrft-web.tar.gz"
 

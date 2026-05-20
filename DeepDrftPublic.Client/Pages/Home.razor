@@ -1,0 +1,231 @@
+@page "/"
+@rendermode InteractiveAuto
+@using DeepDrftPublic.Client.Services
+
+<PageTitle>Deep DRFT - Electronic Music Collective</PageTitle>
+
+@* Hero - split 50/50 *@
+<section class="hero">
+    <div class="hero-left">
+        <div class="hero-eyebrow fade-up">Charleston, South Carolina</div>
+        <h1 class="hero-title fade-up">Deep<br /><em>Drft</em></h1>
+        <p class="hero-subtitle fade-up">Electronic Music Collective</p>
+        <p class="hero-desc fade-up">
+            We craft immersive electronic soundscapes &mdash; live, unscripted, and built from synthesizers, drum machines, and raw intention. No sets. No loops. Pure drift.
+        </p>
+        <div class="hero-actions fade-up">
+            <a class="btn-primary" href="/tracks">Start Streaming</a>
+            <a class="btn-ghost" href="/tracks">Browse Tracks</a>
+        </div>
+    </div>
+
+    <div class="hero-right">
+        @* Pulsing rings *@
+        <div class="circle-deco"></div>
+        <div class="circle-deco"></div>
+        <div class="circle-deco"></div>
+
+        <div class="hero-right-content">
+            @* Now-Playing card *@
+            <div class="now-playing">
+                <div class="np-label"><span class="np-dot"></span>Now Playing</div>
+                <div class="np-title">@(Player?.CurrentTrack?.TrackName ?? "Nothing playing")</div>
+                <div class="np-sub">
+                    @(Player?.CurrentTrack != null
+                        ? $"{Player.CurrentTrack.Artist} · {Player.CurrentTrack.Album ?? "Single"}"
+                        : "Select a track to begin")
+                </div>
+
+                @if (Player?.IsLoaded == true)
+                {
+                    <div class="waveform-bars">
+                        @* 20 bars - approximate the wireframe's varied animation timings *@
+                        <div class="waveform-bar" style="--h-lo:6px;--h-hi:28px;--dur:0.7s;height:14px"></div>
+                        <div class="waveform-bar" style="--h-lo:10px;--h-hi:36px;--dur:0.9s;height:28px"></div>
+                        <div class="waveform-bar" style="--h-lo:4px;--h-hi:20px;--dur:0.65s;height:10px"></div>
+                        <div class="waveform-bar" style="--h-lo:12px;--h-hi:40px;--dur:1.1s;height:36px"></div>
+                        <div class="waveform-bar" style="--h-lo:6px;--h-hi:26px;--dur:0.8s;height:18px"></div>
+                        <div class="waveform-bar" style="--h-lo:8px;--h-hi:32px;--dur:0.75s;height:24px"></div>
+                        <div class="waveform-bar" style="--h-lo:4px;--h-hi:18px;--dur:0.95s;height:8px"></div>
+                        <div class="waveform-bar" style="--h-lo:14px;--h-hi:42px;--dur:1.2s;height:32px"></div>
+                        <div class="waveform-bar" style="--h-lo:6px;--h-hi:22px;--dur:0.68s;height:16px"></div>
+                        <div class="waveform-bar" style="--h-lo:10px;--h-hi:38px;--dur:0.88s;height:30px"></div>
+                        <div class="waveform-bar" style="--h-lo:4px;--h-hi:16px;--dur:0.72s;height:6px"></div>
+                        <div class="waveform-bar" style="--h-lo:8px;--h-hi:30px;--dur:1.0s;height:20px"></div>
+                        <div class="waveform-bar" style="--h-lo:12px;--h-hi:36px;--dur:0.85s;height:26px"></div>
+                        <div class="waveform-bar" style="--h-lo:6px;--h-hi:24px;--dur:0.9s;height:14px"></div>
+                        <div class="waveform-bar" style="--h-lo:10px;--h-hi:34px;--dur:0.78s;height:22px"></div>
+                        <div class="waveform-bar" style="--h-lo:4px;--h-hi:20px;--dur:1.05s;height:12px"></div>
+                        <div class="waveform-bar" style="--h-lo:14px;--h-hi:44px;--dur:0.92s;height:38px"></div>
+                        <div class="waveform-bar" style="--h-lo:6px;--h-hi:26px;--dur:0.7s;height:18px"></div>
+                        <div class="waveform-bar" style="--h-lo:8px;--h-hi:32px;--dur:0.82s;height:22px"></div>
+                        <div class="waveform-bar" style="--h-lo:4px;--h-hi:18px;--dur:1.15s;height:10px"></div>
+                    </div>
+                }
+                else
+                {
+                    <div class="waveform-placeholder"></div>
+                }
+            </div>
+
+            @* Stat row - hard-coded for now. TODO Phase 2: wire to real track count / identity model. *@
+            <div class="hero-stat-row">
+                <div class="hero-stat">
+                    <div class="hero-stat-num">47+</div>
+                    <div class="hero-stat-label">Live Sessions</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-num">2</div>
+                    <div class="hero-stat-label">Members</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-num">&infin;</div>
+                    <div class="hero-stat-label">Drift Points</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@* Divider *@
+<div class="section-divider">
+    <div class="divider-line"></div>
+    <div class="divider-tag">The Sound</div>
+    <div class="divider-line"></div>
+</div>
+
+@* Sound section *@
+<section class="section">
+    <div class="section-header">
+        <div>
+            <div class="section-label">Genres &amp; Moods</div>
+            <h2 class="section-title">Every<br /><em>Frequency</em><br />Explored</h2>
+        </div>
+        <p class="section-body">
+            From the hypnotic pulse of deep house to the fractal complexity of IDM, Deep DRFT refuses to be categorized. We treat genre as a palette &mdash; not a cage. Each session begins as something and ends as something else entirely.
+        </p>
+    </div>
+
+    <div class="genre-grid">
+        @* TODO Phase 2.2: wire each genre to /genres/{slug} *@
+        <div class="genre-card">
+            <div class="genre-name">House</div>
+            <div class="genre-count">Foundation</div>
+        </div>
+        <div class="genre-card">
+            <div class="genre-name">Techno</div>
+            <div class="genre-count">Architecture</div>
+        </div>
+        <div class="genre-card">
+            <div class="genre-name">Trance</div>
+            <div class="genre-count">Ascension</div>
+        </div>
+        <div class="genre-card">
+            <div class="genre-name">IDM</div>
+            <div class="genre-count">Intelligence</div>
+        </div>
+        <div class="genre-card">
+            <div class="genre-name">Progressive</div>
+            <div class="genre-count">Journey</div>
+        </div>
+        <div class="genre-card">
+            <div class="genre-name">Ambient</div>
+            <div class="genre-count">Atmosphere</div>
+        </div>
+    </div>
+</section>
+
+@* Dark features section *@
+<section class="section-dark">
+    <div class="section-label section-label-dark">What We Offer</div>
+    <h2 class="section-title section-title-dark">
+        Built for the<br /><em>Committed Listener</em>
+    </h2>
+
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon">
+                <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+            </div>
+            <div class="feature-title">Lossless Audio Streaming</div>
+            <div class="feature-desc">Crystal-clear sound delivered at full resolution. We don't compress the music &mdash; or the experience.</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><polygon points="10 8 16 12 10 16 10 8" /></svg>
+            </div>
+            <div class="feature-title">Live Sessions Broadcast</div>
+            <div class="feature-desc">Join us in real time. Every session is unrepeatable &mdash; a singular moment sculpted between performer and listener.</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">
+                <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
+            </div>
+            <div class="feature-title">Studio Video Content</div>
+            <div class="feature-desc">Behind-the-machine footage. Watch synthesis happen in real time, gear and all &mdash; no performance, just process.</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">
+                <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3z" /><path d="M3 9h18M9 21V9" /></svg>
+            </div>
+            <div class="feature-title">Growing Archive</div>
+            <div class="feature-desc">A living catalogue of sessions, mixes, and experiments &mdash; indexed, searchable, and always expanding.</div>
+        </div>
+    </div>
+</section>
+
+@* Split: origin + connect *@
+<div class="section-split">
+    <div class="split-left">
+        <div class="split-eyebrow">Our Origin</div>
+        <h2 class="split-title">Where the Holy City<br /><em>Meets the Future</em></h2>
+        <p class="split-body">
+            Charleston, South Carolina holds centuries of culture in its streets. We carry that weight into the studio &mdash; tradition as tension against the forward pull of electronic sound. The result is music that feels both ancient and unimagined.
+        </p>
+    </div>
+
+    <div class="split-right">
+        <div class="connect-label">Stay Connected</div>
+        <h2 class="connect-title">Never Miss<br />a <em>Session</em></h2>
+        <div class="connect-options">
+            @* TODO: wire to subscription system when newsletter/alerts backend exists *@
+            <div class="connect-option">
+                <div class="option-icon">
+                    <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
+                </div>
+                <div>
+                    <div class="option-text-label">Newsletter</div>
+                    <div class="option-text-sub">New releases &amp; studio dispatches</div>
+                </div>
+            </div>
+            <div class="connect-option">
+                <div class="option-icon">
+                    <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+                </div>
+                <div>
+                    <div class="option-text-label">Live Alerts</div>
+                    <div class="option-text-sub">Know the moment we go live</div>
+                </div>
+            </div>
+        </div>
+        @* TODO: subscription form lives behind this CTA *@
+        <button class="btn-primary connect-cta" type="button">Subscribe Free</button>
+    </div>
+</div>
+
+@* CTA banner *@
+<section class="cta-banner">
+    <div class="cta-text">
+        <h2 class="cta-headline">Ready to<br /><em>Drift</em> Deeper?</h2>
+        <p class="cta-sub">Immerse yourself. The current is always running.</p>
+    </div>
+    <div class="cta-actions">
+        <a class="btn-white" href="/tracks">Explore the Archive</a>
+        @* TODO: route to /schedule when live-session schedule page exists *@
+        <button class="btn-outline-white" type="button">View Live Schedule</button>
+    </div>
+</section>
+
+@code {
+    [CascadingParameter] public IPlayerService? Player { get; set; }
+}
