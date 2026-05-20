@@ -1,0 +1,18 @@
+﻿using DeepDrftPublic.Client.Common;
+using DeepDrftPublic.Client.Services;
+
+namespace DeepDrftPublic.Services;
+
+public class DarkModeService(DarkModeSettings darkModeSettings, IHttpContextAccessor httpAccessor) : DarkModeServiceBase
+{
+    public void CheckDarkMode()
+    {
+        bool isDarkMode = false; // Default to light mode
+        var context = httpAccessor.HttpContext;
+        if (context?.Request.Cookies.TryGetValue(COOKIE_NAME, out var dark) == true)
+        {
+            isDarkMode = dark == "true";
+        }
+        darkModeSettings.IsDarkMode = isDarkMode;
+    }
+}

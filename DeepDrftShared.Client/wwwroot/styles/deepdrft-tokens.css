@@ -1,7 +1,7 @@
 /* DeepDrft design tokens — shared palette layer.
-   Consumed by both DeepDrftWeb (public site, light + dark) and the CMS host
+   Consumed by both DeepDrftPublic (public site, light + dark) and the CMS host
    (light only). Page-specific styling lives in the consuming host's own
-   stylesheet (e.g. DeepDrftWeb/wwwroot/styles/deepdrft-styles.css). */
+   stylesheet (e.g. DeepDrftPublic/wwwroot/styles/deepdrft-styles.css). */
 
 /* Light theme - wireframe palette (navy / green / warm off-white) */
 :root {

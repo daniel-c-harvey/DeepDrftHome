@@ -8,13 +8,13 @@ public class DeepDrftContextFactory : IDesignTimeDbContextFactory<DeepDrftContex
     public DeepDrftContext CreateDbContext(string[] args)
     {
         // Load the real connection string from environment/connections.json — the same
-        // file DeepDrftWeb's Program.cs loads via CredentialTools. When EF tools run with
-        // --startup-project DeepDrftWeb, the working directory resolves there, so this
+        // file DeepDrftPublic's Program.cs loads via CredentialTools. When EF tools run with
+        // --startup-project DeepDrftPublic, the working directory resolves there, so this
         // relative path works without any env var configuration.
         const string relPath = "environment/connections.json";
         if (!File.Exists(relPath))
             throw new FileNotFoundException(
-                $"'{relPath}' not found. Run EF commands with --startup-project DeepDrftWeb " +
+                $"'{relPath}' not found. Run EF commands with --startup-project DeepDrftPublic " +
                 $"from the solution root (current dir: {Directory.GetCurrentDirectory()}).", relPath);
 
         using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(relPath));

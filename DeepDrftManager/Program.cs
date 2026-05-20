@@ -120,7 +120,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 // Controllers: discovers CMS mutation controllers (CmsUploadController, CmsEditController,
-// CmsDeleteController) and the AuthBlocks surface. Matches DeepDrftWeb precedent.
+// CmsDeleteController) and the AuthBlocks surface. Matches DeepDrftPublic precedent.
 builder.Services.AddControllers();
 
 // InteractiveServer only — no WASM render mode on the CMS host.
@@ -179,7 +179,7 @@ app.MapRazorComponents<App>()
 
 app.Run();
 
-// Local helper — mirrors DeepDrftWeb.Startup.GetKestrelUrl. Kept inline because this host's
+// Local helper — mirrors DeepDrftPublic.Startup.GetKestrelUrl. Kept inline because this host's
 // only consumer is right here; promoting to a shared library would be premature.
 static string GetKestrelUrl(WebApplicationBuilder builder)
 {
