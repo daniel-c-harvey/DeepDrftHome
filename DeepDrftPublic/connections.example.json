@@ -1,6 +1,5 @@
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5433;Database=postgres;Username=postgres;Password=your-password-here",
-    "Auth": "Host=localhost;Port=5433;Database=postgres;Username=postgres;Password=your-password-here"
+    "DefaultConnection": "Host=localhost;Port=5433;Database=postgres;Username=postgres;Password=your-password-here"
   }
 }
