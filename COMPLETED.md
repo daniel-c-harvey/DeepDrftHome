@@ -6,6 +6,18 @@ Newest entries at the top. Group by phase/wave header (mirroring `PLAN.md` / `CM
 
 ---
 
+## Two-app split Wave 2 — Phase 4
+
+**Status:** Phase 4 (project rename) landed on 2026-05-19.
+
+### Phase 4 — Two-app split: rename `DeepDrftWeb` → `DeepDrftPublic`
+
+**Landed 2026-05-19.**
+
+Renamed `DeepDrftWeb` to `DeepDrftPublic` and `DeepDrftWeb.Client` to `DeepDrftPublic.Client` across all project files, `.csproj` files, namespace declarations, using directives, solution file, and deploy scripts. Updated all references in `CLAUDE.md` agent guidance to reflect the new names. Also updated prior references to `DeepDrftWeb.Services` to `DeepDrftData` to align with the Phase 2 library rename. The solution builds cleanly with all endpoints functional.
+
+---
+
 ## CMS Wave 1 — Auth + scaffolding + parity
 
 **Status:** All sub-items landed on 2026-05-18.

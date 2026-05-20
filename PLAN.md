@@ -14,7 +14,7 @@ The public site and the CMS are being split into two independent Blazor applicat
 
 Supersedes the host-shape pieces of `CMS-PLAN.md §2`; the CMS feature waves in `CMS-PLAN.md` survive unchanged and move to the new host.
 
-**Phases 1, 2, and 3 landed (Wave 2):** `DeepDrftManager` host created, AuthBlocks stripped from `DeepDrftWeb`, `DeepDrftShared.Client` RCL extracted. Phase 4 (rename `DeepDrftWeb` → `DeepDrftPublic`) is the next wave.
+**Phases 1–4 landed (Wave 2):** `DeepDrftManager` host created, AuthBlocks stripped from `DeepDrftWeb`, `DeepDrftShared.Client` RCL extracted, and `DeepDrftWeb` / `DeepDrftWeb.Client` renamed to `DeepDrftPublic` / `DeepDrftPublic.Client`. Phase 5 (nginx/deploy topology, dev-ops territory) is next.
 
 ---
 

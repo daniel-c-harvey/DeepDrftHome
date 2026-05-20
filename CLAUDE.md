@@ -8,9 +8,9 @@ DeepDrftHome is a **net10.0** solution consisting of eight projects implementing
 
 ### Core Projects
 
-- **DeepDrftWeb**: ASP.NET Core host. Blazor Web App with Server + WASM render modes. Owns the SQL-backed `api/track/page` endpoint, MudBlazor theme prerender, and TypeScript→JS audio interop.
-- **DeepDrftWeb.Client**: Blazor WebAssembly assembly. All interactive UI (pages, player stack, dark-mode plumbing, HTTP clients for both backends).
-- **DeepDrftWeb.Services**: Class library. EF Core domain logic: `DeepDrftContext`, `TrackConfiguration`, `Migrations`, `TrackRepository`, `TrackService`. Sharable between web host and CLI.
+- **DeepDrftPublic**: ASP.NET Core host. Blazor Web App with Server + WASM render modes. Owns the SQL-backed `api/track/page` endpoint, MudBlazor theme prerender, and TypeScript→JS audio interop.
+- **DeepDrftPublic.Client**: Blazor WebAssembly assembly. All interactive UI (pages, player stack, dark-mode plumbing, HTTP clients for both backends).
+- **DeepDrftData**: Class library. EF Core domain logic: `DeepDrftContext`, `TrackConfiguration`, `Migrations`, `TrackRepository`, `TrackService`. Sharable between web host and CLI.
 - **DeepDrftContent**: ASP.NET Core host. Binary content API (`GET api/track/{id}` unauthenticated, `PUT api/track/{id}` ApiKey-protected). Returns audio bytes with optional WAV-aware offset streaming.
 - **DeepDrftContent.Services**: Class library. The FileDatabase implementation in full (Models, Services, Utils, Abstractions, Constants), `WavOffsetService`, `AudioProcessor`, content-side `TrackService`. Consumed by host and CLI.
 - **DeepDrftModels**: Shared contracts. `TrackEntity`, `TrackDto`, `PagingParameters<T>`, `PagedResult<T>`. Every project references this.
@@ -24,15 +24,15 @@ External: **NetBlocks** (absolute path `C:\lib\NetBlocks\`). Provides `Result`, 
 **Dual-database approach** — browser never reaches storage directly:
 
 ```
-DeepDrftWeb.Client (WASM)
-    ├── HttpClient "DeepDrft.API"     ──►  DeepDrftWeb host   ──►  EF Core / SQLite (metadata)
-    └── HttpClient "DeepDrft.Content" ──►  DeepDrftContent    ──►  FileDatabase / disk (binary)
+DeepDrftPublic.Client (WASM)
+    ├── HttpClient "DeepDrft.API"     ──►  DeepDrftPublic host ──►  EF Core / SQLite (metadata)
+    └── HttpClient "DeepDrft.Content" ──►  DeepDrftContent     ──►  FileDatabase / disk (binary)
 ```
 
 1. **SQL Database (SQLite)**: Metadata and track info via Entity Framework
    - Location: `../Database/deepdrft.db`
    - Entity: `TrackEntity` with `Id`, `EntryKey`, `TrackName`, `Artist`, `Album?`, `Genre?`, `ReleaseDate?`, `ImagePath?`
-   - Context: `DeepDrftContext` in `DeepDrftWeb.Services`
+   - Context: `DeepDrftContext` in `DeepDrftData`
 
 2. **FileDatabase**: Custom file-based binary storage system
    - Location: `../Database/Vaults` (configurable via `filedatabase.json`)
@@ -46,7 +46,7 @@ DeepDrftWeb.Client (WASM)
 
 ### Service projects vs. host projects
 
-The split between `DeepDrftWeb` / `DeepDrftWeb.Services` (and the same for Content) is deliberate: hosts own HTTP surface, config, DI wiring; `*.Services` are plain class libraries holding domain logic. This lets `DeepDrftCli` reuse both `TrackService` implementations without taking ASP.NET dependencies.
+The split between `DeepDrftPublic` / `DeepDrftData` (and the same for Content) is deliberate: hosts own HTTP surface, config, DI wiring; `*.Services` are plain class libraries holding domain logic. This lets `DeepDrftCli` reuse both `TrackService` implementations without taking ASP.NET dependencies.
 
 **New domain logic goes in `*.Services` unless genuinely host-specific** (controllers, middleware, render-mode config, theme prerender).
 
@@ -55,7 +55,7 @@ The split between `DeepDrftWeb` / `DeepDrftWeb.Services` (and the same for Conte
 `TrackEntity` holds *only* metadata. The link to binary content is `EntryKey` (string) — the entry id inside the `tracks` vault in FileDatabase. Dual-database add flow:
 
 1. `DeepDrftContent.Services.TrackService.AddTrackFromWavAsync` processes WAV, generates entry GUID, stores audio in vault, returns unpersisted `TrackEntity`.
-2. `DeepDrftWeb.Services.TrackService.Create` saves to SQLite and returns the persisted entity with `Id`.
+2. `DeepDrftData.TrackService.Create` saves to SQLite and returns the persisted entity with `Id`.
 
 If step 1 succeeds and step 2 fails, audio is orphaned in the vault (no rollback today).
 
@@ -75,13 +75,13 @@ Keep this seam clean — it is the most architecturally load-bearing part of the
 
 - MudBlazor is the UI framework. Light and dark palettes (bespoke "Charleston in the Day" / "Lowcountry Summer Nights") defined inline in `MainLayout.razor`.
 - Dark mode toggles via cookie (`darkMode`, 365 days). Client-side via JS interop.
-- During server prerender, `DarkModeService` (in `DeepDrftWeb`) reads the cookie and seeds `DarkModeSettings.IsDarkMode`, which carries into WASM render via `PersistentComponentState`. Avoids "wrong theme flash" on initial paint.
-- `DarkModeSettings` lives in `DeepDrftWeb.Client.Common` (consumed by both server prerender and client components).
+- During server prerender, `DarkModeService` (in `DeepDrftPublic`) reads the cookie and seeds `DarkModeSettings.IsDarkMode`, which carries into WASM render via `PersistentComponentState`. Avoids "wrong theme flash" on initial paint.
+- `DarkModeSettings` lives in `DeepDrftPublic.Client.Common` (consumed by both server prerender and client components).
 - Typography: Google Fonts (Bodoni Moda, Cormorant, DM Sans). Hand-rolled gas-lamp icon (lit/unlit) lives in `DDIcons.cs`.
 
 ### TypeScript interop, not raw JS
 
-Audio interop authored in TypeScript under `DeepDrftWeb/Interop/audio/`, compiled to `wwwroot/js/audio/` via `Microsoft.TypeScript.MSBuild`. One module per responsibility (AudioContextManager, StreamDecoder, PlaybackScheduler, SpectrumAnalyzer, AudioPlayer), plus `index.ts` exposing `window.DeepDrftAudio`. `tsconfig.json` is **not** copied to output. In dev, raw `.ts` served from `/Interop/` for source-map debugging.
+Audio interop authored in TypeScript under `DeepDrftPublic/Interop/audio/`, compiled to `wwwroot/js/audio/` via `Microsoft.TypeScript.MSBuild`. One module per responsibility (AudioContextManager, StreamDecoder, PlaybackScheduler, SpectrumAnalyzer, AudioPlayer), plus `index.ts` exposing `window.DeepDrftAudio`. `tsconfig.json` is **not** copied to output. In dev, raw `.ts` served from `/Interop/` for source-map debugging.
 
 ## Development Commands
 
@@ -100,7 +100,7 @@ dotnet test DeepDrftTests/ --filter "ClassName=FileDatabaseTests"
 ### Running Applications
 ```bash
 # Run main web application
-dotnet run --project DeepDrftWeb
+dotnet run --project DeepDrftPublic
 
 # Run content API
 dotnet run --project DeepDrftContent
@@ -115,17 +115,17 @@ dotnet run --project DeepDrftCli -- gui
 ### Entity Framework (SQL Database)
 ```bash
 # Add migration (from solution root)
-dotnet ef migrations add MigrationName --project DeepDrftWeb.Services --startup-project DeepDrftWeb
+dotnet ef migrations add MigrationName --project DeepDrftData --startup-project DeepDrftPublic
 
 # Update database
-dotnet ef database update --project DeepDrftWeb.Services --startup-project DeepDrftWeb
+dotnet ef database update --project DeepDrftData --startup-project DeepDrftPublic
 ```
 
 ## Key Configuration Files
 
 All projects load secrets via `CredentialTools.ResolvePathOrThrow()` from gitignored `environment/` files:
 
-- `DeepDrftWeb/appsettings.json`: Logging and URL config. Secrets loaded from `environment/connections.json` (SQL connection string).
+- `DeepDrftPublic/appsettings.json`: Logging and URL config. Secrets loaded from `environment/connections.json` (SQL connection string).
 - `DeepDrftManager/appsettings.json`: Logging and URL config. Secrets loaded from `environment/apikey.json` (DeepDrftContent API key), `environment/connections.json` (SQL and Auth connection strings), `environment/authblocks.json` (AuthBlocks settings).
 - `DeepDrftContent/environment/filedatabase.json`: FileDatabase vault path. Loaded via CredentialTools.
 - `DeepDrftContent/environment/apikey.json`: API key. Loaded via CredentialTools (not in repo).
