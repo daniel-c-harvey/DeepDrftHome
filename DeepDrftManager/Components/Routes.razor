@@ -3,9 +3,7 @@
     <Found Context="routeData">
         <AuthorizeRouteView RouteData="routeData">
             <NotAuthorized>
-                @{
-                    NavigationManager.NavigateTo($"account/login?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}", forceLoad: true);
-                }
+                <RedirectToLogin />
             </NotAuthorized>
         </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
@@ -15,5 +13,3 @@
         <p role="alert">Sorry, there's nothing at this address.</p>
     </NotFound>
 </Router>
-
-@inject NavigationManager NavigationManager
