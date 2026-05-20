@@ -81,12 +81,13 @@ builder.Services.AddAuthBlocks(options =>
 var baseUrl = GetKestrelUrl(builder);
 AuthBlocksWeb.Startup.ConfigureAuthServices(builder.Services, baseUrl);
 
-// Named HttpClient used by CMS pages for auth API calls (AuthBlocks surface on this host).
-var apiHostUrl = builder.Configuration["ApiUrls:ApiHost"]
-    ?? throw new InvalidOperationException("ApiUrls:ApiHost is required");
+// Named HttpClient used by CMS pages for in-process CMS endpoints (CmsUploadController,
+// CmsEditController, CmsDeleteController) and the AuthBlocks surface — both live on this host.
+// Base-addressed to the Manager's own Kestrel URL so callers using relative paths
+// (e.g. "api/cms/track") hit our own controllers, not the public host.
 builder.Services.AddHttpClient("DeepDrft.API", client =>
 {
-    client.BaseAddress = new Uri(apiHostUrl);
+    client.BaseAddress = new Uri(baseUrl);
 });
 
 // Named HttpClient for unauthenticated Content API calls (e.g. CmsUploadController proxying WAV
