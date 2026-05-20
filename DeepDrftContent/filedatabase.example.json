@@ -1,5 +1,5 @@
 {
   "FileDatabaseSettings": {
-    "VaultPath": "C:/Development/DeepDrftHome/Database/Vaults"
+    "VaultPath": "<path-to-vault>"
   }
 }
