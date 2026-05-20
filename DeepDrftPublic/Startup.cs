@@ -1,6 +1,7 @@
 using DeepDrftData;
 using DeepDrftData.Data;
 using DeepDrftData.Repositories;
+using DeepDrftPublic.Client.Services;
 using DeepDrftPublic.Services; // DarkModeService namespace (within this host project)
 using Microsoft.EntityFrameworkCore;
 
@@ -28,6 +29,11 @@ public static class Startup
             .AddScoped<TrackRepository>()
             .AddScoped<TrackManager>()
             .AddScoped<ITrackService>(sp => sp.GetRequiredService<TrackManager>());
+
+        // Override the WASM HTTP-backed ITrackDataService (registered earlier by
+        // DeepDrftPublic.Client.Startup.ConfigureDomainServices) with an in-process
+        // adapter for SSR prerender. Last registration wins for single-resolution.
+        builder.Services.AddScoped<ITrackDataService, TrackDirectDataService>();
     }
 
     public static string GetKestrelUrl(this WebApplicationBuilder builder)

@@ -38,7 +38,7 @@ public partial class TracksView : ComponentBase
     
     private async Task SetPage(int newPage)
     {
-        var result = await ViewModel.TrackClient.GetPage(newPage, ViewModel.PageSize, ViewModel.SortBy, ViewModel.IsDescending);
+        var result = await ViewModel.TrackData.GetPage(newPage, ViewModel.PageSize, ViewModel.SortBy, ViewModel.IsDescending);
 
         if (result is { Success: true, Value: PagedResult<TrackEntity> pageResult })
         {
