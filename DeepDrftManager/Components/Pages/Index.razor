@@ -1,0 +1,12 @@
+@page "/"
+@rendermode InteractiveServer
+@using AuthBlocksWeb.HierarchicalAuthorize
+@attribute [HierarchicalRoleAuthorize("Admin")]
+@inject NavigationManager NavigationManager
+
+@code {
+    protected override void OnInitialized()
+    {
+        NavigationManager.NavigateTo("/cms", replace: true);
+    }
+}
