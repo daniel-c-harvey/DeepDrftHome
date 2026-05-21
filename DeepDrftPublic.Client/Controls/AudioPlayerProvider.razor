@@ -1,3 +1,7 @@
-﻿<CascadingValue Value="@(_audioPlayerService)" IsFixed="true">
+﻿@* IsFixed="true": the StreamingAudioPlayerService instance is created once in OnInitialized
+   and is never replaced — the reference is stable for the lifetime of the component.
+   If instance swapping at runtime is ever needed, change IsFixed to false (adds subscription
+   overhead on every parent re-render, but allows children to see the new reference). *@
+<CascadingValue Value="@(_audioPlayerService)" IsFixed="true">
     @ChildContent
 </CascadingValue>
