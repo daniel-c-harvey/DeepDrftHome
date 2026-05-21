@@ -41,7 +41,7 @@ else
                             <div class="seekbar-flex mx-3"
                                  @onpointerdown="OnSeekStart"
                                  @onpointerup="@(() => OnSeekEnd(_seekPosition))"
-                                 @onpointerleave="@(() => { if (_isSeeking) OnSeekEnd(_seekPosition); })">
+                                 @onpointerleave="@(async () => { if (_isSeeking) await OnSeekEnd(_seekPosition); })">
                                 <MudSlider T="double"
                                            Min="0"
                                            Max="@(Duration ?? 0D)"
@@ -85,7 +85,7 @@ else
                         <div class="d-flex flex-column flex-grow-1">
                             <div @onpointerdown="OnSeekStart"
                                 @onpointerup="@(() => OnSeekEnd(_seekPosition))"
-                                @onpointerleave="@(() => { if (_isSeeking) OnSeekEnd(_seekPosition); })">
+                                @onpointerleave="@(async () => { if (_isSeeking) await OnSeekEnd(_seekPosition); })">
                                 <MudSlider T="double"
                                         Min="0"
                                         Max="@(Duration ?? 0D)"
