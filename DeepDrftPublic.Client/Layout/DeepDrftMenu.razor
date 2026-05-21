@@ -77,23 +77,21 @@
     private bool _mobileMenuOpen;
     private Guid _viewportSubscriptionId;
 
-    protected override async Task OnInitializedAsync()
-    {
-        // During SSR prerender the dark-mode state is already seeded by the server-side
-        // DarkModeService (via IHttpContextAccessor + DarkModeSettings + PersistentComponentState).
-        // Invoking the EventCallback here during prerender triggers a re-render cycle on the
-        // SSR renderer that never completes, hanging the page. Guard to interactive-only so
-        // the cookie sync only runs when the component is actually mounted in the browser.
-        if (!RendererInfo.IsInteractive) return;
-
-        IsDarkMode = DarkModeCookieService.GetDarkModeAsync();
-        await IsDarkModeChanged.InvokeAsync(IsDarkMode);
-    }
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            // Dark-mode cookie sync runs here (not OnInitializedAsync) because
+            // OnAfterRenderAsync(firstRender) is guaranteed not to execute during any
+            // SSR prerender pass. During prerender (now interactive across all of Routes),
+            // awaiting IsDarkModeChanged.InvokeAsync triggers a parent re-render cycle
+            // that cannot complete on the prerender renderer and hangs the response.
+            // Server-side DarkModeService has already seeded DarkModeSettings via
+            // PersistentComponentState, so the prerender paint is already correct;
+            // this call just reconciles with the live cookie once on the client.
+            IsDarkMode = DarkModeCookieService.GetDarkModeAsync();
+            await IsDarkModeChanged.InvokeAsync(IsDarkMode);
+
             _viewportSubscriptionId = Guid.NewGuid();
             await BrowserViewportService.SubscribeAsync(
                 _viewportSubscriptionId,
