@@ -1,5 +1,4 @@
-<Router AppAssembly="typeof(App).Assembly"
-        AdditionalAssemblies="new[] { typeof(DeepDrftPublic.Client._Imports).Assembly }">
+<Router AppAssembly="typeof(Routes).Assembly">
     <Found Context="routeData">
         <RouteView RouteData="routeData" DefaultLayout="typeof(DeepDrftPublic.Client.Layout.MainLayout)" />
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
