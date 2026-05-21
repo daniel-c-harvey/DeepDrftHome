@@ -17,28 +17,6 @@ namespace DeepDrftShared.Client.Common;
 #pragma warning disable CS8601
 public static class DeepDrftPalettes
 {
-    /// <summary>
-    /// The single MudTheme exposing both light and dark palettes plus typography.
-    /// Hosts pick a mode via <c>MudThemeProvider IsDarkMode</c>.
-    /// </summary>
-    public static MudTheme Default { get; } = new()
-    {
-        PaletteLight = Light,
-        PaletteDark = Dark,
-        Typography = Typography,
-    };
-
-    /// <summary>
-    /// CMS-specific MudTheme. Same as <see cref="Default"/> but with a solid navy AppBar
-    /// on the light palette to visually distinguish the admin surface from the public site.
-    /// </summary>
-    public static MudTheme Cms { get; } = new()
-    {
-        PaletteLight = CmsLight,
-        PaletteDark = Dark,
-        Typography = Typography,
-    };
-
     // Wireframe light palette - navy / green / warm off-white
     public static PaletteLight Light { get; } = new()
     {
@@ -147,6 +125,28 @@ public static class DeepDrftPalettes
         Body2      = new Body2Typography    { FontFamily = new[] { "DM Sans",             "sans-serif" } },
         Caption    = new CaptionTypography  { FontFamily = new[] { "Geist Mono",          "monospace" } },
         Button     = new ButtonTypography   { FontFamily = new[] { "Geist Mono",          "monospace" } },
+    };
+
+    /// <summary>
+    /// The single MudTheme exposing both light and dark palettes plus typography.
+    /// Hosts pick a mode via <c>MudThemeProvider IsDarkMode</c>.
+    /// </summary>
+    public static MudTheme Default { get; } = new()
+    {
+        PaletteLight = Light,
+        PaletteDark = Dark,
+        Typography = Typography,
+    };
+
+    /// <summary>
+    /// CMS-specific MudTheme. Same as <see cref="Default"/> but with a solid navy AppBar
+    /// on the light palette to visually distinguish the admin surface from the public site.
+    /// </summary>
+    public static MudTheme Cms { get; } = new()
+    {
+        PaletteLight = CmsLight,
+        PaletteDark = Dark,
+        Typography = Typography,
     };
 }
 #pragma warning restore CS8601
