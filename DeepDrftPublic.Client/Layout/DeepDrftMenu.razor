@@ -81,15 +81,15 @@
     {
         if (firstRender)
         {
-            // Dark-mode cookie sync runs here (not OnInitializedAsync) because
-            // OnAfterRenderAsync(firstRender) is guaranteed not to execute during any
-            // SSR prerender pass. During prerender (now interactive across all of Routes),
-            // awaiting IsDarkModeChanged.InvokeAsync triggers a parent re-render cycle
-            // that cannot complete on the prerender renderer and hangs the response.
-            // Server-side DarkModeService has already seeded DarkModeSettings via
-            // PersistentComponentState, so the prerender paint is already correct;
-            // this call just reconciles with the live cookie once on the client.
-            IsDarkMode = DarkModeCookieService.GetDarkModeAsync();
+            // Runs here (not OnInitializedAsync) because OnAfterRenderAsync(firstRender)
+            // is guaranteed not to execute during any SSR prerender pass. During prerender
+            // (now interactive across all of Routes), awaiting IsDarkModeChanged.InvokeAsync
+            // triggers a parent re-render cycle that cannot complete on the prerender renderer
+            // and hangs the response. Server-side DarkModeService has already seeded
+            // DarkModeSettings via PersistentComponentState, so the prerender paint is
+            // already correct; this call reads that persisted value and propagates it to the
+            // parent so the menu's IsDarkMode parameter stays consistent with DarkModeSettings.
+            IsDarkMode = DarkModeCookieService.GetDarkMode();
             await IsDarkModeChanged.InvokeAsync(IsDarkMode);
 
             _viewportSubscriptionId = Guid.NewGuid();

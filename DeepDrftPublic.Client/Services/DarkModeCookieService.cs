@@ -7,12 +7,9 @@ public class DarkModeCookieService(DarkModeSettings darkModeSetting, IJSRuntime 
 {
     private const int EXPIRY_DAYS = 365;
 
-    public bool GetDarkModeAsync()
+    public bool GetDarkMode()
     {
         return darkModeSetting.IsDarkMode;
-        // var value = await js.InvokeAsync<string?>("eval", 
-        //     $"document.cookie.split('; ').find(c => c.startsWith('{COOKIE_NAME}='))?.split('=')[1]");
-        // return value == "true";
     }
 
     public async ValueTask SetDarkModeAsync(bool isDarkMode)
