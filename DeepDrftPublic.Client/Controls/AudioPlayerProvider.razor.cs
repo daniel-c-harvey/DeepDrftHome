@@ -17,23 +17,18 @@ public partial class AudioPlayerProvider : ComponentBase, IAsyncDisposable
 
     protected override void OnInitialized()
     {
-        // Create the service immediately (but don't initialize yet)
+        // Create the service immediately (but don't initialize yet).
+        // The base class lazily initializes on first track selection via
+        // EnsureInitializedAsync — that path is correct because audio contexts
+        // require a user gesture anyway. Initializing eagerly here causes 4+
+        // SignalR round-trips before any content is stable.
         _audioPlayerService = new StreamingAudioPlayerService(AudioInterop, TrackMediaClient, Logger);
 
-        // Set up EventCallback to properly marshal UI updates back to UI thread
-        // Use InvokeAsync to ensure proper Blazor render cycle triggering
+        // Provider is the SOLE owner of OnStateChanged. When the service fires,
+        // the provider re-renders, which cascades to its children automatically.
+        // Children must not wrap or replace this callback.
         _audioPlayerService.OnStateChanged = new EventCallback(this, () => InvokeAsync(StateHasChanged));
         // OnTrackSelected will be set by individual child components that need it
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender && _audioPlayerService != null)
-        {
-            // Initialize the service after render when JavaScript is available
-            await _audioPlayerService.InitializeAsync();
-            StateHasChanged();
-        }
     }
 
     /// <summary>

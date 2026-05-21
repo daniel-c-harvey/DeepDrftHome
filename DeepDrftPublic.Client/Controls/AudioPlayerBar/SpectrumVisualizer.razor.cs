@@ -7,7 +7,7 @@ public partial class SpectrumVisualizer : ComponentBase, IAsyncDisposable
 {
     [Inject] public required AudioInteropService AudioInterop { get; set; }
 
-    [CascadingParameter] public required IStreamingPlayerService PlayerService { get; set; }
+    [CascadingParameter] public IStreamingPlayerService? PlayerService { get; set; }
 
     [Parameter] public int BucketCount { get; set; } = 32;
 
@@ -15,46 +15,30 @@ public partial class SpectrumVisualizer : ComponentBase, IAsyncDisposable
     private double[] _spectrumData = Array.Empty<double>();
     private bool _isAnimating = false;
     private string? _playerId;
-    private EventCallback? _originalOnStateChanged;
 
-    private bool IsVisible => PlayerService.IsPlaying || PlayerService.IsPaused || _isAnimating;
+    private bool IsVisible => (PlayerService?.IsPlaying ?? false) || (PlayerService?.IsPaused ?? false) || _isAnimating;
 
     protected override void OnInitialized()
     {
         _spectrumData = new double[BucketCount];
+    }
 
-        // Get the player ID from the service
-        if (PlayerService is AudioPlayerService baseService)
+    protected override async Task OnParametersSetAsync()
+    {
+        // Provider re-renders cascade down to children and re-run OnParametersSet.
+        // Pick up the player id once the cascade arrives, then drive animation
+        // state from the parent's current IsPlaying — no callback wrapping needed.
+        if (_playerId == null && PlayerService is AudioPlayerService baseService)
         {
             _playerId = baseService.PlayerId;
         }
 
-        // Chain into the existing OnStateChanged callback to detect play/pause
-        _originalOnStateChanged = PlayerService.OnStateChanged;
-        PlayerService.OnStateChanged = new EventCallback(this, async () =>
-        {
-            // Call original callback first
-            if (_originalOnStateChanged.HasValue)
-            {
-                await _originalOnStateChanged.Value.InvokeAsync();
-            }
-            // Then update our animation state
-            await UpdateAnimationState();
-        });
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            // Initial check in case already playing
-            await UpdateAnimationState();
-        }
+        await UpdateAnimationState();
     }
 
     private async Task UpdateAnimationState()
     {
-        if (string.IsNullOrEmpty(_playerId)) return;
+        if (string.IsNullOrEmpty(_playerId) || PlayerService == null) return;
 
         var shouldAnimate = PlayerService.IsPlaying;
 
