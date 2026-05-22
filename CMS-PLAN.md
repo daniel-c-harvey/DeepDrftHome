@@ -26,57 +26,34 @@ Replace `DeepDrftCli` with a browser-based admin surface (the **CMS**) living in
 
 ---
 
-## 2. Solution structure (new projects)
+## 2. Solution structure
 
-### 2.1 New RCL: `DeepDrftCms`
+### 2.1 CMS host: `DeepDrftManager`
 
-Daniel said "if possible we will keep the CMS code in an RCL, with mountable pages for the CMS functionality." Recommended shape:
+The CMS is now inlined as the primary content of `DeepDrftManager`, a dedicated ASP.NET Core Blazor Web App host. All CMS pages, components, view models, and layouts live directly in the host as `Components/Pages/Cms/`, `Components/Pages/Tracks/`, `Components/Layout/CmsLayout.razor`, and `Components/Shared/`. The prior separate `DeepDrftCms` RCL design was replaced with this inlined structure for simplicity and tighter integration.
 
-```
-DeepDrftCms                 Razor Class Library (RCL).
-                            CMS pages, components, view models, page-route registration.
-                            References: DeepDrftModels, DeepDrftData,
-                            DeepDrftContent.Data, Cerebellum.AuthBlocks.Web,
-                            Cerebellum.AuthBlocks.Models, MudBlazor.
-                            Mounted into DeepDrftWeb via project reference + route discovery.
-```
+**What is in `DeepDrftManager`:**
 
-**What goes in the RCL:**
-
-- Pages (`.razor`) under a `Pages/Cms/` folder, all routed under a single base path (recommended `/cms`, see open question).
+- Pages (`.razor`) under `Components/Pages/Cms/` and `Components/Pages/Tracks/`, all routed under a single base path (`/cms`, confirmed in §2 Wave 1).
 - View models that compose `TrackEntity` editing state.
-- A `CmsStartup` (or equivalent extension method) that the host calls to register CMS-specific services, view models, and route fallbacks. Mirrors the existing `Startup.ConfigureDomainServices` pattern. **Auth wiring lives in `DeepDrftWeb` (see §2.2)** — the RCL itself does not call `AddAuthBlocks` because that brings in the `AuthDbContext`, EF migrations, and JWT middleware, all of which are host concerns.
-- CMS-specific components (track-edit form, upload dropzone, confirmation dialogs). Reuse `TrackCard` and other public-side components where they fit.
+- CMS-specific components (track-edit form, upload dropzone, confirmation dialogs), inlined directly.
 - A `[HierarchicalRoleAuthorize("Admin")]` attribute (from `AuthBlocksWeb.HierarchicalAuthorize`) on every CMS page component, so `Admin` and any descendant role are admitted by the bundled hierarchical role handler.
-
-**What stays in `DeepDrftWeb`:**
-
-- The new upload controller endpoint (`POST api/cms/track`, see §5). Controllers are host-owned per the existing convention. Protected by `[Authorize(Roles = "Admin")]` — the JWT bearer middleware AuthBlocks installs validates the access token on each request.
+- Controllers and minimal-API endpoints for CMS operations (`POST api/cms/track`, `DELETE api/cms/track/{id}`, `PUT api/cms/track/{id}`). Controllers are host-owned per the existing convention. Protected by `[Authorize(Roles = "Admin")]` — the JWT bearer middleware AuthBlocks installs validates the access token on each request.
 - The `AddAuthBlocks(...)` call in `Program.cs` and the matching `await app.Services.UseAuthBlocksStartupAsync()` post-build hook. This installs JWT bearer middleware, the hierarchical role authorization handler, the `AuthDbContext`, the EF migrations, and seeds system roles plus the configured admin user on first boot.
 - The `app.MapAuthBlocks()` call that registers `/api/auth/*`, `/api/users/*`, `/api/roles/*`, `/api/user-roles/*`, and `/api/pending-registrations/*` minimal-API endpoints. The CMS UI uses `/api/auth/login`, `/api/auth/logout`, `/api/auth/refresh`, and `/api/auth/me`; the rest are available if Wave 3 account-management ever lands.
-- Reference to the `DeepDrftCms` RCL plus the `app.MapRazorComponents<App>().AddAdditionalAssemblies(typeof(DeepDrftCms._Imports).Assembly)` registration. The `AuthBlocksWeb` login/logout/register pages are picked up the same way once that assembly is added to `AddAdditionalAssemblies`, exposing `/account/login` and `/account/logout` for free.
 
-**Why an RCL rather than a folder in `DeepDrftWeb.Client`:**
-
-- Isolation of the auth-gated surface from the public client. The public WASM bundle does not need to ship CMS pages, components, or the AuthBlocks UI dependency. Smaller download for listeners.
-- Reusability. If a future deployment wanted the CMS as a standalone admin host (different port, different process), the RCL is already self-contained.
-- The mountable-page model gives a clean URL prefix without coupling CMS routing to the public site's `Pages.cs` nav source-of-truth.
-
-**Render mode `[open question]`:** AuthBlocks's bundled UI (`AuthBlocksWeb` pages) is server-rendered MudBlazor with `JwtAuthenticationStateProvider` reading tokens from browser `localStorage` via JS interop. CMS pages can render in any mode that supports `AuthorizeView` / `[HierarchicalRoleAuthorize]`, but `InteractiveServer` is the cleanest fit: (a) it matches what the bundled login UI uses, (b) `InputFile` uploads are natively server-side, (c) CMS endpoints already live in the `DeepDrftWeb` process so no extra HTTP hop. Recommend **InteractiveServer** for CMS pages; confirm.
+**Render mode:** `InteractiveServer` for all CMS pages and routes. AuthBlocks's bundled UI (`AuthBlocksWeb` pages) is server-rendered MudBlazor with `JwtAuthenticationStateProvider` reading tokens from browser `localStorage` via JS interop. `InteractiveServer` is the right fit because: (a) it matches what the bundled login UI uses, (b) `InputFile` uploads are natively server-side, (c) CMS endpoints live in the `DeepDrftManager` process with direct access to services.
 
 ### 2.2 Solution changes
 
-- Add `DeepDrftCms` (RCL) to `DeepDrftHome.sln`.
-- `DeepDrftWeb` adds a project reference to `DeepDrftCms`.
-- `DeepDrftWeb` references three AuthBlocks packages (NuGet, published as `Cerebellum.AuthBlocks*` at version 10.3.16+):
+- `DeepDrftManager` (ASP.NET Core host) is added to `DeepDrftHome.sln` as part of the two-app architectural split. This is the CMS host, containing inlined CMS Razor pages and components.
+- `DeepDrftManager` references three AuthBlocks packages (NuGet, published as `Cerebellum.AuthBlocks*` at version 10.3.16+):
   - `Cerebellum.AuthBlocks` — the `AddAuthBlocks`/`UseAuthBlocksStartupAsync`/`MapAuthBlocks` integration surface, JWT services, hierarchical role authorization handler.
-  - `Cerebellum.AuthBlocks.Web` — the bundled MudBlazor login/logout/register pages, `JwtAuthenticationStateProvider`, `TokenService` (localStorage), and the `HierarchicalRoleAuthorizeAttribute` / `HierarchicalRoleAuthorizeView` used by the RCL.
-  - `Cerebellum.AuthBlocks.Models` — `ApplicationUser`, `ApplicationRole`, `SystemRole` constants. Transitively pulled by the other two; reference explicitly if `DeepDrftCms` or `DeepDrftData` need the entity types.
-- `DeepDrftWeb.Client` references `Cerebellum.AuthBlocks.Web` and calls `AuthBlocksWeb.Client.Startup.ConfigureServices(builder.Services)` to register `AddAuthorizationCore()`, `AddCascadingAuthenticationState()`, and `AddAuthenticationStateDeserialization()`. This is the prerender → WASM bridge for auth state, equivalent to what `DarkModeSettings` does today (see `CONTEXT.md §3.6`).
-- `DeepDrftCms` references `Cerebellum.AuthBlocks.Web` (for the authorize attribute / view) and `Cerebellum.AuthBlocks.Models` (for `SystemRoleConstants.Admin`).
-- A new `DeepDrftWeb/environment/authblocks.json` (or appsettings section) holds the JWT secret, issuer, audience, Mailtrap email connection, admin seed credentials, and Postgres connection string. Follows the same pattern as `apikey.json` — not in repo.
-- **New infrastructure dependency: PostgreSQL.** Both `AuthDbContext` (identity) and `DeepDrftContext` (track metadata) run on Postgres (§3.5 Option B confirmed). `DeepDrftContext` EF migrations must be rewritten from SQLite to Postgres before Wave 1 ships; any existing `deepdrft.db` rows require a one-time data migration. Local dev gains a `docker-compose.yml` Postgres service.
-- `DeepDrftCli` and its `obj/` legacy `.NET 9` artefacts: removed in §8 (retirement).
+  - `Cerebellum.AuthBlocks.Web` — the bundled MudBlazor login/logout/register pages, `JwtAuthenticationStateProvider`, `TokenService` (localStorage), and the `HierarchicalRoleAuthorizeAttribute` / `HierarchicalRoleAuthorizeView` used by the CMS pages.
+  - `Cerebellum.AuthBlocks.Models` — `ApplicationUser`, `ApplicationRole`, `SystemRole` constants. Transitively pulled by the other two; reference explicitly if `DeepDrftData` needs the entity types.
+- `DeepDrftPublic.Client` references `Cerebellum.AuthBlocks.Web` and calls `AuthBlocksWeb.Client.Startup.ConfigureServices(builder.Services)` to register `AddAuthorizationCore()`, `AddCascadingAuthenticationState()`, and `AddAuthenticationStateDeserialization()`. This is the prerender → WASM bridge for auth state, equivalent to what `DarkModeSettings` does today (see `CONTEXT.md §3.6`).
+- A new `DeepDrftManager/environment/authblocks.json` holds the JWT secret, issuer, audience, Mailtrap email connection, admin seed credentials, and Postgres connection string. Follows the same pattern as `apikey.json` — not in repo.
+- **Infrastructure dependency: PostgreSQL.** Both `AuthDbContext` (identity) and `DeepDrftContext` (track metadata) run on Postgres (§3.5 Option B confirmed). `DeepDrftContext` EF migrations must be rewritten from SQLite to Postgres before Wave 1 ships; any existing `deepdrft.db` rows require a one-time data migration. Local dev gains a `docker-compose.yml` Postgres service.
 
 ---
 
@@ -101,7 +78,7 @@ Concretely, from reading the library source:
 **Committed: hierarchical-role accounts via AuthBlocks, seeded with one `Admin` user from config.** This is the option-3 shape from the prior draft and it happens to be exactly what AuthBlocks gives us out of the box:
 
 - Real per-user accounts (`ApplicationUser` table). No shared password.
-- One seeded admin on first boot via `AdminUserSettings`. Username, email, password come from `DeepDrftWeb/environment/authblocks.json` (gitignored, same pattern as `apikey.json`).
+- One seeded admin on first boot via `AdminUserSettings`. Username, email, password come from `DeepDrftManager/environment/authblocks.json` (gitignored, same pattern as `apikey.json`).
 - No public signup in Wave 1. The `/account/register` page that AuthBlocks bundles requires a registration code (generated by an admin via `/api/pending-registrations`). We do not surface `/account/register` in any nav until Wave 3 account management lands; the route exists but is uninteresting until then.
 - **Mutation attribution.** `TrackEntity` gains a nullable `CreatedByUserId : long?` column in the W1.2 migration. Populated on every CMS-originated mutation; null for historical CLI-added rows and for any pre-CMS data. Captures attribution from day one even though Wave 1 has exactly one user (`feedback_design_for_adaptability`).
 - **Role gate.** Every CMS page and every `api/cms/*` endpoint requires the `Admin` system role. We use `Admin` rather than introducing a new `CmsAdmin` role because the collective is small and the existing hierarchy already covers the case; if Wave 3 ever needs finer grain (e.g. a `ContentEditor` role that can edit but not delete), that is a `SystemRole.cs` edit upstream, not a redesign here.
@@ -116,7 +93,7 @@ AuthBlocks's JWT-in-localStorage posture interacts with Blazor's prerender → W
 
 ### 3.4 Authorization wiring (concrete)
 
-- **Razor pages in the RCL:** `@attribute [HierarchicalRoleAuthorize("Admin")]` at the top of every `/cms/*` page. The bundled handler walks the role hierarchy.
+- **Razor pages in `DeepDrftManager`:** `@attribute [HierarchicalRoleAuthorize("Admin")]` at the top of every `/cms/*` page. The bundled handler walks the role hierarchy.
 
   **Stealth routing (hard constraint).** Non-admin and anonymous requests to any `/cms/*` route must return **404 Not Found**, not a 401 and not a redirect to `/account/login`. The CMS must not acknowledge its own existence to an unauthorized caller. This is a deliberate departure from the bundled `RedirectToLogin` pattern: the login redirect is appropriate for *intentional authenticated-but-wrong-role* access (a signed-in non-admin clicking a CMS link they shouldn't have been shown), but it is wrong for *anonymous discovery* — a redirect to `/account/login` on a hit to `/cms/tracks` reveals that the route exists.
 
@@ -273,12 +250,12 @@ This wave delivered a logged-in collective member the ability to do everything t
 
 Things this plan must honour without re-deciding them.
 
-- **`CONTEXT.md §3.2` (service projects vs. host projects).** Controllers, middleware, auth wiring live in `DeepDrftWeb`. CMS view models, pages, and components live in the RCL. No domain logic in either host beyond HTTP concerns.
+- **`CONTEXT.md §3.2` (service projects vs. host projects).** Controllers, middleware, auth wiring live in `DeepDrftManager`. CMS view models, pages, and components are inlined in `DeepDrftManager`. No domain logic in the host beyond HTTP concerns.
 - **`CONTEXT.md §3.4` (TrackEntity is a join, not a content blob).** The new edit endpoint mutates SQL-side metadata only. Binary replacement is a separate operation against the vault.
-- **`feedback_no_direct_db_from_network_clients`.** The CMS runs server-side in `DeepDrftWeb` and is therefore in the trusted process. The browser still does not reach the database — it talks to CMS endpoints, which call the existing services, which call the databases. The architectural rule is preserved.
+- **`feedback_no_direct_db_from_network_clients`.** The CMS runs server-side in `DeepDrftManager` and is therefore in the trusted process. The browser still does not reach the database — it talks to CMS endpoints, which call the existing services, which call the databases. The architectural rule is preserved.
 - **`user_one_source_multiple_views`.** The CMS list is a *different rendering* of the same `PagedResult<TrackEntity>` the public gallery uses. Do not introduce a parallel `GetCmsTrackPage` endpoint or a parallel VM. If the CMS needs additional fields, extend the existing VM, don't fork it.
 - **`feedback_design_for_adaptability`.** Capture `CreatedByUserId` on mutations from day one, even with one user. Do not introduce schema columns later as a retrofit.
-- **`CONTEXT.md §3.6` (dark-mode prerender bridge).** AuthBlocks's `AddAuthenticationStateDeserialization()` (called in `DeepDrftWeb.Client.Startup` per §2.2) is the analogue of the dark-mode `PersistentComponentState` bridge — it carries serialized auth state across the prerender → WASM boundary. For pure-`InteractiveServer` CMS pages this is unused; it matters for the public-site `InteractiveAuto` pages that need to render "Sign in" vs "CMS" links consistently.
+- **`CONTEXT.md §3.6` (dark-mode prerender bridge).** AuthBlocks's `AddAuthenticationStateDeserialization()` (called in `DeepDrftPublic.Client.Startup` per §2.2) is the analogue of the dark-mode `PersistentComponentState` bridge — it carries serialized auth state across the prerender → WASM boundary. For pure-`InteractiveServer` CMS pages this is unused; it matters for the public-site `InteractiveAuto` pages that need to render "Sign in" vs "CMS" links consistently.
 - **`PLAN.md §0` (audit baseline).** The streaming substrate is stable; the CMS does not touch it. Anything the CMS reads from `DeepDrftContent` goes through the existing `GET api/track/{id}` path.
 - **Supersession of `PLAN.md §2.4`.** When W1.4 lands, doc-keeper archives `PLAN.md §2.4` to `COMPLETED.md` with a note "subsumed by CMS-PLAN.md Wave 1." This document is the authoritative roadmap for the upload capability.
 
@@ -303,7 +280,7 @@ All open questions are resolved. This section is retained as a record.
 
 **Resolved questions (in order of resolution):**
 - Postgres strategy: Option B — both `DeepDrftContext` and `AuthDbContext` on PostgreSQL.
-- RCL name: `DeepDrftCms`.
+- CMS structure: Inlined into `DeepDrftManager` host (not a separate RCL).
 - URL prefix: `/cms`.
 - Render mode: `InteractiveServer` with MudBlazor.
 - Dual-write transport: Option B — HTTP proxy through `DeepDrftContent`; new `POST api/track/upload` endpoint required.

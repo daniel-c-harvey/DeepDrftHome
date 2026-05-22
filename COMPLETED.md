@@ -34,6 +34,12 @@ Rewrite all existing EF Core migrations from SQLite to PostgreSQL. Update the `D
 
 Project created, added to solution, referenced from `DeepDrftWeb`. Empty `Pages/Cms/Index.razor` mounted at `/cms` returning a "CMS — under construction" placeholder, proving the mount works.
 
+### CMS RCL inlined into `DeepDrftManager`
+
+**Landed 2026-05-21.**
+
+The `DeepDrftCms` Razor Class Library has been inlined into `DeepDrftManager` and the standalone project deleted from the solution. All Razor pages, components, and layouts (CmsLayout, DeleteTrackDialog, TrackList, TrackNew, TrackEdit, and the CMS index page) now live directly in `DeepDrftManager/Components/Pages/Cms/`, `DeepDrftManager/Components/Pages/Tracks/`, `DeepDrftManager/Components/Layout/`, and `DeepDrftManager/Components/Shared/`. The `DeepDrftManager.csproj` no longer references the now-deleted `DeepDrftCms` project. `DeepDrftManager/Program.cs` no longer calls `AddCmsServices()` or references the CMS assembly. Solution builds cleanly with all CMS endpoints and pages functional.
+
 ### W1.2 AuthBlocks integration + login
 
 **Landed 2026-05-18.**

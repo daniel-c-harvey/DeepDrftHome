@@ -4,15 +4,17 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Architecture Overview
 
-DeepDrftHome is a **net10.0** solution consisting of eight projects implementing a dual-database media management system for the DeepDrft electronic music collective.
+DeepDrftHome is a **net10.0** solution consisting of ten projects implementing a dual-database media management system for the DeepDrft electronic music collective, split into two independent Blazor applications: the public site (`DeepDrftPublic`) and the CMS (`DeepDrftManager`).
 
 ### Core Projects
 
-- **DeepDrftPublic**: ASP.NET Core host. Blazor Web App with Server + WASM render modes. Owns the SQL-backed `api/track/page` endpoint, MudBlazor theme prerender, and TypeScript→JS audio interop.
-- **DeepDrftPublic.Client**: Blazor WebAssembly assembly. All interactive UI (pages, player stack, dark-mode plumbing, HTTP clients for both backends).
-- **DeepDrftData**: Class library. EF Core domain logic: `DeepDrftContext`, `TrackConfiguration`, `Migrations`, `TrackRepository`, `TrackService`. Sharable between web host and CLI.
+- **DeepDrftPublic**: ASP.NET Core host. Blazor Web App with Server + WASM render modes. Owns the SQL-backed `api/track/page` endpoint, MudBlazor theme prerender, and TypeScript→JS audio interop. Public-facing site for listeners.
+- **DeepDrftPublic.Client**: Blazor WebAssembly assembly. All interactive UI (pages, player stack, dark-mode plumbing, HTTP clients for both backends). Consumed by the public site.
+- **DeepDrftManager**: ASP.NET Core host. Blazor Web App with server-rendered `InteractiveServer` render mode. Hosts all CMS Razor components and pages under `Components/Pages/Cms/`, `Components/Pages/Tracks/`, `Components/Layout/CmsLayout.razor`, and `Components/Shared/` (all inlined from the former `DeepDrftCms` RCL). Gated by AuthBlocks login and hierarchical `Admin` role authorization.
+- **DeepDrftShared.Client**: Razor Class Library. Shared Blazor components consumed by both `DeepDrftPublic` and `DeepDrftManager` for consistency across public and admin surfaces.
+- **DeepDrftData**: Class library. EF Core domain logic: `DeepDrftContext`, `TrackConfiguration`, `Migrations`, `TrackRepository`, `TrackService`. Shared between hosts.
 - **DeepDrftContent**: ASP.NET Core host. Binary content API (`GET api/track/{id}` unauthenticated, `PUT api/track/{id}` ApiKey-protected). Returns audio bytes with optional WAV-aware offset streaming.
-- **DeepDrftContent.Services**: Class library. The FileDatabase implementation in full (Models, Services, Utils, Abstractions, Constants), `WavOffsetService`, `AudioProcessor`, content-side `TrackService`. Consumed by host and CLI.
+- **DeepDrftContent.Services**: Class library. The FileDatabase implementation in full (Models, Services, Utils, Abstractions, Constants), `WavOffsetService`, `AudioProcessor`, content-side `TrackService`. Consumed by hosts and tests.
 - **DeepDrftModels**: Shared contracts. `TrackEntity`, `TrackDto`, `PagingParameters<T>`, `PagedResult<T>`. Every project references this.
 - **DeepDrftCli**: Console app. Two modes: classic CLI (`add` / `list` / `help`) and Terminal.Gui (`gui`). Direct access to both databases (local admin tool, not a network client).
 - **DeepDrftTests**: NUnit test suite. Comprehensive FileDatabase tests (vault creation, media storage, indexing, factory patterns, utilities). Integration-focused with temp-directory test isolation.
@@ -46,9 +48,9 @@ DeepDrftPublic.Client (WASM)
 
 ### Service projects vs. host projects
 
-The split between `DeepDrftPublic` / `DeepDrftData` (and the same for Content) is deliberate: hosts own HTTP surface, config, DI wiring; `*.Services` are plain class libraries holding domain logic. This lets `DeepDrftCli` reuse both `TrackService` implementations without taking ASP.NET dependencies.
+The split between host projects (`DeepDrftPublic`, `DeepDrftManager`, `DeepDrftContent`) and `*.Services` class libraries (e.g., `DeepDrftData`, `DeepDrftContent.Services`) is deliberate: hosts own HTTP surface, config, DI wiring, and UI components; `*.Services` are plain class libraries holding domain logic. This separation allows multiple hosts to consume the same service implementations.
 
-**New domain logic goes in `*.Services` unless genuinely host-specific** (controllers, middleware, render-mode config, theme prerender).
+**New domain logic goes in `*.Services` unless genuinely host-specific** (controllers, middleware, Razor pages, render-mode config, DI setup).
 
 ### TrackEntity is a join, not a content blob
 
