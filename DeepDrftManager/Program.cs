@@ -1,6 +1,5 @@
 using AuthBlocksLib;
 using AuthBlocksLib.Options;
-using DeepDrftCms;
 using DeepDrftData;
 using DeepDrftData.Data;
 using DeepDrftData.Repositories;
@@ -30,9 +29,6 @@ builder.Configuration.AddJsonFile(authBlocksPath, optional: false, reloadOnChang
 
 // MudBlazor.
 builder.Services.AddMudServices();
-
-// CMS-specific services (currently a no-op placeholder; reserved for future RCL additions).
-builder.Services.AddCmsServices();
 
 // SQL metadata domain — DbContext + repository + manager. The CMS pages inject ITrackService
 // and resolve the same scoped TrackManager instance, so the DTO and entity surfaces share state.
@@ -174,9 +170,7 @@ app.MapControllers();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
-    .AddAdditionalAssemblies(
-        typeof(DeepDrftCms._Imports).Assembly,
-        typeof(AuthBlocksWeb._Imports).Assembly);
+    .AddAdditionalAssemblies(typeof(AuthBlocksWeb._Imports).Assembly);
 
 app.Run();
 

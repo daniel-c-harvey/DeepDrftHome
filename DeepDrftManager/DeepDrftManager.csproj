@@ -17,7 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DeepDrftCms\DeepDrftCms.csproj" />
     <ProjectReference Include="..\DeepDrftData\DeepDrftData.csproj" />
     <ProjectReference Include="..\DeepDrftModels\DeepDrftModels.csproj" />
     <ProjectReference Include="..\DeepDrftShared.Client\DeepDrftShared.Client.csproj" />
