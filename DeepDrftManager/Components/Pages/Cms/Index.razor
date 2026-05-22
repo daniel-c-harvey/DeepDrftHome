@@ -1,7 +1,8 @@
 @page "/cms"
 @rendermode InteractiveServer
 @using AuthBlocksWeb.HierarchicalAuthorize
-@attribute [HierarchicalRoleAuthorize("Admin")]
+@using AuthBlocksModels.SystemDefinitions
+@attribute [HierarchicalRoleAuthorize([SystemRoleConstants.Admin])]
 
 <PageTitle>DeepDrft CMS</PageTitle>
 
