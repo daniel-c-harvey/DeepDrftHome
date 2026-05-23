@@ -1,7 +1,6 @@
 @page "/"
 @rendermode InteractiveServer
-@using AuthBlocksWeb.HierarchicalAuthorize
-@attribute [HierarchicalRoleAuthorize("Admin")]
+@attribute [HierarchicalRoleAuthorize([SystemRoleConstants.Admin])]
 @inject NavigationManager NavigationManager
 
 @code {

@@ -12,8 +12,8 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.7" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
     <PackageReference Include="MudBlazor" Version="8.15.0" />
-    <PackageReference Include="Cerebellum.AuthBlocks" Version="10.3.32" />
-    <PackageReference Include="Cerebellum.AuthBlocks.Web" Version="10.3.32" />
+    <PackageReference Include="Cerebellum.AuthBlocks" Version="10.3.33" />
+    <PackageReference Include="Cerebellum.AuthBlocks.Web" Version="10.3.33" />
   </ItemGroup>
 
   <ItemGroup>
