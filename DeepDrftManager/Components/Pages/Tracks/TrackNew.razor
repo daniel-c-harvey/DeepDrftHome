@@ -1,7 +1,6 @@
 @page "/cms/tracks/new"
 @using System.Net.Http.Headers
-@using AuthBlocksWeb.HierarchicalAuthorize
-@attribute [HierarchicalRoleAuthorize("Admin")]
+@attribute [HierarchicalRoleAuthorize([SystemRoleConstants.Admin])]
 
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Navigation

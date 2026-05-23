@@ -1,11 +1,10 @@
 @page "/cms/tracks"
 @using System.Net
 @using System.Net.Http.Headers
-@using AuthBlocksWeb.HierarchicalAuthorize
-@attribute [HierarchicalRoleAuthorize("Admin")]
+@attribute [HierarchicalRoleAuthorize([SystemRoleConstants.Admin])]
 @inject ITrackService TrackService
 @inject IHttpClientFactory HttpClientFactory
-@inject AuthBlocksWeb.Services.ITokenService TokenService
+@inject IAuthSession AuthSession
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject ILogger<TrackList> Logger
@@ -115,7 +114,7 @@
         try
         {
             var client = HttpClientFactory.CreateClient("DeepDrft.API");
-            var token = await TokenService.GetAccessTokenAsync();
+            var token = await AuthSession.GetValidTokenAsync();
             if (!string.IsNullOrEmpty(token))
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             var response = await client.DeleteAsync($"api/cms/track/{track.Id}");

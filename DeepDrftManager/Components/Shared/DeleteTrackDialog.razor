@@ -2,7 +2,7 @@
 @using System.Net.Http.Headers
 @using Microsoft.AspNetCore.Components
 @inject IHttpClientFactory HttpClientFactory
-@inject AuthBlocksWeb.Services.ITokenService TokenService
+@inject IAuthSession AuthSession
 
 <MudDialog>
     <DialogContent>
@@ -51,7 +51,7 @@
         try
         {
             var client = HttpClientFactory.CreateClient("DeepDrft.API");
-            var token = await TokenService.GetAccessTokenAsync();
+            var token = await AuthSession.GetValidTokenAsync();
             if (!string.IsNullOrEmpty(token))
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             var response = await client.DeleteAsync($"api/cms/track/{TrackId}");

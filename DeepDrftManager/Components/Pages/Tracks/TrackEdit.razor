@@ -1,12 +1,10 @@
 @page "/cms/tracks/{Id:int}"
-@using AuthBlocksWeb.HierarchicalAuthorize
-@using AuthBlocksWeb.Services
 @using System.Net.Http.Headers
 @using System.Net.Http.Json
-@attribute [HierarchicalRoleAuthorize("Admin")]
+@attribute [HierarchicalRoleAuthorize([SystemRoleConstants.Admin])]
 @inject ITrackService TrackService
 @inject IHttpClientFactory HttpClientFactory
-@inject ITokenService TokenService
+@inject IAuthSession AuthSession
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject NavigationManager Nav
@@ -203,7 +201,7 @@
 
     private async Task AttachBearerAsync(HttpClient http)
     {
-        var token = await TokenService.GetAccessTokenAsync();
+        var token = await AuthSession.GetValidTokenAsync();
         if (!string.IsNullOrEmpty(token))
         {
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
