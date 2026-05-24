@@ -2,8 +2,15 @@
         AdditionalAssemblies="new[] { typeof(AuthBlocksWeb._Imports).Assembly }">
     <Found Context="routeData">
         <AuthorizeRouteView RouteData="routeData">
-            <NotAuthorized>
-                <RedirectToLogin />
+            <NotAuthorized Context="authState">
+                @if (authState.User.Identity?.IsAuthenticated == true)
+                {
+                    <RedirectToAccessDenied />
+                }
+                else
+                {
+                    <RedirectToLogin />
+                }
             </NotAuthorized>
         </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
