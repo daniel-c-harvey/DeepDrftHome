@@ -6,6 +6,7 @@
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 @inject ILogger<TrackNew> Logger
+@inject IAuthSession AuthSession
 
 <PageTitle>Add Track — DeepDrft CMS</PageTitle>
 
@@ -134,6 +135,7 @@
             if (!string.IsNullOrWhiteSpace(_releaseDate)) multipart.Add(new StringContent(_releaseDate), "releaseDate");
 
             var client = HttpClientFactory.CreateClient("DeepDrft.API");
+            await AttachBearerAsync(client);
             using var response = await client.PostAsync("api/cms/track", multipart);
 
             if (response.IsSuccessStatusCode)
@@ -163,6 +165,15 @@
     private void Cancel()
     {
         Navigation.NavigateTo("/cms/tracks");
+    }
+
+    private async Task AttachBearerAsync(HttpClient http)
+    {
+        var token = await AuthSession.GetValidTokenAsync();
+        if (!string.IsNullOrEmpty(token))
+        {
+            http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
     }
 
     private static string FormatBytes(long bytes)
