@@ -12,12 +12,16 @@
     <link rel="stylesheet" href="@Assets["_content/DeepDrftShared.Client/styles/deepdrft-tokens.css"]" />
     <ImportMap />
     <link rel="icon" type="image/ico" href="deepdrft-logo.ico" />
-    <HeadOutlet />
+    <HeadOutlet @rendermode="ServerMode" />
 </head>
 
 <body>
-<Routes />
+<Routes @rendermode="ServerMode" />
 <script src="_framework/blazor.web.js"></script>
 <script src=@Assets["_content/MudBlazor/MudBlazor.min.js"]></script>
 </body>
 </html>
+
+@code {
+    private static readonly IComponentRenderMode ServerMode = new InteractiveServerRenderMode(prerender: false);
+}

@@ -156,8 +156,8 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseAuthentication();
-app.UseAuthorization();
 app.UseAntiforgery();
+app.UseAuthorization();
 
 app.MapStaticAssets();
 
@@ -168,9 +168,17 @@ app.MapAuthBlocks();
 // Mounts CMS mutation controllers (CmsUploadController, CmsEditController, CmsDeleteController).
 app.MapControllers();
 
+// Blazor page authorization is owned by AuthorizeRouteView in Routes.razor, not
+// ASP.NET Core endpoint authorization. AuthBlocks tokens live in browser localStorage
+// (read via JS interop by JwtAuthenticationStateProvider), so the JWT never reaches
+// the server on a navigation request. Without AllowAnonymous here, the JwtBearer
+// challenge for an unauthenticated nav returns 401 before the Blazor router runs,
+// short-circuiting the NotAuthorized -> RedirectToLogin path. JWT enforcement
+// remains in force for the API surfaces (MapAuthBlocks, MapControllers).
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
-    .AddAdditionalAssemblies(typeof(AuthBlocksWeb._Imports).Assembly);
+    .AddAdditionalAssemblies(typeof(AuthBlocksWeb._Imports).Assembly)
+    .AllowAnonymous();
 
 app.Run();
 
