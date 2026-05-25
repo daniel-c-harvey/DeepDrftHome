@@ -5,7 +5,7 @@ Working plan for two connected workstreams. Standalone execution doc; not part o
 `CONTEXT.md §6` convention, and the `ITrackService` cross-cutting note in `PLAN.md` (line ~192)
 should be retired since this plan resolves it.
 
-**Status:** awaiting Daniel's approval. Engineering is not dispatched until then.
+**Status:** **Completed** — landed on `dev` (2026-05-25).
 
 ---
 

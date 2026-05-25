@@ -1,27 +1,28 @@
-# CLAUDE.md - DeepDrftContent
+# CLAUDE.md - DeepDrftAPI
 
-Guidance for working in the DeepDrftContent project (the binary content API host).
+Guidance for working in the DeepDrftAPI project (the dual-database authority and AuthBlocks API host).
 
 See the root `CLAUDE.md` for full architecture overview. This file covers what is specific to this project.
 
 ## One-line purpose
 
-The dual-database authority for tracks: SQL metadata and FileDatabase binary. Seven endpoints expose track CRUD with upload+persist, delete+cleanup, paged listing, and metadata operations. ApiKey middleware, CORS, forwarded headers. **FileDatabase implementation lives in `DeepDrftContent.Services`; SQL services in `DeepDrftData`.**
+Dual-database authority for tracks (SQL metadata + FileDatabase binary), and AuthBlocks API host (JWT auth, role/admin seed). Seven track endpoints expose CRUD with upload+persist, delete+cleanup, paged listing, and metadata operations. ApiKey middleware for track endpoints, JWT + AuthBlocks endpoints for auth. CORS, forwarded headers. **FileDatabase implementation lives in `DeepDrftContent`; SQL services in `DeepDrftData`.**
 
 ## What lives here now (only)
 
-- `Program.cs`, `Startup.cs`: HTTP host config, DI wiring, middleware setup, port binding.
+- `Program.cs`, `Startup.cs`: HTTP host config, DI wiring, middleware setup, port binding. AuthBlocks startup: `AddAuthBlocks`, `UseAuthBlocksStartupAsync`, `MapAuthBlocks`, authentication/authorization middleware.
 - `Services/UnifiedTrackService.cs`: Host-internal orchestrator. Coordinates vault write + SQL persist for upload (`UploadAsync`), and SQL delete + vault remove for delete (`DeleteAsync`).
-- `Controllers/TrackController.cs`: Seven endpoints (see below).
-- `Middleware/ApiKeyAuthenticationMiddleware.cs`, `Middleware/ApiKeyAuthorizeAttribute.cs`: ApiKey validation logic.
+- `Controllers/TrackController.cs`: Seven track endpoints (see below).
+- `Middleware/ApiKeyAuthenticationMiddleware.cs`, `Middleware/ApiKeyAuthorizeAttribute.cs`: ApiKey validation logic (for track endpoints only).
 - `Models/`: Settings POCOs only (`ApiKeySettings`, `CorsSettings`, `FileDatabaseSettings`). No domain code.
 - `environment/filedatabase.json`: FileDatabase vault path config (loaded via CredentialTools, not in repo).
-- `environment/apikey.json`: API key (loaded via CredentialTools, not in repo, must be created locally or at deployment).
-- `environment/connections.json`: SQL connection string (loaded via CredentialTools, not in repo, format: `{ "ConnectionStrings": { "DefaultConnection": "..." } }`).
+- `environment/apikey.json`: API key for track endpoints (loaded via CredentialTools, not in repo, must be created locally or at deployment).
+- `environment/connections.json`: SQL and Auth connection strings (loaded via CredentialTools, not in repo, format: `{ "ConnectionStrings": { "DefaultConnection": "...", "Auth": "..." } }`).
+- `environment/authblocks.json`: AuthBlocks configuration (JWT secret, email sender creds, admin seed creds) (loaded via CredentialTools, not in repo).
 
 ## What does NOT live here anymore
 
-- `FileDatabase/`, `Processors/`, media models (`AudioBinary`, `ImageBinary`, etc.), `WavOffsetService` — all in `DeepDrftContent.Services`.
+- `FileDatabase/`, `Processors/`, media models (`AudioBinary`, `ImageBinary`, etc.), `WavOffsetService` — all in `DeepDrftContent` (class library).
 - EF Core context and repository — in `DeepDrftData`.
 - **Hosts only own HTTP surface and wiring.** New domain code goes in `*.Services` (shared libraries) or host-internal `Services/` folders (e.g., `UnifiedTrackService` here for dual-database orchestration).
 
@@ -50,7 +51,7 @@ Returns the WAV bytes from the `tracks` vault with optional offset support.
 
 ### POST api/track/upload ([ApiKeyAuthorize])
 
-**Authenticated endpoint.** Accepts a raw WAV upload + metadata as `multipart/form-data`, processes the WAV, stores it in the vault, and persists metadata to SQL. Returns the fully persisted `TrackEntity` with `Id` populated.
+**Authenticated endpoint.** Accepts a raw WAV upload + metadata as `multipart/form-data`, processes the WAV, stores it in the vault, and persists metadata to SQL. Returns the fully persisted `TrackDto` with `Id` populated.
 
 - **Header `ApiKey`**: required. Validated by `ApiKeyAuthenticationMiddleware`.
 - **Form fields**:
@@ -64,7 +65,7 @@ Returns the WAV bytes from the `tracks` vault with optional offset support.
 - The upload stream is copied to a `.wav`-suffixed temp file under `Path.GetTempPath()` (the audio processor requires that extension and reads from disk). The temp file is always deleted in a `finally` block — success or failure.
 - `[RequestSizeLimit(1 GB)]` + `[RequestFormLimits(MultipartBodyLengthLimit = 1 GB)]` lift the per-request ceiling above the framework default (~28 MB) so production-sized WAVs are accepted. The body is streamed to the temp file, not buffered in memory.
 - Calls `UnifiedTrackService.UploadAsync`, which orchestrates: `TrackService.AddTrackFromWavAsync` (vault write) → `TrackManager` (SQL persist with `createdByUserId`).
-- Returns 200 with the **persisted** `TrackEntity` JSON (Id populated) on success. Returns 400 for missing/invalid form fields. Returns 500 if processing fails.
+- Returns 200 with the **persisted** `TrackDto` JSON (Id populated) on success. Returns 400 for missing/invalid form fields. Returns 500 if processing fails.
 
 ### DELETE api/track/{id:long} ([ApiKeyAuthorize])
 
@@ -86,7 +87,7 @@ Returns the WAV bytes from the `tracks` vault with optional offset support.
   - `sortColumn` (string, optional): sort field. Supported: `"TrackName"`, `"Artist"`, `"Album"`, `"Genre"`, `"ReleaseDate"`. Defaults to `Id`.
   - `sortDescending` (bool, optional, default false): sort direction.
 - Calls `ITrackService.GetPaged` (via DI), which is actually `TrackManager` from `DeepDrftData`.
-- Returns 200 with `PagedResult<TrackEntity>` JSON (`Items`, `TotalCount`, `PageNumber`, `PageSize`). Returns 500 on query error.
+- Returns 200 with `PagedResult<TrackDto>` JSON (`Items`, `TotalCount`, `PageNumber`, `PageSize`). Returns 500 on query error.
 
 ### GET api/track/meta/{id:long} ([ApiKeyAuthorize])
 
@@ -94,8 +95,8 @@ Returns the WAV bytes from the `tracks` vault with optional offset support.
 
 - **Header `ApiKey`**: required. Validated by `ApiKeyAuthenticationMiddleware`.
 - **Route parameter `id`** (long): the SQL track ID.
-- Calls `ITrackService.GetById`, which returns the track or null.
-- Returns 200 with `TrackEntity` JSON on success. Returns 404 if not found. Returns 500 on query error.
+- Calls `ITrackService.GetById`, which returns the track as `TrackDto` or null.
+- Returns 200 with `TrackDto` JSON on success. Returns 404 if not found. Returns 500 on query error.
 
 ### PUT api/track/meta/{id:long} ([ApiKeyAuthorize])
 
@@ -104,8 +105,8 @@ Returns the WAV bytes from the `tracks` vault with optional offset support.
 - **Header `ApiKey`**: required. Validated by `ApiKeyAuthenticationMiddleware`.
 - **Route parameter `id`** (long): the SQL track ID.
 - **Body**: `UpdateTrackMetadataRequest` with fields: `TrackName`, `Artist`, `Album?`, `Genre?`, `ReleaseDate?`.
-- Looks up SQL row by ID, updates the provided fields (nulls in the request clear optional fields), and persists via `ITrackService.Update`.
-- Returns 200 on success. Returns 404 if track not found. Returns 500 on update error.
+- Looks up SQL row by ID (returns `TrackDto`), updates the provided fields (nulls in the request clear optional fields), and persists the DTO via `ITrackService.Update`.
+- Returns 200 with the updated `TrackDto` on success. Returns 404 if track not found. Returns 500 on update error.
 
 ## ApiKey middleware behaviour
 
@@ -140,16 +141,20 @@ Configured in `Startup.ConfigureDomainServices()`, applied to all endpoints via 
 2. Await `FileDatabase.FromAsync(VaultPath)` to load or create the database.
 3. Register `FileDatabase` as singleton.
 4. Ensure the `tracks` vault exists (type `MediaVaultType.Audio`, created on first boot if missing).
-5. Register singletons: `WavOffsetService`, `AudioProcessor`, `TrackService` (the `DeepDrftContent.Data` version for vault operations).
+5. Register singletons: `WavOffsetService`, `AudioProcessor`, `TrackService` (the `DeepDrftContent` version for vault operations).
 
-**In `Program.cs`** (SQL + wiring):
+**In `Program.cs`** (SQL + AuthBlocks + wiring):
 
-6. Load `environment/connections.json` via `CredentialTools.ResolvePathOrThrow("connections", ...)`.
-7. Register `DbContext<DeepDrftContext>` (scoped) with connection string from config.
-8. Register scoped: `TrackRepository`, `TrackManager`, `ITrackService` (factory resolves to `TrackManager`), `UnifiedTrackService`.
-9. Configure forwarded headers (production-only) for reverse proxy support.
-10. Load `environment/apikey.json` and register API key middleware.
-11. Configure CORS policy (`ContentApiPolicy`): AllowAnyMethod, AllowAnyHeader, AllowCredentials, specific origins from config.
+6. Load `environment/connections.json` via `CredentialTools.ResolvePathOrThrow("connections", ...)` — contains both `DefaultConnection` (SQL metadata) and `Auth` (AuthBlocks Identity database).
+7. **AuthBlocks startup:** Call `builder.Services.AddAuthBlocks(options => { ... })` with `Auth` connection string and settings from `AuthBlocks:*` config keys. Load `environment/authblocks.json` for JWT secret, email sender creds, and admin seed creds. This registers JWT bearer auth scheme and EF Identity.
+8. Register `DbContext<DeepDrftContext>` (scoped) with `DefaultConnection` from config.
+9. Register scoped: `TrackRepository`, `TrackManager`, `ITrackService` (factory resolves to `TrackManager`), `UnifiedTrackService`.
+10. **After `app.Build()`:** Call `await app.Services.UseAuthBlocksStartupAsync()` to apply migrations and seed roles + admin user to the Auth database.
+11. Configure forwarded headers (production-only) for reverse proxy support.
+12. Load `environment/apikey.json` and register API key middleware.
+13. Configure CORS policy (`ContentApiPolicy`): AllowAnyMethod, AllowAnyHeader, AllowCredentials, specific origins from config (includes DeepDrftManager origin for cross-origin auth calls).
+14. **Map AuthBlocks endpoints:** Call `app.MapAuthBlocks()` to mount `/api/auth/*` and `/api/users/*` endpoints. Ensure `app.UseAuthentication()` and `app.UseAuthorization()` are in the middleware pipeline (required for JWT bearer auth).
+15. Verify ApiKey middleware ordering: it must not interfere with JWT middleware. ApiKey gates only `[ApiKeyAuthorize]`-decorated track endpoints; JWT gates AuthBlocks endpoints.
 
 The singleton `FileDatabase` is thread-safe for reads. Writes are atomic at the vault level (index updates are serialised). The `IndexWatcher` reloads the vault index if an external process (e.g., CLI) writes to it, so a long-running web host stays consistent. SQL services are scoped (DbContext not thread-safe).
 
@@ -159,9 +164,10 @@ Mapped in `Development` only. Swagger UI at `/swagger` for testing endpoints loc
 
 ## Configuration files
 
-- `appsettings.json`: Logging, hosting, and CORS config. **Does not contain secrets.**
+- `appsettings.json`: Logging, hosting, CORS, and AuthBlocks config. **Does not contain secrets.**
   - `Logging`: standard ASP.NET structure.
   - `CorsSettings.AllowedOrigins`: array of origin URLs allowed to call the API (required; throws on startup if missing).
+  - `AuthBlocks:Jwt:Issuer`, `AuthBlocks:Jwt:Audience`: JWT validation settings (loaded from `environment/authblocks.json`).
 - `environment/filedatabase.json` (required, loaded via CredentialTools, not in repo):
   ```json
   {
@@ -182,7 +188,30 @@ Mapped in `Development` only. Swagger UI at `/swagger` for testing endpoints loc
   ```json
   {
     "ConnectionStrings": {
-      "DefaultConnection": "Host=localhost;Database=deepdrft;Username=postgres;Password=..."
+      "DefaultConnection": "Host=localhost;Database=deepdrft;Username=postgres;Password=...",
+      "Auth": "Host=localhost;Database=deepdrft_auth;Username=postgres;Password=..."
+    }
+  }
+  ```
+- `environment/authblocks.json` (required, loaded via CredentialTools, not in repo):
+  ```json
+  {
+    "AuthBlocks": {
+      "Jwt": {
+        "Secret": "your-signing-secret-min-32-chars",
+        "Issuer": "https://deepdrft.api",
+        "Audience": "https://deepdrft.com"
+      },
+      "Email": {
+        "Host": "smtp.provider.com",
+        "Token": "your-smtp-password"
+      },
+      "Admin": {
+        "UserName": "admin",
+        "Email": "admin@deepdrft.com",
+        "Password": "initial-admin-password"
+      },
+      "SupportEmail": "support@deepdrft.com"
     }
   }
   ```
@@ -190,21 +219,25 @@ Mapped in `Development` only. Swagger UI at `/swagger` for testing endpoints loc
 ## Development commands
 
 ```bash
-# Run the content API (default https://localhost:5002)
-dotnet run --project DeepDrftContent
+# Run the API host (default https://localhost:5002)
+dotnet run --project DeepDrftAPI
 
 # Watch during development
-dotnet watch run --project DeepDrftContent
+dotnet watch run --project DeepDrftAPI
 
 # Build
-dotnet build DeepDrftContent
+dotnet build DeepDrftAPI
 
-# Test endpoints (requires API key in environment/apikey.json)
-curl -H "ApiKey: your-secret-key" -X PUT https://localhost:5002/api/track/test-id \
+# Test track endpoints (requires API key in environment/apikey.json)
+curl -H "ApiKey: your-secret-key" -X GET https://localhost:5002/api/track/page \
+  -H "Accept: application/json"
+
+curl https://localhost:5002/api/track/test-entry-key?offset=0
+
+# Test auth endpoints (AuthBlocks API)
+curl -X POST https://localhost:5002/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"buffer":"base64-encoded-audio","size":1000,"mime":"audio/wav"}'
-
-curl https://localhost:5002/api/track/test-id?offset=0
+  -d '{"email":"admin@deepdrft.com","password":"initial-admin-password"}'
 ```
 
 ## Important patterns
@@ -216,6 +249,6 @@ curl https://localhost:5002/api/track/test-id?offset=0
 
 ## The FileDatabase import
 
-See `DeepDrftContent.Services/CLAUDE.md` for the FileDatabase API and semantics. This host only provides the HTTP surface over it.
+See `DeepDrftContent/CLAUDE.md` for the FileDatabase API and semantics. This host only provides the HTTP surface over it and the AuthBlocks authority.
 
-When working with this project, focus on the HTTP surface (controllers, middleware, CORS, forwarded headers) and the wiring that connects the host to the FileDatabase. New domain logic goes in `DeepDrftContent.Services`.
+When working with this project, focus on the HTTP surface (controllers, middleware, CORS, forwarded headers, AuthBlocks wiring) and the dual-database orchestration via `UnifiedTrackService`. New domain logic goes in `DeepDrftContent` (FileDatabase) or `DeepDrftData` (SQL). Keep this host focused on HTTP boundaries and wiring.

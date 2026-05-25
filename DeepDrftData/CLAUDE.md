@@ -45,7 +45,7 @@ DeepDrftData/
 
 ## Service → Repository → DbContext shape
 
-- **Service** (`TrackManager`, implements `ITrackService`): Public contract. Takes `TrackRepository`, catches exceptions at service boundary, returns `ResultContainer<T>`.
+- **Service** (`TrackManager`, implements `ITrackService`): Public contract. Takes `TrackRepository`, catches exceptions at service boundary, returns `ResultContainer<T>` with DTO results.
 - **Repository** (`TrackRepository`): Internal data access. Queries the DbContext. Throws on error (service catches).
 - **DbContext** (`DeepDrftContext`): EF Core. Directly accessed by repository, never by service (pattern isolation).
 
@@ -53,7 +53,8 @@ Example:
 
 ```csharp
 // TrackManager.GetPaged (public via ITrackService)
-public async Task<ResultContainer<PagedResult<TrackEntity>>> GetPaged(
+// Returns PagedResult<TrackDto> — the repository outputs entities, the service outputs DTOs
+public async Task<ResultContainer<PagedResult<TrackDto>>> GetPaged(
     int pageNumber = 1,
     int pageSize = 20,
     string? sortColumn = null,
@@ -70,11 +71,17 @@ public async Task<ResultContainer<PagedResult<TrackEntity>>> GetPaged(
             IsDescending = sortDescending
         };
         var result = await _repository.GetPagedAsync(parameters, cancellationToken);
-        return ResultContainer<PagedResult<TrackEntity>>.CreatePassResult(result);
+        // Convert to DTO before returning
+        var dtoResult = new PagedResult<TrackDto>(
+            result.Items.Select(TrackConverter.Convert).ToList(),
+            result.TotalCount,
+            result.PageNumber,
+            result.PageSize);
+        return ResultContainer<PagedResult<TrackDto>>.CreatePassResult(dtoResult);
     }
     catch (Exception e)
     {
-        return ResultContainer<PagedResult<TrackEntity>>.CreateFailResult(e.Message);
+        return ResultContainer<PagedResult<TrackDto>>.CreateFailResult(e.Message);
     }
 }
 ```
