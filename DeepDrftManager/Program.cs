@@ -1,5 +1,3 @@
-using AuthBlocksLib;
-using AuthBlocksLib.Options;
 using DeepDrftManager.Components;
 using DeepDrftManager.Services;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -11,17 +9,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Required credential files — must exist before the app will start.
 // Production secrets stay gitignored; the *.example.json templates at the project root show the shape.
 //   - environment/api.json: { "Api": { "ContentApiUrl": "...", "ContentApiKey": "..."  } }
-//   - environment/connections.json: { "ConnectionStrings": { "DefaultConnection": "...", "Auth": "..." } }
-//   - environment/authblocks.json:  { "AuthBlocks": { "Jwt": {...}, "Email": {...}, "Admin": {...} } }
+// The Manager hosts only web-side auth (AuthBlocksWeb), which talks to the AuthBlocks API on
+// DeepDrftAPI. It holds no JWT signing secret, email creds, admin creds, or Auth connection string —
+// those moved to DeepDrftAPI's environment/authblocks.json + environment/connections.json.
 // Content API key — consumed by CmsTrackService for the upload proxy and the vault-delete client.
 var apiPath = CredentialTools.ResolvePathOrThrow("api", "environment/api.json");
 builder.Configuration.AddJsonFile(apiPath, optional: false, reloadOnChange: false);
-
-var connectionsPath = CredentialTools.ResolvePathOrThrow("connections", "environment/connections.json");
-builder.Configuration.AddJsonFile(connectionsPath, optional: false, reloadOnChange: false);
-
-var authBlocksPath = CredentialTools.ResolvePathOrThrow("authblocks", "environment/authblocks.json");
-builder.Configuration.AddJsonFile(authBlocksPath, optional: false, reloadOnChange: false);
 
 // MudBlazor.
 builder.Services.AddMudServices();
@@ -30,47 +23,15 @@ builder.Services.AddMudServices();
 // DeepDrftAPI API via the named clients below — the Manager holds no in-process data layer.
 builder.Services.AddScoped<ICmsTrackService, CmsTrackService>();
 
-// AuthBlocks: JWT Bearer auth, Identity, EF schema, admin seeding.
-// Auth schema runs in its own database (separate from DefaultConnection by design).
-builder.Services.AddAuthBlocks(options =>
-{
-    options.ConnectionString = builder.Configuration.GetConnectionString("Auth")
-        ?? throw new InvalidOperationException("ConnectionStrings:Auth is required");
-    options.ApplicationName  = "DeepDrft";
-    options.SupportEmail     = builder.Configuration["AuthBlocks:SupportEmail"] ?? "admin@deepdrft.com";
-
-    options.JwtSettings.Secret   = builder.Configuration["AuthBlocks:Jwt:Secret"]
-        ?? throw new InvalidOperationException("AuthBlocks:Jwt:Secret is required");
-    options.JwtSettings.Issuer   = builder.Configuration["AuthBlocks:Jwt:Issuer"]
-        ?? throw new InvalidOperationException("AuthBlocks:Jwt:Issuer is required");
-    options.JwtSettings.Audience = builder.Configuration["AuthBlocks:Jwt:Audience"]
-        ?? throw new InvalidOperationException("AuthBlocks:Jwt:Audience is required");
-
-    options.EmailConnection.Host  = builder.Configuration["AuthBlocks:Email:Host"]
-        ?? throw new InvalidOperationException("AuthBlocks:Email:Host is required");
-    options.EmailConnection.Token = builder.Configuration["AuthBlocks:Email:Token"]
-        ?? throw new InvalidOperationException("AuthBlocks:Email:Token is required");
-
-    options.AdminUserSettings = new AdminUserSettings
-    {
-        UserName = builder.Configuration["AuthBlocks:Admin:UserName"]
-            ?? throw new InvalidOperationException("AuthBlocks:Admin:UserName is required"),
-        Email    = builder.Configuration["AuthBlocks:Admin:Email"]
-            ?? throw new InvalidOperationException("AuthBlocks:Admin:Email is required"),
-        Password = builder.Configuration["AuthBlocks:Admin:Password"]
-            ?? throw new InvalidOperationException("AuthBlocks:Admin:Password is required")
-    };
-});
-
 // AuthBlocksWeb: server-side cascading auth state plus the JWT client services used by the
 // /account/login + /account/logout Razor pages that ship in the AuthBlocksWeb RCL.
-var baseUrl = GetKestrelUrl(builder);
-AuthBlocksWeb.Startup.ConfigureAuthServices(builder.Services, baseUrl);
+// The auth API lives on DeepDrftAPI, so pass its URL — not Manager's own Kestrel URL.
+var contentApiUrl = builder.Configuration["Api:ContentApiUrl"]
+    ?? throw new InvalidOperationException("Api:ContentApiUrl is required");
+AuthBlocksWeb.Startup.ConfigureAuthServices(builder.Services, contentApiUrl);
 
 // Named HttpClient for unauthenticated Content API calls (CmsTrackService proxying WAV data
 // to DeepDrftAPI's POST api/track/upload). API key added per-request by the service.
-var contentApiUrl = builder.Configuration["Api:ContentApiUrl"]
-    ?? throw new InvalidOperationException("Api:ContentApiUrl is required");
 builder.Services.AddHttpClient("DeepDrft.Content", client =>
 {
     client.BaseAddress = new Uri(contentApiUrl);
@@ -115,9 +76,6 @@ builder.Services.AddSignalR(options =>
 
 var app = builder.Build();
 
-// Apply AuthBlocks EF migrations, seed system roles, seed admin user on first boot.
-await app.Services.UseAuthBlocksStartupAsync();
-
 app.UseForwardedHeaders();
 
 if (!app.Environment.IsDevelopment())
@@ -138,45 +96,16 @@ app.UseAuthorization();
 
 app.MapStaticAssets();
 
-// Mount AuthBlocks API surface (/api/auth/*, /api/users/*, etc.) and the AuthBlocksWeb
-// Razor pages (/account/login, /account/logout).
-app.MapAuthBlocks();
-
-// Blazor page authorization is owned by AuthorizeRouteView in Routes.razor, not
-// ASP.NET Core endpoint authorization. AuthBlocks tokens live in browser localStorage
-// (read via JS interop by JwtAuthenticationStateProvider), so the JWT never reaches
-// the server on a navigation request. Without AllowAnonymous here, the JwtBearer
-// challenge for an unauthenticated nav returns 401 before the Blazor router runs,
-// short-circuiting the NotAuthorized -> RedirectToLogin path. JWT enforcement
-// remains in force for the AuthBlocks API surface (MapAuthBlocks).
+// The AuthBlocks API surface (/api/auth/*, /api/users/*, etc.) now lives on DeepDrftAPI; this host
+// only renders the AuthBlocksWeb Razor pages (/account/login, /account/logout), which call that API.
+// Blazor page authorization is owned by AuthorizeRouteView in Routes.razor, not ASP.NET Core
+// endpoint authorization. AuthBlocks tokens live in browser localStorage (read via JS interop by
+// JwtAuthenticationStateProvider), so the JWT never reaches the server on a navigation request.
+// Without AllowAnonymous here, the cookie/JwtBearer challenge for an unauthenticated nav returns 401
+// before the Blazor router runs, short-circuiting the NotAuthorized -> RedirectToLogin path.
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddAdditionalAssemblies(typeof(AuthBlocksWeb._Imports).Assembly)
     .AllowAnonymous();
 
 app.Run();
-
-// Local helper — mirrors DeepDrftPublic.Startup.GetKestrelUrl. Kept inline because this host's
-// only consumer is right here; promoting to a shared library would be premature.
-static string GetKestrelUrl(WebApplicationBuilder builder)
-{
-    var urls = builder.Configuration["ASPNETCORE_URLS"]
-               ?? builder.Configuration["urls"];
-
-    if (!string.IsNullOrEmpty(urls))
-    {
-        return urls.Split(';')[0].Trim();
-    }
-
-    var firstEndpoint = builder.Configuration.GetSection("Kestrel:Endpoints").GetChildren().FirstOrDefault();
-    var endpointUrl = firstEndpoint?["Url"];
-
-    if (!string.IsNullOrEmpty(endpointUrl))
-    {
-        return endpointUrl;
-    }
-
-    return builder.Environment.IsDevelopment()
-        ? "https://localhost:5004"
-        : "http://localhost:5000";
-}

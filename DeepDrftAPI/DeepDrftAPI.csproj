@@ -12,6 +12,9 @@
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.7" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
+        <!-- AuthBlocks API host surface: AddAuthBlocks / MapAuthBlocks / UseAuthBlocksStartupAsync.
+             The Manager keeps only Cerebellum.AuthBlocks.Web (web-side auth, no signing secret). -->
+        <PackageReference Include="Cerebellum.AuthBlocks" Version="10.3.33" />
     </ItemGroup>
 
     <ItemGroup>
@@ -20,8 +23,5 @@
       <ProjectReference Include="..\DeepDrftData\DeepDrftData.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Middleware\" />
-    </ItemGroup>
 
 </Project>
