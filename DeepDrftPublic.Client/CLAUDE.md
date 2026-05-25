@@ -25,8 +25,8 @@ All interactive UI for the site. Blazor WebAssembly. Pages, controls, the stream
   - `StreamingAudioPlayerService`: Production implementation. Chunked stream from `TrackMediaClient`, adaptive 16–64 KB buffer, early-playback, **seek-beyond-buffer** via offset request to the content API.
   - `AudioInteropService`: JS interop wrapper over `window.DeepDrftAudio`. Manages `DotNetObjectReference` lifetimes for progress, end-of-playback, spectrum callbacks.
   - Dark-mode services: `DarkModeServiceBase` (cookie name constant), `DarkModeCookieService` (JS cookie read/write).
-- `Clients/`: HTTP API clients.
-  - `TrackClient`: SQL metadata API. Uses named `IHttpClientFactory` client `"DeepDrft.API"`. Async methods like `GetPageAsync(pageNumber, pageSize, sortColumn, sortDescending)` → `ApiResult<PagedResult<TrackEntity>>`.
+- `Clients/`: HTTP API clients (both target DeepDrftAPI).
+  - `TrackClient`: SQL metadata API. Uses named `IHttpClientFactory` client `"DeepDrft.API"`. Sends `page` param (not `pageNumber`). Deserializes response as bare `PagedResult<TrackDto>` (not wrapped in ApiResultDto envelope).
   - `TrackMediaClient`: Content API. Uses named `IHttpClientFactory` client `"DeepDrft.Content"`. Methods like `GetAudioStreamAsync(trackId, offset)` → `Stream`.
 - `ViewModels/`: Component state.
   - `TracksViewModel`: Scoped. Holds current page, page size, sort column, descending flag. `SetPage(pageNumber)` calls `TrackClient.GetPageAsync` and updates. Registered in `Startup.ConfigureDomainServices`.
@@ -40,10 +40,10 @@ All interactive UI for the site. Blazor WebAssembly. Pages, controls, the stream
 
 Both clients are configured in `Startup.cs` (static methods called from **both** server and WASM `Program.cs`):
 
-- `TrackClient` uses `"DeepDrft.API"` (base address from `appsettings.json` `ApiUrls:SqlApi`). Fetches paginated metadata.
-- `TrackMediaClient` uses `"DeepDrft.Content"` (base address from `appsettings.json` `ApiUrls:ContentApi`). Streams audio bytes, optionally with offset.
+- `TrackClient` uses `"DeepDrft.API"` (base address from `appsettings.json` `ApiUrls:SqlApi`, points to DeepDrftAPI). Fetches paginated metadata.
+- `TrackMediaClient` uses `"DeepDrft.Content"` (base address from `appsettings.json` `ApiUrls:ContentApi`, points to DeepDrftAPI). Streams audio bytes, optionally with offset.
 
-Both are configured with JSON serializer settings (case-insensitive property matching). The dual-client pattern keeps concerns separated: one for structured data, one for binary streaming.
+Both are configured with JSON serializer settings (case-insensitive property matching). The dual-client pattern keeps concerns separated: one for structured data, one for binary streaming. Both target DeepDrftAPI (they may share the same host URL in production).
 
 ## Audio player stack (deepest part of the codebase)
 

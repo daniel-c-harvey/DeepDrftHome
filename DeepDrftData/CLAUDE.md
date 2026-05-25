@@ -6,11 +6,11 @@ See the root `CLAUDE.md` for full architecture overview. This file covers what i
 
 ## One-line purpose
 
-SQL-side domain logic for tracks. EF Core context, configurations, migrations, repository, manager, design-time factory. Consumed by `DeepDrftContent` (the dual-database authority), `DeepDrftPublic` (the public API), and `DeepDrftCli` (the admin CLI).
+SQL-side domain logic for tracks. EF Core context, configurations, migrations, repository, manager, design-time factory. Consumed by `DeepDrftAPI` (the dual-database authority) and tests.
 
 ## Why this project exists
 
-Separating domain logic from hosts so multiple consumers (CLI, public API, content API) can reuse `TrackManager` / `TrackRepository` / `DeepDrftContext` without referencing the ASP.NET hosts directly. The CLI is a local admin tool; the APIs proxy these services over HTTP.
+Separating domain logic from hosts so DeepDrftAPI can reuse `TrackManager` / `TrackRepository` / `DeepDrftContext` without embedding them directly in the host. Tests also consume this library.
 
 **New SQL-side domain code goes here, not in the host projects.**
 
@@ -131,16 +131,14 @@ Migrations live in the `DeepDrftData.Migrations` namespace. Migration files are 
 
 ## Connection string
 
-- **DeepDrftPublic**: `appsettings.json` → `ConnectionStrings:DefaultConnection`
-- **DeepDrftContent**: `environment/connections.json` → `ConnectionStrings:DefaultConnection`
-- **DeepDrftCli**: `environment/connections.json` → `CliSettings:ConnectionString`
-- All point at the same database (PostgreSQL in production, SQLite for local development).
+- **DeepDrftAPI**: `environment/connections.json` → `ConnectionStrings:DefaultConnection`
+- Points at the same database (PostgreSQL in production, SQLite for local development).
 
 The design-time factory hard-codes the local path for `dotnet ef` commands.
 
 ## Service registration
 
-In `DeepDrftContent/Program.cs`, `DeepDrftPublic/Program.cs`, and `DeepDrftCli/Program.cs`:
+In `DeepDrftAPI/Program.cs`:
 
 ```csharp
 services.AddDbContext<DeepDrftContext>(options =>
@@ -150,7 +148,7 @@ services.AddScoped<TrackManager>();
 services.AddScoped<ITrackService>(sp => sp.GetRequiredService<TrackManager>());
 ```
 
-This pattern allows callers to depend on `ITrackService` (the public interface) without knowing about `TrackManager` (the implementation). `DeepDrftContent` also registers `UnifiedTrackService` for dual-database orchestration.
+This pattern allows callers to depend on `ITrackService` (the public interface) without knowing about `TrackManager` (the implementation).
 
 ## Important patterns
 
@@ -166,16 +164,13 @@ This pattern allows callers to depend on `ITrackService` (the public interface) 
 dotnet build DeepDrftData
 
 # Add migration (from solution root)
-dotnet ef migrations add MigrationName --project DeepDrftData --startup-project DeepDrftPublic
+dotnet ef migrations add MigrationName --project DeepDrftData --startup-project DeepDrftAPI
 
 # Apply migration
-dotnet ef database update --project DeepDrftData --startup-project DeepDrftPublic
+dotnet ef database update --project DeepDrftData --startup-project DeepDrftAPI
 
-# Run from CLI (which consumes this service)
-dotnet run --project DeepDrftCli -- list
-
-# Run from Content API (dual-database host)
-dotnet run --project DeepDrftContent
+# Run API (dual-database host consuming this service)
+dotnet run --project DeepDrftAPI
 ```
 
 ## What does NOT live here

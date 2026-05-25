@@ -8,12 +8,12 @@ DeepDrftHome is a **net10.0** solution consisting of ten projects implementing a
 
 ### Core Projects
 
-- **DeepDrftPublic**: ASP.NET Core host. Blazor Web App with Server + WASM render modes. Owns the SQL-backed `api/track/page` endpoint, MudBlazor theme prerender, and TypeScript→JS audio interop. Public-facing site for listeners.
+- **DeepDrftPublic**: ASP.NET Core host. Blazor Web App with Server + WASM render modes. Pure Blazor host with no data layer; fetches track metadata from DeepDrftAPI via HTTP. Owns MudBlazor theme prerender and TypeScript→JS audio interop. Public-facing site for listeners.
 - **DeepDrftPublic.Client**: Blazor WebAssembly assembly. All interactive UI (pages, player stack, dark-mode plumbing, HTTP clients for both backends). Consumed by the public site.
 - **DeepDrftManager**: ASP.NET Core host. Blazor Web App with server-rendered `InteractiveServer` render mode. Hosts all CMS Razor components and pages under `Components/Pages/Cms/`, `Components/Pages/Tracks/`, `Components/Layout/CmsLayout.razor`, and `Components/Shared/` (all inlined from the former `DeepDrftCms` RCL). Gated by AuthBlocks login and hierarchical `Admin` role authorization. All track operations (upload, metadata read/write, delete) are HTTP proxies via `ICmsTrackService` / `CmsTrackService` injected directly into Blazor components; no in-process data layer.
 - **DeepDrftShared.Client**: Razor Class Library. Shared Blazor components consumed by both `DeepDrftPublic` and `DeepDrftManager` for consistency across public and admin surfaces.
-- **DeepDrftData**: Class library. EF Core domain logic: `DeepDrftContext`, `TrackConfiguration`, `Migrations`, `TrackRepository`, `TrackService`, `TrackManager`. Consumed by `DeepDrftAPI`, `DeepDrftPublic`, and tests.
-- **DeepDrftAPI**: ASP.NET Core host. Dual-database authority (SQL metadata + FileDatabase binary). AuthBlocks API host (owns registration, migration/seed, JWT endpoints). Seven track endpoints: `GET api/track/{id}` unauthenticated streaming; `PUT api/track/{id}` vault write (ApiKey); `POST api/track/upload` upload + SQL persist (ApiKey); `DELETE api/track/{id:long}` SQL delete + vault remove (ApiKey); `GET api/track/page` paged metadata list (ApiKey); `GET api/track/meta/{id:long}` single metadata (ApiKey); `PUT api/track/meta/{id:long}` metadata update (ApiKey).
+- **DeepDrftData**: Class library. EF Core domain logic: `DeepDrftContext`, `TrackConfiguration`, `Migrations`, `TrackRepository`, `TrackService`, `TrackManager`. Consumed by `DeepDrftAPI` and tests.
+- **DeepDrftAPI**: ASP.NET Core host. Dual-database authority (SQL metadata + FileDatabase binary). AuthBlocks API host (owns registration, migration/seed, JWT endpoints). Seven track endpoints: `GET api/track/{id}` unauthenticated streaming; `PUT api/track/{id}` vault write (ApiKey); `POST api/track/upload` upload + SQL persist (ApiKey); `DELETE api/track/{id:long}` SQL delete + vault remove (ApiKey); `GET api/track/page` paged metadata list (unauthenticated); `GET api/track/meta/{id:long}` single metadata (ApiKey); `PUT api/track/meta/{id:long}` metadata update (ApiKey).
 - **DeepDrftContent**: Class library. The FileDatabase implementation in full (Models, Services, Utils, Abstractions, Constants), `WavOffsetService`, `AudioProcessor`, content-side `TrackService`. Consumed by hosts and tests.
 - **DeepDrftModels**: Shared contracts. `TrackEntity`, `TrackDto`, `PagingParameters<T>`, `PagedResult<T>`. Every project references this.
 - **DeepDrftTests**: NUnit test suite. Comprehensive FileDatabase tests (vault creation, media storage, indexing, factory patterns, utilities). Integration-focused with temp-directory test isolation.
@@ -26,8 +26,8 @@ External: **NetBlocks** (absolute path `C:\lib\NetBlocks\`). Provides `Result`, 
 
 ```
 DeepDrftPublic.Client (WASM)
-    ├── HttpClient "DeepDrft.API"     ──►  DeepDrftPublic host ──►  EF Core / SQLite (metadata)
-    └── HttpClient "DeepDrft.Content" ──►  DeepDrftContent     ──►  FileDatabase / disk (binary)
+    ├── HttpClient "DeepDrft.API"     ──►  DeepDrftAPI         ──►  EF Core / SQLite (metadata)
+    └── HttpClient "DeepDrft.Content" ──►  DeepDrftAPI         ──►  FileDatabase / disk (binary)
 ```
 
 1. **SQL Database (SQLite)**: Metadata and track info via Entity Framework
@@ -120,7 +120,7 @@ dotnet ef database update --project DeepDrftData --startup-project DeepDrftPubli
 
 All projects load secrets via `CredentialTools.ResolvePathOrThrow()` from gitignored `environment/` files:
 
-- `DeepDrftPublic/appsettings.json`: Logging and URL config. Secrets loaded from `environment/connections.json` (SQL connection string).
+- `DeepDrftPublic/appsettings.json`: Logging and URL config (DeepDrftAPI base URL). No secrets file dependency.
 - `DeepDrftManager/appsettings.json`: Logging and URL config. Secrets loaded from `environment/api.json` (DeepDrftAPI base URL and API key).
 - `DeepDrftAPI/appsettings.json`: Logging and hosting config. Secrets loaded from `environment/filedatabase.json` (FileDatabase vault path), `environment/apikey.json` (API key), `environment/connections.json` (SQL and Auth connection strings), `environment/authblocks.json` (AuthBlocks JWT/email/admin creds).
 

@@ -6,12 +6,11 @@ See the root `CLAUDE.md` for full architecture overview. This file covers what i
 
 ## One-line purpose
 
-The Blazor Web App host. Owns HTTP surface (one controller + render-mode wiring), MudBlazor theme prerender, TypeScript→JS audio interop, and the SQL-side `api/track/page` endpoint. **Domain logic lives in `DeepDrftData`.**
+The Blazor Web App host. Pure HTTP render surface (render-mode wiring, no controllers), MudBlazor theme prerender, TypeScript→JS audio interop. Fetches track metadata from DeepDrftAPI via HTTP.
 
 ## What lives here now (only)
 
 - `Program.cs`, `Startup.cs`: HTTP host config, DI wiring, port binding.
-- `Controllers/TrackController.cs`: Single controller. `GET api/track/page?pageNumber&pageSize&sortColumn&sortDescending` → service call → `ApiResultDto<PagedResult<TrackEntity>>`.
 - `Services/DarkModeService.cs`: Server-side dark-mode prerender (reads `darkMode` cookie, seeds `DarkModeSettings.IsDarkMode` via `IHttpContextAccessor`, carries to WASM via `PersistentComponentState`).
 - `Components/App.razor`: Root component with `@rendermode="InteractiveAuto"`. Calls `DarkModeService.InitializeAsync()` in `OnInitialized`.
 - `Components/Pages/Error.razor`: Error fallback.
@@ -20,8 +19,12 @@ The Blazor Web App host. Owns HTTP surface (one controller + render-mode wiring)
 
 ## What does NOT live here anymore
 
-- `DeepDrftContext`, `TrackRepository`, `TrackService`, `Configurations/`, `Migrations/` — all moved to `DeepDrftData`. Do not add new repositories or EF code to this project.
-- Any FileDatabase code — that lives in `DeepDrftContent.Services`.
+- `TrackController` — deleted; track metadata now comes from DeepDrftAPI via HTTP.
+- `TrackDirectDataService` — deleted; no in-process data adapter.
+- `DeepDrftContext`, `TrackRepository`, `TrackService`, `Configurations/`, `Migrations/` — all in `DeepDrftData` (consumed only by DeepDrftAPI).
+- Any FileDatabase code — that lives in `DeepDrftContent`.
+- EF Core registration, SQL connection string — DeepDrftPublic has no data layer.
+- `environment/connections.json` dependency — removed.
 
 ## Blazor Web App render modes
 
@@ -53,10 +56,10 @@ Blazor calls TypeScript via `AudioInteropService.ts` (a JS interop wrapper in `D
 
 ## HTTP client wiring
 
-Mostly in `DeepDrftPublic.Client.Startup`:
+Configured in `DeepDrftPublic.Client.Startup`:
 
 - Named clients `"DeepDrft.API"` (SQL metadata) and `"DeepDrft.Content"` (binary audio).
-- Base addresses passed in from `appsettings.json` (`ApiUrls:ContentApi`, `ApiUrls:SqlApi`).
+- Both clients point to DeepDrftAPI. Base addresses passed in from `appsettings.json` (`ApiUrls:ContentApi`, `ApiUrls:SqlApi`).
 - `Startup.ConfigureApiHttpClient` and `Startup.ConfigureContentServices` are static methods called from **both** the server `Program.cs` and the WASM `Program.cs` so prerender and runtime see the same DI.
 
 Server-side `Program.cs` adds:
@@ -71,20 +74,9 @@ Server-side `Program.cs` adds:
 
 `UseForwardedHeaders()` runs first in the pipeline. HTTPS redirect is conditionally disabled via `ForwardedHeaders:DisableHttpsRedirection` so the app can sit behind nginx without forcing HTTPS at the host level.
 
-## The one controller
+## No controllers
 
-`TrackController` is thin — it just deserializes query parameters, calls `DeepDrftData.TrackService.GetPaged`, and wraps the result:
-
-```csharp
-[HttpGet("api/track/page")]
-public async Task<ActionResult<ApiResultDto<PagedResult<TrackEntity>>>> GetPage(
-    [FromQuery] int pageNumber = 1,
-    [FromQuery] int pageSize = 20,
-    [FromQuery] string? sortColumn = null,
-    [FromQuery] bool sortDescending = false)
-```
-
-If you're adding new SQL endpoints, this is the file. If you're adding new logic, that goes in `DeepDrftData/TrackService.cs`.
+DeepDrftPublic has no HTTP controllers. It is a pure Blazor render host. Track metadata endpoints are served by DeepDrftAPI (see `DeepDrftAPI/CLAUDE.md` for endpoint details).
 
 ## Development commands
 
@@ -97,22 +89,15 @@ dotnet watch run --project DeepDrftPublic
 
 # Build
 dotnet build DeepDrftPublic
-
-# Add migration (run from solution root; creates in DeepDrftData)
-dotnet ef migrations add MigrationName --project DeepDrftData --startup-project DeepDrftPublic
 ```
 
 ## Configuration
 
-- `appsettings.json`: `ApiUrls:*` (backend base addresses), `Logging:*`, `AllowedHosts`, `ForwardedHeaders`. Port binding via `Kestrel:Endpoints` or `ASPNETCORE_URLS`.
-- `environment/apikey.json`: DeepDrftContent API key. Loaded via CredentialTools (not in repo).
-- `environment/connections.json`: SQL `DefaultConnection` and Auth connection strings. Loaded via CredentialTools (not in repo).
-- `environment/authblocks.json`: AuthBlocks settings. Loaded via CredentialTools (not in repo).
+- `appsettings.json`: `ApiUrls:*` (DeepDrftAPI base addresses), `Logging:*`, `AllowedHosts`, `ForwardedHeaders`. Port binding via `Kestrel:Endpoints` or `ASPNETCORE_URLS`.
+- No secrets files — DeepDrftPublic has no data layer or API credentials.
 - MudBlazor theme (`MainLayout.razor` in client): bespoke light ("Charleston in the Day") and dark ("Lowcountry Summer Nights") palettes.
 - No `wwwroot/` changes during normal development — TS → JS compilation is automatic.
 
 ## Important patterns
 
-All service calls in the controller return `ResultContainer<T>` or `Result`. The controller doesn't catch — it checks `Success` and returns 200/4xx/5xx accordingly. See `DeepDrftData` for the contract.
-
-When working with this project, focus on the host surface (controllers, middleware, config) and prerender coordination. New domain logic goes in `DeepDrftData`.
+This project is a render host only. All data operations go through HTTP to DeepDrftAPI. When working with this project, focus on the render surface (components, middleware, config) and prerender coordination. New domain logic belongs in `DeepDrftData` / `DeepDrftAPI`.
