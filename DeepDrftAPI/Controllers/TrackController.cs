@@ -47,8 +47,7 @@ public class TrackController : ControllerBase
     // resolution never treats "page", "upload", or "meta" as a trackId.
 
     // GET api/track/page?page=1&pageSize=20&sortColumn=TrackName&sortDescending=false
-    // CMS metadata listing — paged read straight from SQL.
-    [ApiKeyAuthorize]
+    // Public track listing — paged read straight from SQL. Unauthenticated, like GET api/track/{id}.
     [HttpGet("page")]
     public async Task<ActionResult> GetPage(
         [FromQuery] int page = 1,

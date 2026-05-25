@@ -17,32 +17,37 @@ public class TrackClient
     }
 
     public async Task<ApiResult<PagedResult<TrackDto>>> GetPage(
-        int pageNumber, 
-        int pageSize, 
-        string? sortColumn = null, 
+        int pageNumber,
+        int pageSize,
+        string? sortColumn = null,
         bool sortDescending = false)
     {
         var queryArgs = new Dictionary<string, string?>(){
-            ["pageNumber"] = pageNumber.ToString(),
+            ["page"] = pageNumber.ToString(),
             ["pageSize"] = pageSize.ToString()
         };
-        
+
         if (!string.IsNullOrEmpty(sortColumn))
             queryArgs["sortColumn"] = sortColumn;
-        
+
         if (sortDescending)
             queryArgs["sortDescending"] = "true";
 
         string query = QueryString.Create(queryArgs).ToString();
-        
+
         var response = await _http.GetAsync($"api/track/page{query}");
+
+        if (!response.IsSuccessStatusCode)
+            return ApiResult<PagedResult<TrackDto>>.CreateFailResult($"HTTP {(int)response.StatusCode}");
+
         var json = await response.Content.ReadAsStringAsync();
-        
-        var dto = JsonSerializer.Deserialize<ApiResultDto<PagedResult<TrackDto>>>(json, new JsonSerializerOptions
+        var paged = JsonSerializer.Deserialize<PagedResult<TrackDto>>(json, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
         });
-        
-        return dto?.From() ?? ApiResult<PagedResult<TrackDto>>.CreateFailResult("Failed to deserialize response");
+
+        return paged is not null
+            ? ApiResult<PagedResult<TrackDto>>.CreatePassResult(paged)
+            : ApiResult<PagedResult<TrackDto>>.CreateFailResult("Failed to deserialize response");
     }
 }

@@ -14,9 +14,8 @@ public static class Startup
         services.AddScoped<DarkModeSettings>();
         services.AddScoped<DarkModeCookieService>();
 
-        // Track Client. The HTTP-backed ITrackDataService registration here is the WASM
-        // default; the server host overrides it with an in-process implementation after
-        // this method runs, so SSR prerender skips the loopback hop.
+        // Track Client. The HTTP-backed ITrackDataService is used by both WASM and SSR
+        // prerender — both call DeepDrftAPI over the "DeepDrft.API" client.
         services.AddScoped<TrackClient>();
         services.AddScoped<ITrackDataService, TrackClientDataService>();
         services.AddScoped<TracksViewModel>();

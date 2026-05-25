@@ -7,10 +7,11 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 Console.WriteLine(builder.HostEnvironment.BaseAddress);
 
 var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"] ?? "https://localhost:7001";
+var sqlApiUrl = builder.Configuration["ApiUrls:SqlApi"] ?? "https://localhost:5002";
 
 builder.Services.AddMudServices();
 
-Startup.ConfigureApiHttpClient(builder.Services, builder.HostEnvironment.BaseAddress);
+Startup.ConfigureApiHttpClient(builder.Services, sqlApiUrl);
 Startup.ConfigureContentServices(builder.Services, contentApiUrl);
 Startup.ConfigureDomainServices(builder.Services);
 
