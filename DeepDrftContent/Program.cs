@@ -1,8 +1,12 @@
 using DeepDrftContent;
-using DeepDrftContent.Data.FileDatabase.Services;
 using DeepDrftContent.Middleware;
 using DeepDrftContent.Models;
+using DeepDrftContent.Services;
+using DeepDrftData;
+using DeepDrftData.Data;
+using DeepDrftData.Repositories;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
 using NetBlocks.Utilities.Environment;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,6 +41,20 @@ var apiKeyPath = CredentialTools.ResolvePathOrThrow("apikey", "environment/apike
 builder.Configuration.AddJsonFile(apiKeyPath, optional: false, reloadOnChange: false);
 var apiKeySettings = builder.Configuration.GetSection(nameof(ApiKeySettings)).Get<ApiKeySettings>();
 if (apiKeySettings is null) { throw new Exception("API key settings are not configured"); }
+
+// SQL connection string — DeepDrftContent now owns both vault (FileDatabase) and SQL metadata.
+var connectionsPath = CredentialTools.ResolvePathOrThrow("connections", "environment/connections.json");
+builder.Configuration.AddJsonFile(connectionsPath, optional: false, reloadOnChange: false);
+
+// SQL metadata domain — DbContext + repository + manager (scoped; DbContext is not thread-safe).
+// UnifiedTrackService orchestrates the two databases and is the single authority over track data.
+builder.Services.AddDbContext<DeepDrftContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services
+    .AddScoped<TrackRepository>()
+    .AddScoped<TrackManager>()
+    .AddScoped<ITrackService>(sp => sp.GetRequiredService<TrackManager>());
+builder.Services.AddScoped<UnifiedTrackService>();
 
 // Configure forwarded headers for reverse proxy support
 builder.Services.Configure<ForwardedHeadersOptions>(options =>

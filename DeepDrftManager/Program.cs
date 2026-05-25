@@ -1,12 +1,8 @@
 using AuthBlocksLib;
 using AuthBlocksLib.Options;
-using DeepDrftData;
-using DeepDrftData.Data;
-using DeepDrftData.Repositories;
 using DeepDrftManager.Components;
 using DeepDrftManager.Services;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using NetBlocks.Utilities.Environment;
 
@@ -30,19 +26,8 @@ builder.Configuration.AddJsonFile(authBlocksPath, optional: false, reloadOnChang
 // MudBlazor.
 builder.Services.AddMudServices();
 
-// SQL metadata domain — DbContext + repository + manager. The CMS pages inject ITrackService
-// and resolve the same scoped TrackManager instance, so the DTO and entity surfaces share state.
-builder.Services.AddDbContext<DeepDrftContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-builder.Services
-    .AddScoped<TrackRepository>()
-    .AddScoped<TrackManager>()
-    .AddScoped<ITrackService>(sp => sp.GetRequiredService<TrackManager>());
-
-// CMS track mutations (upload proxy + delete). Called directly by the InteractiveServer
-// Blazor components — no in-process HTTP roundtrip. Vault access still goes over HTTP to
-// DeepDrftContent via the named clients below.
+// CMS track operations (read + mutate). Every track read and write goes over HTTP to the
+// DeepDrftContent API via the named clients below — the Manager holds no in-process data layer.
 builder.Services.AddScoped<ICmsTrackService, CmsTrackService>();
 
 // AuthBlocks: JWT Bearer auth, Identity, EF schema, admin seeding.

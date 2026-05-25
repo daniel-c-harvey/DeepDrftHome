@@ -1,21 +1,20 @@
 using DeepDrftModels.Entities;
+using Models.Common;
 using NetBlocks.Models;
 
 namespace DeepDrftManager.Services;
 
 /// <summary>
-/// CMS-side track mutations for the Manager host. Coordinates the dual-database write:
-/// SQL metadata via <c>ITrackService</c> and binary audio in DeepDrftContent's vault over HTTP.
-/// DeepDrftManager intentionally does not reference DeepDrftContent.Services (CMS-PLAN §5,
-/// Option B) — all vault access is over the network to DeepDrftContent.
+/// CMS-side track operations for the Manager host. Every read and write goes over HTTP to the
+/// DeepDrftContent API, which is the single authority over both the SQL metadata store and the
+/// binary audio vault. DeepDrftManager holds no in-process data layer.
 /// </summary>
 public interface ICmsTrackService
 {
     /// <summary>
-    /// Proxy a WAV upload to DeepDrftContent, then persist the returned metadata to SQL.
-    /// On success the returned entity carries the SQL-assigned <c>Id</c>. If the vault write
-    /// succeeds but the SQL persist fails, the audio is orphaned under <c>EntryKey</c> — the
-    /// failure is logged loudly and surfaced as a failed result.
+    /// Proxy a WAV upload to DeepDrftContent. The Content API owns the dual-database write and
+    /// returns the persisted entity carrying the SQL-assigned <c>Id</c>. A vault-without-SQL
+    /// orphan is handled and logged server-side; here it surfaces as a failed result.
     /// </summary>
     Task<ResultContainer<TrackEntity>> UploadTrackAsync(
         Stream wavStream,
@@ -30,9 +29,30 @@ public interface ICmsTrackService
         CancellationToken ct = default);
 
     /// <summary>
-    /// Delete a track's SQL row, then its vault entry. SQL is the source of truth: a SQL
-    /// delete failure fails the operation, but a subsequent vault delete failure is logged
-    /// and swallowed (the orphan is a maintenance concern, not a user-facing error).
+    /// Delete a track via the Content API, which removes the SQL row then the vault entry.
+    /// Maps a 404 to a "Track not found." failure.
     /// </summary>
     Task<Result> DeleteTrackAsync(long id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Fetch a page of track metadata from the Content API's <c>GET api/track/page</c>.
+    /// </summary>
+    Task<ResultContainer<PagedResult<TrackEntity>>> GetPagedAsync(
+        int page, int pageSize, string? sortColumn, bool sortDescending,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Fetch a single track's metadata from <c>GET api/track/meta/{id}</c>. A 404 returns a
+    /// passing result with a null value.
+    /// </summary>
+    Task<ResultContainer<TrackEntity?>> GetByIdAsync(long id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Update a track's metadata via <c>PUT api/track/meta/{id}</c>. EntryKey is immutable and
+    /// not part of the update.
+    /// </summary>
+    Task<Result> UpdateAsync(
+        long id, string trackName, string artist,
+        string? album, string? genre, DateOnly? releaseDate,
+        CancellationToken ct = default);
 }
