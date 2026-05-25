@@ -11,13 +11,17 @@ builder.Services.AddMudServices();
 var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"] ?? throw new Exception("Content API URL is not configured");
 var sqlApiUrl = builder.Configuration["ApiUrls:SqlApi"] ?? throw new Exception("ApiUrls:SqlApi is not configured");
 
+// Server-side, both named clients point straight at DeepDrftAPI (server-to-server,
+// no proxy hop). The TrackController below reuses the "DeepDrft.API" client to forward
+// the WASM client's public track calls upstream.
 DeepDrftPublic.Client.Startup.ConfigureApiHttpClient(builder.Services, sqlApiUrl);
-DeepDrftPublic.Client.Startup.ConfigureDomainServices(builder.Services);
 DeepDrftPublic.Client.Startup.ConfigureContentServices(builder.Services, contentApiUrl);
+DeepDrftPublic.Client.Startup.ConfigureDomainServices(builder.Services);
 
 Startup.ConfigureDomainServices(builder);
 
 // Add services to the container.
+builder.Services.AddControllers();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
@@ -98,6 +102,8 @@ if (app.Environment.IsDevelopment())
         RequestPath = "/Interop"
     });
 }
+
+app.MapControllers();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
