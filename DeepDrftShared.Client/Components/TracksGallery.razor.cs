@@ -1,15 +1,15 @@
 using Microsoft.AspNetCore.Components;
-using DeepDrftModels.Entities;
+using DeepDrftModels.DTOs;
 
 namespace DeepDrftShared.Client.Components;
 
 public partial class TracksGallery : ComponentBase
 {
-    [Parameter] public IEnumerable<TrackEntity> Tracks { get; set; } = [];
-    [Parameter] public TrackEntity? SelectedTrack { get; set; }
-    [Parameter] public EventCallback<TrackEntity?> SelectedTrackChanged { get; set; }
+    [Parameter] public IEnumerable<TrackDto> Tracks { get; set; } = [];
+    [Parameter] public TrackDto? SelectedTrack { get; set; }
+    [Parameter] public EventCallback<TrackDto?> SelectedTrackChanged { get; set; }
 
-    private async Task HandlePlayClick(TrackEntity track)
+    private async Task HandlePlayClick(TrackDto track)
     {
         if (SelectedTrack == track) return;
         SelectedTrack = track;

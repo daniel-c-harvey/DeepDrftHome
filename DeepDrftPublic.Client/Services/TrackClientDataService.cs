@@ -1,4 +1,4 @@
-using DeepDrftModels.Entities;
+using DeepDrftModels.DTOs;
 using DeepDrftPublic.Client.Clients;
 using Models.Common;
 using NetBlocks.Models;
@@ -19,7 +19,7 @@ public class TrackClientDataService : ITrackDataService
         _trackClient = trackClient;
     }
 
-    public Task<ApiResult<PagedResult<TrackEntity>>> GetPage(
+    public Task<ApiResult<PagedResult<TrackDto>>> GetPage(
         int pageNumber,
         int pageSize,
         string? sortColumn = null,

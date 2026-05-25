@@ -68,7 +68,7 @@ public class TrackController : ControllerBase
         return Ok(result.Value);
     }
 
-    // POST api/track/upload: raw WAV in (multipart/form-data) + metadata → persisted TrackEntity out.
+    // POST api/track/upload: raw WAV in (multipart/form-data) + metadata → persisted TrackDto out.
     // Used by the CMS upload flow on DeepDrftManager; that host proxies the upload here so it never
     // touches the vault disk path or SQL directly. UnifiedTrackService owns the two-database write.
     //
@@ -80,7 +80,7 @@ public class TrackController : ControllerBase
     [HttpPost("upload")]
     [RequestSizeLimit(1_073_741_824)]
     [RequestFormLimits(MultipartBodyLengthLimit = 1_073_741_824)]
-    public async Task<ActionResult<DeepDrftModels.Entities.TrackEntity>> UploadTrack(
+    public async Task<ActionResult<DeepDrftModels.DTOs.TrackDto>> UploadTrack(
         [FromForm] IFormFile? wav,
         [FromForm] string? trackName,
         [FromForm] string? artist,

@@ -1,7 +1,7 @@
 using DeepDrftContent;
 using DeepDrftContent.Constants;
 using DeepDrftData;
-using DeepDrftModels.Entities;
+using DeepDrftModels.DTOs;
 using NetBlocks.Models;
 using FileDb = DeepDrftContent.FileDatabase.Services.FileDatabase;
 
@@ -34,10 +34,10 @@ public class UnifiedTrackService
 
     /// <summary>
     /// Process a WAV into the vault, then persist its metadata to SQL. On success the returned
-    /// entity carries the SQL-assigned Id. If the vault write succeeds but the SQL persist fails,
+    /// DTO carries the SQL-assigned Id. If the vault write succeeds but the SQL persist fails,
     /// the audio is orphaned under EntryKey — logged loudly so it is recoverable manually.
     /// </summary>
-    public async Task<ResultContainer<TrackEntity>> UploadAsync(
+    public async Task<ResultContainer<TrackDto>> UploadAsync(
         string tempFilePath,
         string trackName,
         string artist,
@@ -53,12 +53,12 @@ public class UnifiedTrackService
         if (unpersisted is null)
         {
             _logger.LogWarning("UploadAsync: content TrackContentService returned null for {TrackName}", trackName);
-            return ResultContainer<TrackEntity>.CreateFailResult("Failed to process and store WAV.");
+            return ResultContainer<TrackDto>.CreateFailResult("Failed to process and store WAV.");
         }
 
         unpersisted.CreatedByUserId = createdByUserId;
 
-        var saveResult = await _sqlTrackService.Create(unpersisted);
+        var saveResult = await _sqlTrackService.Create(TrackConverter.Convert(unpersisted));
         if (!saveResult.Success || saveResult.Value is null)
         {
             // Vault write succeeded, SQL persist failed — audio is orphaned in the tracks vault
@@ -67,7 +67,7 @@ public class UnifiedTrackService
             _logger.LogError(
                 "Track persisted to vault but SQL save failed. Orphaned entry: {EntryKey}. Error: {Error}",
                 unpersisted.EntryKey, error);
-            return ResultContainer<TrackEntity>.CreateFailResult($"Track was uploaded but could not be saved: {error}");
+            return ResultContainer<TrackDto>.CreateFailResult($"Track was uploaded but could not be saved: {error}");
         }
 
         return saveResult;

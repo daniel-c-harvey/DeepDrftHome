@@ -1,4 +1,4 @@
-using DeepDrftModels.Entities;
+using DeepDrftModels.DTOs;
 using DeepDrftPublic.Client.Services;
 using DeepDrftPublic.Client.ViewModels;
 using Microsoft.AspNetCore.Components;
@@ -11,7 +11,7 @@ public partial class TracksView : ComponentBase
     [Inject] public required TracksViewModel ViewModel { get; set; }
     [CascadingParameter] public required IPlayerService PlayerService { get; set; }
     
-    private TrackEntity? _selectedTrack = null;
+    private TrackDto? _selectedTrack = null;
     private int _clickCount = 0;
     private string _lifecycleStatus = "Not initialized";
     
@@ -40,14 +40,14 @@ public partial class TracksView : ComponentBase
     {
         var result = await ViewModel.TrackData.GetPage(newPage, ViewModel.PageSize, ViewModel.SortBy, ViewModel.IsDescending);
 
-        if (result is { Success: true, Value: PagedResult<TrackEntity> pageResult })
+        if (result is { Success: true, Value: PagedResult<TrackDto> pageResult })
         {
             ViewModel.Page = pageResult;
             ViewModel.PageSize = pageResult.PageSize;
         }
     }
 
-    private async Task PlayTrack(TrackEntity? track)
+    private async Task PlayTrack(TrackDto? track)
     {
         if (track == null && _selectedTrack == null || track?.Id == _selectedTrack?.Id) return;
 

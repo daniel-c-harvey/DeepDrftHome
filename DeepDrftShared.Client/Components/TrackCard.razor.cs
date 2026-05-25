@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.Components;
-using DeepDrftModels.Entities;
+using DeepDrftModels.DTOs;
 using MudBlazor;
 
 namespace DeepDrftShared.Client.Components;
 
 public partial class TrackCard : ComponentBase
 {
-    [Parameter] public required TrackEntity TrackModel { get; set; }
-    [Parameter] public EventCallback<TrackEntity> OnPlay { get; set; }
+    [Parameter] public required TrackDto TrackModel { get; set; }
+    [Parameter] public EventCallback<TrackDto> OnPlay { get; set; }
     [Parameter] public bool IsPlaying { get; set; } = false;
 
     private string PlayPauseIcon => IsPlaying ? Icons.Material.Filled.MusicNote : Icons.Material.Filled.PlayArrow;

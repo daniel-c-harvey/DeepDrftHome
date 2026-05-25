@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Terminal.Gui;
-using DeepDrftModels.Entities;
+using DeepDrftData;
+using DeepDrftModels.DTOs;
 using DeepDrftCli.Utils;
 
 namespace DeepDrftCli.Services;
@@ -20,7 +21,7 @@ public class GuiService
     private ListView? _trackListView;
     private TextView? _statusView;
     private FrameView? _legendFrame;
-    private List<TrackEntity> _tracks = new();
+    private List<TrackDto> _tracks = new();
 
     public GuiService(
         ILogger<GuiService> logger,
@@ -541,7 +542,7 @@ public class GuiService
     /// <summary>
     /// Delete the specified track from the database
     /// </summary>
-    private async Task DeleteTrackAsync(TrackEntity trackToDelete)
+    private async Task DeleteTrackAsync(TrackDto trackToDelete)
     {
         try
         {
@@ -650,8 +651,8 @@ public class GuiService
                 return false;
             }
 
-            // Add to SQL database
-            var result = await _webTrackService.Create(trackEntity);
+            // Add to SQL database (service layer is DTO-typed)
+            var result = await _webTrackService.Create(TrackConverter.Convert(trackEntity));
             if (result.Success && result.Value != null)
             {
                 UpdateStatus($"✓ Track '{trackName}' by {artist} added successfully!");
@@ -676,7 +677,7 @@ public class GuiService
     /// <summary>
     /// Validate input and update existing track in database
     /// </summary>
-    private async Task<bool> ValidateAndUpdateTrackAsync(TrackEntity originalTrack, string trackName, 
+    private async Task<bool> ValidateAndUpdateTrackAsync(TrackDto originalTrack, string trackName,
         string artist, string album, string genre, string releaseDate)
     {
         try
@@ -709,7 +710,7 @@ public class GuiService
             UpdateStatus("Updating track...");
 
             // Create updated track entity
-            var updatedTrack = new TrackEntity
+            var updatedTrack = new TrackDto
             {
                 Id = originalTrack.Id,
                 EntryKey = originalTrack.EntryKey, // Keep original entry key

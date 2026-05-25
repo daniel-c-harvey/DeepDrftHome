@@ -1,5 +1,5 @@
 using DeepDrftData;
-using DeepDrftModels.Entities;
+using DeepDrftModels.DTOs;
 using DeepDrftPublic.Client.Services;
 using Models.Common;
 using NetBlocks.Models;
@@ -21,13 +21,13 @@ public class TrackDirectDataService : ITrackDataService
         _trackService = trackService;
     }
 
-    public async Task<ApiResult<PagedResult<TrackEntity>>> GetPage(
+    public async Task<ApiResult<PagedResult<TrackDto>>> GetPage(
         int pageNumber,
         int pageSize,
         string? sortColumn = null,
         bool sortDescending = false)
     {
         var result = await _trackService.GetPaged(pageNumber, pageSize, sortColumn, sortDescending);
-        return ApiResult<PagedResult<TrackEntity>>.From(result);
+        return ApiResult<PagedResult<TrackDto>>.From(result);
     }
 }
