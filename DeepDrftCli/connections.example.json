@@ -1,6 +1,0 @@
-{
-  "CliSettings": {
-    "ConnectionString": "Host=localhost;Port=5433;Database=postgres;Username=postgres;Password=your-password-here",
-    "VaultPath": "C:/Development/DeepDrftHome/Database/Vaults"
-  }
-}
