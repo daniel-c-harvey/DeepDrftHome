@@ -7,17 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- EF Core kept in sync with DeepDrftData / DeepDrftPublic so the same DbContext registration compiles. -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.7" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
     <PackageReference Include="MudBlazor" Version="8.15.0" />
     <PackageReference Include="Cerebellum.AuthBlocks" Version="10.3.33" />
     <PackageReference Include="Cerebellum.AuthBlocks.Web" Version="10.3.33" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DeepDrftData\DeepDrftData.csproj" />
     <ProjectReference Include="..\DeepDrftModels\DeepDrftModels.csproj" />
     <ProjectReference Include="..\DeepDrftShared.Client\DeepDrftShared.Client.csproj" />
   </ItemGroup>

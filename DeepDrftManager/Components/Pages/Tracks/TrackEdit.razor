@@ -1,7 +1,6 @@
 @page "/cms/tracks/{Id:long}"
 @using DeepDrftManager.Services
 @attribute [Authorize]
-@inject ITrackService TrackService
 @inject ICmsTrackService CmsTrackService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -108,7 +107,7 @@
     private async Task LoadAsync()
     {
         _loading = true;
-        var result = await TrackService.GetById(Id);
+        var result = await CmsTrackService.GetByIdAsync(Id);
         _track = result.Success ? result.Value : null;
         if (_track is not null)
         {
@@ -124,23 +123,14 @@
         _busy = true;
         try
         {
-            // Re-fetch under the current scope so we mutate the DB-authoritative entity, not
-            // the copy loaded at OnInitialized. Metadata-only update — EntryKey is immutable.
-            var lookup = await TrackService.GetById(Id);
-            if (!lookup.Success || lookup.Value is null)
-            {
-                Snackbar.Add("Save failed — track could not be loaded.", Severity.Error);
-                return;
-            }
-
-            var track = lookup.Value;
-            track.TrackName = _form.TrackName;
-            track.Artist = _form.Artist;
-            track.Album = string.IsNullOrWhiteSpace(_form.Album) ? null : _form.Album;
-            track.Genre = string.IsNullOrWhiteSpace(_form.Genre) ? null : _form.Genre;
-            track.ReleaseDate = _form.ReleaseDate is { } d ? DateOnly.FromDateTime(d) : null;
-
-            var updated = await TrackService.Update(track);
+            // Metadata-only update over HTTP — EntryKey is immutable and not sent. The Content
+            // API loads the authoritative row and applies these fields.
+            var releaseDate = _form.ReleaseDate is { } d ? DateOnly.FromDateTime(d) : (DateOnly?)null;
+            var updated = await CmsTrackService.UpdateAsync(
+                Id, _form.TrackName, _form.Artist,
+                string.IsNullOrWhiteSpace(_form.Album) ? null : _form.Album,
+                string.IsNullOrWhiteSpace(_form.Genre) ? null : _form.Genre,
+                releaseDate);
             if (updated.Success)
             {
                 Snackbar.Add("Track updated.", Severity.Success);
@@ -188,13 +178,15 @@
             {
                 var error = result.Messages.FirstOrDefault()?.Message ?? "Unknown error";
                 Snackbar.Add($"Delete failed: {error}", Severity.Error);
-                _busy = false;
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Delete failed for track {TrackId}", Id);
             Snackbar.Add("Delete failed — please try again.", Severity.Error);
+        }
+        finally
+        {
             _busy = false;
         }
     }

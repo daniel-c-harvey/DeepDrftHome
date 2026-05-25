@@ -3,6 +3,9 @@ using DeepDrftContent.Data.Constants;
 using DeepDrftContent.Data.FileDatabase.Models;
 using DeepDrftContent.Data.FileDatabase.Services;
 using DeepDrftContent.Middleware;
+using DeepDrftContent.Models;
+using DeepDrftContent.Services;
+using DeepDrftData;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DeepDrftContent.Controllers;
@@ -13,6 +16,8 @@ public class TrackController : ControllerBase
 {
     private readonly DeepDrftContent.Data.TrackService _trackService;
     private readonly WavOffsetService _wavOffsetService;
+    private readonly UnifiedTrackService _unifiedService;
+    private readonly ITrackService _sqlTrackService;
     private readonly ILogger<TrackController> _logger;
 
     // FileDatabase is injected directly for PutTrack because that endpoint receives a pre-processed
@@ -25,13 +30,237 @@ public class TrackController : ControllerBase
         DeepDrftContent.Data.TrackService trackService,
         DeepDrftContent.Data.FileDatabase.Services.FileDatabase fileDatabase,
         WavOffsetService wavOffsetService,
+        UnifiedTrackService unifiedService,
+        ITrackService sqlTrackService,
         ILogger<TrackController> logger)
     {
         _trackService = trackService;
         _fileDatabase = fileDatabase;
         _wavOffsetService = wavOffsetService;
+        _unifiedService = unifiedService;
+        _sqlTrackService = sqlTrackService;
         _logger = logger;
     }
+
+    // --- Literal-segment routes first ---
+    // These are declared before the parameterized "{trackId}" / "{id:long}" actions so route
+    // resolution never treats "page", "upload", or "meta" as a trackId.
+
+    // GET api/track/page?page=1&pageSize=20&sortColumn=TrackName&sortDescending=false
+    // CMS metadata listing — paged read straight from SQL.
+    [ApiKeyAuthorize]
+    [HttpGet("page")]
+    public async Task<ActionResult> GetPage(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? sortColumn = null,
+        [FromQuery] bool sortDescending = false,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _sqlTrackService.GetPaged(page, pageSize, sortColumn, sortDescending, cancellationToken);
+        if (!result.Success || result.Value is null)
+        {
+            var error = result.Messages.FirstOrDefault()?.Message ?? "Unknown error";
+            _logger.LogError("GetPage failed: {Error}", error);
+            return StatusCode(500, "Failed to load tracks");
+        }
+
+        return Ok(result.Value);
+    }
+
+    // POST api/track/upload: raw WAV in (multipart/form-data) + metadata → persisted TrackEntity out.
+    // Used by the CMS upload flow on DeepDrftManager; that host proxies the upload here so it never
+    // touches the vault disk path or SQL directly. UnifiedTrackService owns the two-database write.
+    //
+    // RequestSizeLimit/MultipartBodyLengthLimit set to 1 GB: WAV uploads can be tens to hundreds
+    // of MB and the framework defaults (~28 MB) reject them outright. The IFormFile path streams
+    // the body to a temp file once Kestrel surfaces it, so the limit is the per-request ceiling,
+    // not a buffered allocation.
+    [ApiKeyAuthorize]
+    [HttpPost("upload")]
+    [RequestSizeLimit(1_073_741_824)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 1_073_741_824)]
+    public async Task<ActionResult<DeepDrftModels.Entities.TrackEntity>> UploadTrack(
+        [FromForm] IFormFile? wav,
+        [FromForm] string? trackName,
+        [FromForm] string? artist,
+        [FromForm] string? album,
+        [FromForm] string? genre,
+        [FromForm] string? releaseDate,
+        [FromForm] long createdByUserId,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("UploadTrack called: trackName={TrackName}, artist={Artist}, size={Size}",
+            trackName, artist, wav?.Length);
+
+        if (wav is null || wav.Length == 0)
+        {
+            return BadRequest("WAV file is required");
+        }
+
+        if (string.IsNullOrWhiteSpace(trackName))
+        {
+            return BadRequest("trackName is required");
+        }
+
+        if (string.IsNullOrWhiteSpace(artist))
+        {
+            return BadRequest("artist is required");
+        }
+
+        if (!string.Equals(Path.GetExtension(wav.FileName), ".wav", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest("Uploaded file must have a .wav extension");
+        }
+
+        DateOnly? parsedReleaseDate = null;
+        if (!string.IsNullOrWhiteSpace(releaseDate))
+        {
+            if (!DateOnly.TryParseExact(releaseDate, "yyyy-MM-dd", out var parsed))
+            {
+                return BadRequest("releaseDate must be in YYYY-MM-DD format");
+            }
+            parsedReleaseDate = parsed;
+        }
+
+        // AudioProcessor.ProcessWavFileAsync requires a path ending in .wav and reads from disk.
+        // Path.GetTempFileName() yields .tmp, which fails that check — generate our own .wav path.
+        var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".wav");
+
+        try
+        {
+            await using (var tempStream = new FileStream(
+                tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None,
+                bufferSize: 81920, useAsync: true))
+            await using (var uploadStream = wav.OpenReadStream())
+            {
+                await uploadStream.CopyToAsync(tempStream, cancellationToken);
+            }
+
+            var result = await _unifiedService.UploadAsync(
+                tempPath,
+                trackName,
+                artist,
+                string.IsNullOrWhiteSpace(album) ? null : album,
+                string.IsNullOrWhiteSpace(genre) ? null : genre,
+                parsedReleaseDate,
+                createdByUserId,
+                cancellationToken);
+
+            if (!result.Success || result.Value is null)
+            {
+                var error = result.Messages.FirstOrDefault()?.Message ?? "Failed to process and store WAV";
+                _logger.LogWarning("UploadTrack: UnifiedTrackService failed for {TrackName}: {Error}", trackName, error);
+                return StatusCode(500, error);
+            }
+
+            _logger.LogInformation("UploadTrack succeeded: id={Id}, entryKey={EntryKey}", result.Value.Id, result.Value.EntryKey);
+            return Ok(result.Value);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "UploadTrack failed for {TrackName}", trackName);
+            return StatusCode(500, "Internal server error");
+        }
+        finally
+        {
+            try
+            {
+                if (System.IO.File.Exists(tempPath))
+                {
+                    System.IO.File.Delete(tempPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "UploadTrack: failed to delete temp file {TempPath}", tempPath);
+            }
+        }
+    }
+
+    // GET api/track/meta/{id}: single track metadata from SQL.
+    [ApiKeyAuthorize]
+    [HttpGet("meta/{id:long}")]
+    public async Task<ActionResult> GetMeta(long id)
+    {
+        var result = await _sqlTrackService.GetById(id);
+        if (!result.Success)
+        {
+            var error = result.Messages.FirstOrDefault()?.Message ?? "Unknown error";
+            _logger.LogError("GetMeta failed for {TrackId}: {Error}", id, error);
+            return StatusCode(500, "Failed to load track");
+        }
+
+        if (result.Value is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(result.Value);
+    }
+
+    // PUT api/track/meta/{id}: metadata-only update. EntryKey is immutable and not part of the body.
+    [ApiKeyAuthorize]
+    [HttpPut("meta/{id:long}")]
+    public async Task<ActionResult> UpdateMeta(long id, [FromBody] UpdateTrackMetadataRequest request)
+    {
+        var lookup = await _sqlTrackService.GetById(id);
+        if (!lookup.Success)
+        {
+            var error = lookup.Messages.FirstOrDefault()?.Message ?? "Unknown error";
+            _logger.LogError("UpdateMeta lookup failed for {TrackId}: {Error}", id, error);
+            return StatusCode(500, "Failed to load track");
+        }
+
+        if (lookup.Value is null)
+        {
+            return NotFound();
+        }
+
+        var track = lookup.Value;
+        track.TrackName = request.TrackName;
+        track.Artist = request.Artist;
+        track.Album = request.Album;
+        track.Genre = request.Genre;
+        track.ReleaseDate = request.ReleaseDate;
+
+        var update = await _sqlTrackService.Update(track);
+        if (!update.Success)
+        {
+            var error = update.Messages.FirstOrDefault()?.Message ?? "Unknown error";
+            _logger.LogError("UpdateMeta failed for {TrackId}: {Error}", id, error);
+            return StatusCode(500, "Failed to update track");
+        }
+
+        return Ok();
+    }
+
+    // DELETE api/track/{id}: removes the SQL row then the vault entry. UnifiedTrackService owns
+    // the ordering and orphan handling. Declared (with the long route constraint) before the
+    // string "{trackId}" GET so a numeric id routes here.
+    [ApiKeyAuthorize]
+    [HttpDelete("{id:long}")]
+    public async Task<ActionResult> DeleteTrack(long id, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("DeleteTrack called with id: {Id}", id);
+
+        var result = await _unifiedService.DeleteAsync(id, cancellationToken);
+        if (result.Success)
+        {
+            return Ok();
+        }
+
+        var error = result.Messages.FirstOrDefault()?.Message ?? "Unknown error";
+        if (string.Equals(error, UnifiedTrackService.TrackNotFoundMessage, StringComparison.Ordinal))
+        {
+            return NotFound();
+        }
+
+        _logger.LogError("DeleteTrack failed for id {Id}: {Error}", id, error);
+        return StatusCode(500, error);
+    }
+
+    // --- Parameterized routes ---
 
     [HttpGet("{trackId}")]
     public async Task<ActionResult> GetTrack(string trackId, [FromQuery] long offset = 0)
@@ -120,112 +349,6 @@ public class TrackController : ControllerBase
         }
     }
 
-    // POST api/track/upload: raw WAV in (multipart/form-data) + metadata → unpersisted TrackEntity out.
-    // Used by the CMS upload flow on DeepDrftPublic; that host proxies the upload here so it never
-    // touches the vault disk path directly (Option B in CMS-PLAN §5).
-    //
-    // RequestSizeLimit/MultipartBodyLengthLimit set to 1 GB: WAV uploads can be tens to hundreds
-    // of MB and the framework defaults (~28 MB) reject them outright. The IFormFile path streams
-    // the body to a temp file once Kestrel surfaces it, so the limit is the per-request ceiling,
-    // not a buffered allocation.
-    [ApiKeyAuthorize]
-    [HttpPost("upload")]
-    [RequestSizeLimit(1_073_741_824)]
-    [RequestFormLimits(MultipartBodyLengthLimit = 1_073_741_824)]
-    public async Task<ActionResult<DeepDrftModels.Entities.TrackEntity>> UploadTrack(
-        [FromForm] IFormFile? wav,
-        [FromForm] string? trackName,
-        [FromForm] string? artist,
-        [FromForm] string? album,
-        [FromForm] string? genre,
-        [FromForm] string? releaseDate,
-        CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("UploadTrack called: trackName={TrackName}, artist={Artist}, size={Size}",
-            trackName, artist, wav?.Length);
-
-        if (wav is null || wav.Length == 0)
-        {
-            return BadRequest("WAV file is required");
-        }
-
-        if (string.IsNullOrWhiteSpace(trackName))
-        {
-            return BadRequest("trackName is required");
-        }
-
-        if (string.IsNullOrWhiteSpace(artist))
-        {
-            return BadRequest("artist is required");
-        }
-
-        if (!string.Equals(Path.GetExtension(wav.FileName), ".wav", StringComparison.OrdinalIgnoreCase))
-        {
-            return BadRequest("Uploaded file must have a .wav extension");
-        }
-
-        DateOnly? parsedReleaseDate = null;
-        if (!string.IsNullOrWhiteSpace(releaseDate))
-        {
-            if (!DateOnly.TryParseExact(releaseDate, "yyyy-MM-dd", out var parsed))
-            {
-                return BadRequest("releaseDate must be in YYYY-MM-DD format");
-            }
-            parsedReleaseDate = parsed;
-        }
-
-        // AudioProcessor.ProcessWavFileAsync requires a path ending in .wav and reads from disk.
-        // Path.GetTempFileName() yields .tmp, which fails that check — generate our own .wav path.
-        var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".wav");
-
-        try
-        {
-            await using (var tempStream = new FileStream(
-                tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None,
-                bufferSize: 81920, useAsync: true))
-            await using (var uploadStream = wav.OpenReadStream())
-            {
-                await uploadStream.CopyToAsync(tempStream, cancellationToken);
-            }
-
-            var entity = await _trackService.AddTrackFromWavAsync(
-                tempPath,
-                trackName,
-                artist,
-                string.IsNullOrWhiteSpace(album) ? null : album,
-                string.IsNullOrWhiteSpace(genre) ? null : genre,
-                parsedReleaseDate);
-
-            if (entity is null)
-            {
-                _logger.LogWarning("UploadTrack: TrackService returned null for {TrackName}", trackName);
-                return StatusCode(500, "Failed to process and store WAV");
-            }
-
-            _logger.LogInformation("UploadTrack succeeded: entryKey={EntryKey}", entity.EntryKey);
-            return Ok(entity);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "UploadTrack failed for {TrackName}", trackName);
-            return StatusCode(500, "Internal server error");
-        }
-        finally
-        {
-            try
-            {
-                if (System.IO.File.Exists(tempPath))
-                {
-                    System.IO.File.Delete(tempPath);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "UploadTrack: failed to delete temp file {TempPath}", tempPath);
-            }
-        }
-    }
-
     [ApiKeyAuthorize]
     [HttpPut("{trackId}")]
     public async Task<ActionResult> PutTrack(string trackId, [FromBody] AudioBinaryDto track)
@@ -247,32 +370,5 @@ public class TrackController : ControllerBase
         var success = await _fileDatabase.RegisterResourceAsync(
             DeepDrftContent.Data.Constants.VaultConstants.Tracks, trackId, audioBinary);
         return success ? Ok() : BadRequest("Failed to store audio track");
-    }
-
-    [ApiKeyAuthorize]
-    [HttpDelete("{entryKey}")]
-    public async Task<ActionResult> DeleteTrack(string entryKey)
-    {
-        _logger.LogInformation("DeleteTrack called with entryKey: {EntryKey}", entryKey);
-
-        // RemoveResourceAsync distinguishes three outcomes per FileDatabase's error-swallow contract:
-        //   null  → vault missing or unexpected error → 500
-        //   false → entry not present (already deleted or never existed) → 404
-        //   true  → entry removed → 200
-        var outcome = await _fileDatabase.RemoveResourceAsync(VaultConstants.Tracks, entryKey);
-        if (outcome == null)
-        {
-            _logger.LogError("DeleteTrack failed for entryKey: {EntryKey} (vault missing or remove error)", entryKey);
-            return StatusCode(500, "Internal server error");
-        }
-
-        if (outcome == false)
-        {
-            _logger.LogWarning("DeleteTrack: entry not found: {EntryKey}", entryKey);
-            return NotFound();
-        }
-
-        _logger.LogInformation("DeleteTrack: removed entry {EntryKey}", entryKey);
-        return Ok();
     }
 }

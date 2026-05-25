@@ -1,36 +1,32 @@
+using System.Net;
 using System.Net.Http.Headers;
-using DeepDrftData;
+using System.Net.Http.Json;
 using DeepDrftModels.Entities;
+using Models.Common;
 using NetBlocks.Models;
 
 namespace DeepDrftManager.Services;
 
 /// <summary>
-/// Direct-call CMS track service. Replaces the former in-process HTTP roundtrip through
-/// CmsUploadController / CmsDeleteController: the Manager is InteractiveServer-only, so its
-/// Blazor components inject this service and call it directly rather than POSTing to their
-/// own loopback controllers. Vault access remains over HTTP to DeepDrftContent (a separate
-/// host); SQL metadata is reached directly via <see cref="ITrackService"/>.
+/// HTTP client over the DeepDrftContent API for all CMS track operations. The Manager is
+/// InteractiveServer-only and holds no in-process data layer: every track read and write is a
+/// network call to DeepDrftContent, which is the single authority over both the SQL metadata
+/// store and the binary audio vault. The ApiKey is baked into the <c>DeepDrft.Content.Cms</c>
+/// named client's default headers.
 /// </summary>
 public class CmsTrackService : ICmsTrackService
 {
-    private const string ContentClientName = "DeepDrft.Content";
     private const string ContentCmsClientName = "DeepDrft.Content.Cms";
     private const string UploadPath = "api/track/upload";
 
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IConfiguration _configuration;
     private readonly ILogger<CmsTrackService> _logger;
 
     public CmsTrackService(
         IHttpClientFactory httpClientFactory,
-        ITrackService trackService,
-        IConfiguration configuration,
         ILogger<CmsTrackService> logger)
     {
         _httpClientFactory = httpClientFactory;
-        _trackService = trackService;
-        _configuration = configuration;
         _logger = logger;
     }
 
@@ -58,10 +54,11 @@ public class CmsTrackService : ICmsTrackService
         if (!string.IsNullOrWhiteSpace(album)) multipart.Add(new StringContent(album), "album");
         if (!string.IsNullOrWhiteSpace(genre)) multipart.Add(new StringContent(genre), "genre");
         if (!string.IsNullOrWhiteSpace(releaseDate)) multipart.Add(new StringContent(releaseDate), "releaseDate");
+        multipart.Add(new StringContent(createdByUserId.ToString()), "createdByUserId");
 
         var client = _httpClientFactory.CreateClient(ContentCmsClientName);
         using var request = new HttpRequestMessage(HttpMethod.Post, UploadPath) { Content = multipart };
-        
+
         HttpResponseMessage response;
         try
         {
@@ -91,10 +88,12 @@ public class CmsTrackService : ICmsTrackService
                     string.IsNullOrWhiteSpace(body) ? $"Upload rejected ({statusCode})." : body);
             }
 
-            TrackEntity? unpersisted;
+            // The Content API now owns the dual-database write, so the response is the persisted
+            // entity (Id > 0) — no SQL roundtrip here.
+            TrackEntity? persisted;
             try
             {
-                unpersisted = await response.Content.ReadFromJsonAsync<TrackEntity>(ct);
+                persisted = await response.Content.ReadFromJsonAsync<TrackEntity>(ct);
             }
             catch (Exception ex)
             {
@@ -102,78 +101,184 @@ public class CmsTrackService : ICmsTrackService
                 return ResultContainer<TrackEntity>.CreateFailResult("Content API returned an unexpected response.");
             }
 
-            if (unpersisted is null)
+            if (persisted is null)
             {
                 _logger.LogError("Content API returned a null TrackEntity");
                 return ResultContainer<TrackEntity>.CreateFailResult("Content API returned an empty response.");
             }
 
-            unpersisted.CreatedByUserId = createdByUserId;
-
-            var saveResult = await _trackService.Create(unpersisted);
-            if (!saveResult.Success || saveResult.Value is null)
-            {
-                // The vault write succeeded but the SQL persist failed — audio is now orphaned
-                // in the tracks vault under EntryKey. CMS-PLAN W2.4 covers the dead-letter
-                // mechanism; until then we log loudly so the orphan is recoverable manually.
-                var error = saveResult.Messages.FirstOrDefault()?.Message ?? "Unknown error";
-                _logger.LogError(
-                    "Track persisted to vault but SQL save failed. Orphaned entry: {EntryKey}. Error: {Error}",
-                    unpersisted.EntryKey, error);
-                return ResultContainer<TrackEntity>.CreateFailResult($"Track was uploaded but could not be saved: {error}");
-            }
-
-            return saveResult;
+            return ResultContainer<TrackEntity>.CreatePassResult(persisted);
         }
     }
 
     public async Task<Result> DeleteTrackAsync(long id, CancellationToken ct = default)
     {
-        // 1. Resolve the EntryKey before we delete the SQL row — afterwards the join is gone.
-        var lookup = await _trackService.GetById(id);
-        if (!lookup.Success)
-        {
-            var error = lookup.Messages.FirstOrDefault()?.Message ?? "unknown error";
-            _logger.LogError("CMS delete: GetById threw for track {TrackId}: {Error}", id, error);
-            return Result.CreateFailResult("Failed to load track.");
-        }
-
-        if (lookup.Value is null)
-        {
-            return Result.CreateFailResult("Track not found.");
-        }
-
-        var track = lookup.Value;
-
-        var entryKey = track.EntryKey;
-
-        // 2. SQL delete. On failure, do NOT touch the vault — nothing to clean up.
-        var sqlDelete = await _trackService.Delete(id);
-        if (!sqlDelete.Success)
-        {
-            var error = sqlDelete.Messages.FirstOrDefault()?.Message;
-            _logger.LogError("CMS delete: SQL delete failed for track {TrackId}: {Error}", id, error);
-            return Result.CreateFailResult("Failed to delete track.");
-        }
-
-        // 3. Vault delete. Failure is logged as an orphan but does not fail the operation:
-        //    SQL is the source of truth for the user's view; the orphan is a maintenance concern.
         var client = _httpClientFactory.CreateClient(ContentCmsClientName);
+
+        HttpResponseMessage response;
         try
         {
-            using var response = await client.DeleteAsync($"api/track/{Uri.EscapeDataString(entryKey)}", ct);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning(
-                    "Vault delete failed after SQL delete. {TrackId} {EntryKey} {StatusCode}",
-                    id, entryKey, (int)response.StatusCode);
-            }
+            response = await client.DeleteAsync($"api/track/{id}", ct);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Vault delete threw after SQL delete. {TrackId} {EntryKey}", id, entryKey);
+            _logger.LogError(ex, "Content API call failed for delete of track {TrackId}", id);
+            return Result.CreateFailResult("Content API is unreachable.");
         }
 
-        return Result.CreatePassResult();
+        using (response)
+        {
+            if (response.IsSuccessStatusCode)
+            {
+                return Result.CreatePassResult();
+            }
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return Result.CreateFailResult("Track not found.");
+            }
+
+            var body = await response.Content.ReadAsStringAsync(ct);
+            _logger.LogError("Content API delete failed for track {TrackId}: {Status} {Body}", id, (int)response.StatusCode, body);
+            return Result.CreateFailResult("Failed to delete track.");
+        }
+    }
+
+    public async Task<ResultContainer<PagedResult<TrackEntity>>> GetPagedAsync(
+        int page, int pageSize, string? sortColumn, bool sortDescending,
+        CancellationToken ct = default)
+    {
+        var client = _httpClientFactory.CreateClient(ContentCmsClientName);
+        var query = $"api/track/page?page={page}&pageSize={pageSize}&sortDescending={sortDescending}";
+        if (!string.IsNullOrWhiteSpace(sortColumn))
+        {
+            query += $"&sortColumn={Uri.EscapeDataString(sortColumn)}";
+        }
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await client.GetAsync(query, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Content API call failed for track page");
+            return ResultContainer<PagedResult<TrackEntity>>.CreateFailResult("Content API is unreachable.");
+        }
+
+        using (response)
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Content API track page failed: {Status}", (int)response.StatusCode);
+                return ResultContainer<PagedResult<TrackEntity>>.CreateFailResult("Failed to load tracks.");
+            }
+
+            PagedResult<TrackEntity>? paged;
+            try
+            {
+                paged = await response.Content.ReadFromJsonAsync<PagedResult<TrackEntity>>(ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize PagedResult from Content API response");
+                return ResultContainer<PagedResult<TrackEntity>>.CreateFailResult("Content API returned an unexpected response.");
+            }
+
+            if (paged is null)
+            {
+                _logger.LogError("Content API returned a null PagedResult");
+                return ResultContainer<PagedResult<TrackEntity>>.CreateFailResult("Content API returned an empty response.");
+            }
+
+            return ResultContainer<PagedResult<TrackEntity>>.CreatePassResult(paged);
+        }
+    }
+
+    public async Task<ResultContainer<TrackEntity?>> GetByIdAsync(long id, CancellationToken ct = default)
+    {
+        var client = _httpClientFactory.CreateClient(ContentCmsClientName);
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await client.GetAsync($"api/track/meta/{id}", ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Content API call failed for track {TrackId}", id);
+            return ResultContainer<TrackEntity?>.CreateFailResult("Content API is unreachable.");
+        }
+
+        using (response)
+        {
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return ResultContainer<TrackEntity?>.CreatePassResult(null);
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Content API track lookup failed for {TrackId}: {Status}", id, (int)response.StatusCode);
+                return ResultContainer<TrackEntity?>.CreateFailResult("Failed to load track.");
+            }
+
+            TrackEntity? track;
+            try
+            {
+                track = await response.Content.ReadFromJsonAsync<TrackEntity>(ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize TrackEntity from Content API response");
+                return ResultContainer<TrackEntity?>.CreateFailResult("Content API returned an unexpected response.");
+            }
+
+            return ResultContainer<TrackEntity?>.CreatePassResult(track);
+        }
+    }
+
+    public async Task<Result> UpdateAsync(
+        long id, string trackName, string artist,
+        string? album, string? genre, DateOnly? releaseDate,
+        CancellationToken ct = default)
+    {
+        var client = _httpClientFactory.CreateClient(ContentCmsClientName);
+        var body = new
+        {
+            trackName,
+            artist,
+            album,
+            genre,
+            releaseDate,
+        };
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await client.PutAsJsonAsync($"api/track/meta/{id}", body, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Content API call failed for update of track {TrackId}", id);
+            return Result.CreateFailResult("Content API is unreachable.");
+        }
+
+        using (response)
+        {
+            if (response.IsSuccessStatusCode)
+            {
+                return Result.CreatePassResult();
+            }
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return Result.CreateFailResult("Track not found.");
+            }
+
+            var responseBody = await response.Content.ReadAsStringAsync(ct);
+            _logger.LogError("Content API update failed for track {TrackId}: {Status} {Body}", id, (int)response.StatusCode, responseBody);
+            return Result.CreateFailResult("Failed to update track.");
+        }
     }
 }
