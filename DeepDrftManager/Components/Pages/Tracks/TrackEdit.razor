@@ -1,4 +1,4 @@
-@page "/cms/tracks/{Id:long}"
+@page "/tracks/{Id:long}"
 @using DeepDrftManager.Services
 @attribute [Authorize]
 @inject ICmsTrackService CmsTrackService
@@ -12,7 +12,7 @@
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
     <MudButton Variant="Variant.Text"
                StartIcon="@Icons.Material.Filled.ArrowBack"
-               Href="/cms/tracks"
+               Href="/tracks"
                Class="mb-4">
         Back to tracks
     </MudButton>
@@ -172,7 +172,7 @@
             if (result.Success)
             {
                 Snackbar.Add("Track deleted.", Severity.Success);
-                Nav.NavigateTo("/cms/tracks");
+                Nav.NavigateTo("/tracks");
             }
             else
             {

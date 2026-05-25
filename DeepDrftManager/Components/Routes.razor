@@ -1,7 +1,9 @@
 <Router AppAssembly="typeof(App).Assembly"
-        AdditionalAssemblies="new[] { typeof(AuthBlocksWeb._Imports).Assembly }">
+        AdditionalAssemblies="new[] { typeof(AuthBlocksWeb._Imports).Assembly }"
+        NotFoundPage="typeof(NotFound)">
     <Found Context="routeData">
-        <AuthorizeRouteView RouteData="routeData">
+        <AuthorizeRouteView RouteData="routeData" 
+                            DefaultLayout="typeof(Layout.CmsLayout)">
             <NotAuthorized Context="authState">
                 @if (authState.User.Identity?.IsAuthenticated == true)
                 {
@@ -15,8 +17,4 @@
         </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
-    <NotFound>
-        <PageTitle>Not found</PageTitle>
-        <p role="alert">Sorry, there's nothing at this address.</p>
-    </NotFound>
 </Router>

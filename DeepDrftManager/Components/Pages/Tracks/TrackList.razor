@@ -1,4 +1,4 @@
-@page "/cms/tracks"
+@page "/tracks"
 @using System.Net
 @using DeepDrftManager.Services
 @attribute [Authorize]
@@ -15,7 +15,7 @@
         <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.Add"
-                   Href="/cms/tracks/new">
+                   Href="/tracks/new">
             Add Track
         </MudButton>
     </MudStack>
@@ -57,7 +57,7 @@
                     <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                    Size="Size.Small"
                                    Color="Color.Primary"
-                                   Href="@($"/cms/tracks/{context.Id}")" />
+                                   Href="@($"/tracks/{context.Id}")" />
                 </MudTooltip>
                 <MudTooltip Text="Delete">
                     <MudIconButton Icon="@Icons.Material.Filled.Delete"

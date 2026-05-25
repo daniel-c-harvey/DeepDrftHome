@@ -1,4 +1,4 @@
-@page "/cms/tracks/new"
+@page "/tracks/new"
 @using System.Security.Claims
 @using DeepDrftManager.Services
 @attribute [Authorize]
@@ -149,7 +149,7 @@
             if (result.Success)
             {
                 Snackbar.Add($"Uploaded '{_trackName}'.", Severity.Success);
-                Navigation.NavigateTo("/cms/tracks");
+                Navigation.NavigateTo("/tracks");
                 return;
             }
 
@@ -170,7 +170,7 @@
 
     private void Cancel()
     {
-        Navigation.NavigateTo("/cms/tracks");
+        Navigation.NavigateTo("/tracks");
     }
 
     private static string FormatBytes(long bytes)
