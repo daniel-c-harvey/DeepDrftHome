@@ -6,60 +6,51 @@ See the root `CLAUDE.md` for full architecture overview. This file covers what i
 
 ## One-line purpose
 
-The binary content API host. ApiKey middleware, CORS, forwarded headers. Returns audio bytes (with optional WAV-aware offset) and accepts authenticated PUTs. **FileDatabase implementation lives in `DeepDrftContent.Services`, not here.**
+The dual-database authority for tracks: SQL metadata and FileDatabase binary. Seven endpoints expose track CRUD with upload+persist, delete+cleanup, paged listing, and metadata operations. ApiKey middleware, CORS, forwarded headers. **FileDatabase implementation lives in `DeepDrftContent.Services`; SQL services in `DeepDrftData`.**
 
 ## What lives here now (only)
 
 - `Program.cs`, `Startup.cs`: HTTP host config, DI wiring, middleware setup, port binding.
-- `Controllers/TrackController.cs`: Four endpoints (see below).
+- `Services/UnifiedTrackService.cs`: Host-internal orchestrator. Coordinates vault write + SQL persist for upload (`UploadAsync`), and SQL delete + vault remove for delete (`DeleteAsync`).
+- `Controllers/TrackController.cs`: Seven endpoints (see below).
 - `Middleware/ApiKeyAuthenticationMiddleware.cs`, `Middleware/ApiKeyAuthorizeAttribute.cs`: ApiKey validation logic.
 - `Models/`: Settings POCOs only (`ApiKeySettings`, `CorsSettings`, `FileDatabaseSettings`). No domain code.
 - `environment/filedatabase.json`: FileDatabase vault path config (loaded via CredentialTools, not in repo).
 - `environment/apikey.json`: API key (loaded via CredentialTools, not in repo, must be created locally or at deployment).
+- `environment/connections.json`: SQL connection string (loaded via CredentialTools, not in repo, format: `{ "ConnectionStrings": { "DefaultConnection": "..." } }`).
 
 ## What does NOT live here anymore
 
-- Any `FileDatabase/`, `Services/`, or `Processors/` code — all moved to `DeepDrftContent.Services`.
-- Media models (`AudioBinary`, `ImageBinary`, etc.) — in `DeepDrftContent.Services`.
-- `WavOffsetService` — in `DeepDrftContent.Services`.
-- Don't add new domain code to this project.
+- `FileDatabase/`, `Processors/`, media models (`AudioBinary`, `ImageBinary`, etc.), `WavOffsetService` — all in `DeepDrftContent.Services`.
+- EF Core context and repository — in `DeepDrftData`.
+- **Hosts only own HTTP surface and wiring.** New domain code goes in `*.Services` (shared libraries) or host-internal `Services/` folders (e.g., `UnifiedTrackService` here for dual-database orchestration).
 
-## The endpoint surface (four endpoints)
+## The endpoint surface (seven endpoints)
 
 ### GET api/track/{trackId}?offset=0 (unauthenticated)
 
-Returns the WAV bytes from the `tracks` vault.
+Returns the WAV bytes from the `tracks` vault with optional offset support.
 
+- **Route parameter `trackId`** (string): the entry id inside the `tracks` vault (i.e. `TrackEntity.EntryKey`).
 - **Query parameter `offset`** (optional, default 0): byte position to start streaming from.
-- If `offset == 0`: streams the entire file from the beginning.
+- If `offset == 0`: streams the entire file directly from disk without buffering (so 100 MB WAVs do not force 100 MB LOH allocations per request).
 - If `offset > 0`: `WavOffsetService.CreateOffsetStream` block-aligns the offset and synthesises a fresh 44-byte WAV header so the response is a valid standalone WAV starting from that byte position. This is load-bearing for seek-beyond-buffer — the player asks for a new stream at the offset it wants to seek to, gets back a valid WAV that starts there, and tears down/re-initialises the decoder.
 - Returns 404 if track not found. Returns 500 if vault operations fail (with error swallowing — the vault returns `null`).
 
 ### PUT api/track/{trackId} ([ApiKeyAuthorize])
 
-**Authenticated endpoint.** Writes audio bytes to the `tracks` vault.
+**Authenticated endpoint.** Writes pre-processed audio bytes to the `tracks` vault.
 
 - **Header `ApiKey`**: required. Validated by `ApiKeyAuthenticationMiddleware`.
-- **Body**: `AudioBinaryDto` (base64 buffer + size + mime + duration + bitrate).
-- `TrackService.AddTrackFromWavAsync` (via DI) is NOT called here — the endpoint just validates and writes to the vault. The caller (CLI) is responsible for then saving the returned `TrackEntity` to SQL.
-- Actually: the endpoint is rarely used in production (the CLI calls `FileDatabase.RegisterResourceAsync` directly). But the endpoint exists for potential web-side uploads in future.
-- Returns 200 on success, 401 if ApiKey invalid, 400 if body invalid.
-
-### DELETE api/track/{entryKey} ([ApiKeyAuthorize])
-
-**Authenticated endpoint.** Removes an entry from the `tracks` vault (drops the index entry and deletes the backing file).
-
-- **Header `ApiKey`**: required. Validated by `ApiKeyAuthenticationMiddleware`.
-- **Route parameter `entryKey`**: the entry id inside the `tracks` vault (i.e. `TrackEntity.EntryKey`).
-- Delegates to `FileDatabase.RemoveResourceAsync` which returns a tri-state outcome:
-  - `null` → vault missing or unexpected error → 500.
-  - `false` → entry not present → 404.
-  - `true` → entry removed → 200.
-- Added in CMS Wave 3 (W1.5) so the CMS delete endpoint on `DeepDrftWeb` (`DELETE api/cms/track/{id}`) can clean up the vault after the SQL row is gone. Wave 3 product approval covers this — the "do not add a third endpoint without product approval" rule from prior waves is satisfied.
+- **Route parameter `trackId`** (string): the entry id to store under.
+- **Body**: `AudioBinaryDto` (base64 buffer + size + mime + duration + bitrate). This endpoint receives an already-processed audio DTO, not a raw WAV file.
+- Validates MIME type (rejects unsupported types with `.bin` sentinel). Delegates to `FileDatabase.RegisterResourceAsync`.
+- Rarely used in production (the CLI calls `FileDatabase.RegisterResourceAsync` directly). Exists for potential future web-side intake paths.
+- Returns 200 on success, 401 if ApiKey invalid, 400 if MIME invalid.
 
 ### POST api/track/upload ([ApiKeyAuthorize])
 
-**Authenticated endpoint.** Accepts a raw WAV upload + metadata as `multipart/form-data`, processes the WAV via `DeepDrftContent.Services.TrackService.AddTrackFromWavAsync`, and returns an unpersisted `TrackEntity` (no `Id` assigned). The caller (the CMS controller on `DeepDrftWeb`) is responsible for then saving that entity to SQL.
+**Authenticated endpoint.** Accepts a raw WAV upload + metadata as `multipart/form-data`, processes the WAV, stores it in the vault, and persists metadata to SQL. Returns the fully persisted `TrackEntity` with `Id` populated.
 
 - **Header `ApiKey`**: required. Validated by `ApiKeyAuthenticationMiddleware`.
 - **Form fields**:
@@ -69,12 +60,52 @@ Returns the WAV bytes from the `tracks` vault.
   - `album` (string, optional)
   - `genre` (string, optional)
   - `releaseDate` (string, optional, format `YYYY-MM-DD`)
+  - `createdByUserId` (long, required): audit trail — who uploaded this track.
 - The upload stream is copied to a `.wav`-suffixed temp file under `Path.GetTempPath()` (the audio processor requires that extension and reads from disk). The temp file is always deleted in a `finally` block — success or failure.
 - `[RequestSizeLimit(1 GB)]` + `[RequestFormLimits(MultipartBodyLengthLimit = 1 GB)]` lift the per-request ceiling above the framework default (~28 MB) so production-sized WAVs are accepted. The body is streamed to the temp file, not buffered in memory.
-- Returns 200 with the unpersisted `TrackEntity` JSON on success. Returns 400 for missing/invalid form fields (no WAV, missing required strings, wrong extension, bad date). Returns 500 if `AddTrackFromWavAsync` returns null or throws.
-- **Wave 3 product approval covers this addition** (CMS-PLAN §5, Option B): `DeepDrftWeb` proxies CMS uploads here so it never touches the vault disk path. Do not extend the endpoint surface further without a fresh approval.
+- Calls `UnifiedTrackService.UploadAsync`, which orchestrates: `TrackService.AddTrackFromWavAsync` (vault write) → `TrackManager` (SQL persist with `createdByUserId`).
+- Returns 200 with the **persisted** `TrackEntity` JSON (Id populated) on success. Returns 400 for missing/invalid form fields. Returns 500 if processing fails.
 
-The endpoint surface is now intentionally **four** endpoints. Do not add a fifth without product approval.
+### DELETE api/track/{id:long} ([ApiKeyAuthorize])
+
+**Authenticated endpoint.** Removes a track: SQL row first, then vault entry. `UnifiedTrackService` owns the ordering.
+
+- **Header `ApiKey`**: required. Validated by `ApiKeyAuthenticationMiddleware`.
+- **Route parameter `id`** (long): the SQL track ID (not EntryKey).
+- Calls `UnifiedTrackService.DeleteAsync`, which: looks up SQL row → deletes SQL row → deletes vault entry via EntryKey.
+- Returns 200 on success, 404 if track not found, 500 if deletion fails.
+
+### GET api/track/page ([ApiKeyAuthorize])
+
+**Authenticated endpoint.** Paged metadata list from SQL. Used by CMS track browser.
+
+- **Header `ApiKey`**: required. Validated by `ApiKeyAuthenticationMiddleware`.
+- **Query parameters**:
+  - `page` (int, optional, default 1): 1-based page number.
+  - `pageSize` (int, optional, default 20): tracks per page.
+  - `sortColumn` (string, optional): sort field. Supported: `"TrackName"`, `"Artist"`, `"Album"`, `"Genre"`, `"ReleaseDate"`. Defaults to `Id`.
+  - `sortDescending` (bool, optional, default false): sort direction.
+- Calls `ITrackService.GetPaged` (via DI), which is actually `TrackManager` from `DeepDrftData`.
+- Returns 200 with `PagedResult<TrackEntity>` JSON (`Items`, `TotalCount`, `PageNumber`, `PageSize`). Returns 500 on query error.
+
+### GET api/track/meta/{id:long} ([ApiKeyAuthorize])
+
+**Authenticated endpoint.** Single track metadata from SQL by ID.
+
+- **Header `ApiKey`**: required. Validated by `ApiKeyAuthenticationMiddleware`.
+- **Route parameter `id`** (long): the SQL track ID.
+- Calls `ITrackService.GetById`, which returns the track or null.
+- Returns 200 with `TrackEntity` JSON on success. Returns 404 if not found. Returns 500 on query error.
+
+### PUT api/track/meta/{id:long} ([ApiKeyAuthorize])
+
+**Authenticated endpoint.** Updates track metadata in SQL. EntryKey (the vault link) is immutable.
+
+- **Header `ApiKey`**: required. Validated by `ApiKeyAuthenticationMiddleware`.
+- **Route parameter `id`** (long): the SQL track ID.
+- **Body**: `UpdateTrackMetadataRequest` with fields: `TrackName`, `Artist`, `Album?`, `Genre?`, `ReleaseDate?`.
+- Looks up SQL row by ID, updates the provided fields (nulls in the request clear optional fields), and persists via `ITrackService.Update`.
+- Returns 200 on success. Returns 404 if track not found. Returns 500 on update error.
 
 ## ApiKey middleware behaviour
 
@@ -101,18 +132,26 @@ Configured in `Startup.ConfigureDomainServices()`, applied to all endpoints via 
 
 `UseForwardedHeaders()` processes `X-Forwarded-For`, `X-Forwarded-Proto`, `X-Forwarded-Host` so the app knows its real client IP and scheme when sitting behind nginx.
 
-## Startup wiring (Startup.ConfigureDomainServices)
+## Startup wiring (Startup.ConfigureDomainServices + Program.cs)
+
+**In `Startup.ConfigureDomainServices`** (FileDatabase + binary services):
 
 1. Load `environment/filedatabase.json` via `CredentialTools.ResolvePathOrThrow("filedatabase", ...)` and bind `FileDatabaseSettings`.
 2. Await `FileDatabase.FromAsync(VaultPath)` to load or create the database.
 3. Register `FileDatabase` as singleton.
 4. Ensure the `tracks` vault exists (type `MediaVaultType.Audio`, created on first boot if missing).
-5. Register singleton `WavOffsetService`.
-6. Register named `IHttpClientFactory` client (for future use, e.g., fetching from external APIs).
-7. Add MudBlazor (if shared components need it in future).
-8. Add CORS policy.
+5. Register singletons: `WavOffsetService`, `AudioProcessor`, `TrackService` (the `DeepDrftContent.Data` version for vault operations).
 
-The singleton `FileDatabase` is thread-safe for reads. Writes are atomic at the vault level (index updates are serialised). The `IndexWatcher` reloads the vault index if an external process (e.g., CLI) writes to it, so a long-running web host stays consistent.
+**In `Program.cs`** (SQL + wiring):
+
+6. Load `environment/connections.json` via `CredentialTools.ResolvePathOrThrow("connections", ...)`.
+7. Register `DbContext<DeepDrftContext>` (scoped) with connection string from config.
+8. Register scoped: `TrackRepository`, `TrackManager`, `ITrackService` (factory resolves to `TrackManager`), `UnifiedTrackService`.
+9. Configure forwarded headers (production-only) for reverse proxy support.
+10. Load `environment/apikey.json` and register API key middleware.
+11. Configure CORS policy (`ContentApiPolicy`): AllowAnyMethod, AllowAnyHeader, AllowCredentials, specific origins from config.
+
+The singleton `FileDatabase` is thread-safe for reads. Writes are atomic at the vault level (index updates are serialised). The `IndexWatcher` reloads the vault index if an external process (e.g., CLI) writes to it, so a long-running web host stays consistent. SQL services are scoped (DbContext not thread-safe).
 
 ## OpenAPI
 
@@ -120,7 +159,9 @@ Mapped in `Development` only. Swagger UI at `/swagger` for testing endpoints loc
 
 ## Configuration files
 
-- `appsettings.json`: Logging and hosting config. **Does not contain secrets.**
+- `appsettings.json`: Logging, hosting, and CORS config. **Does not contain secrets.**
+  - `Logging`: standard ASP.NET structure.
+  - `CorsSettings.AllowedOrigins`: array of origin URLs allowed to call the API (required; throws on startup if missing).
 - `environment/filedatabase.json` (required, loaded via CredentialTools, not in repo):
   ```json
   {
@@ -134,6 +175,14 @@ Mapped in `Development` only. Swagger UI at `/swagger` for testing endpoints loc
   {
     "ApiKeySettings": {
       "ApiKey": "your-secret-key"
+    }
+  }
+  ```
+- `environment/connections.json` (required, loaded via CredentialTools, not in repo):
+  ```json
+  {
+    "ConnectionStrings": {
+      "DefaultConnection": "Host=localhost;Database=deepdrft;Username=postgres;Password=..."
     }
   }
   ```

@@ -10,10 +10,10 @@ DeepDrftHome is a **net10.0** solution consisting of ten projects implementing a
 
 - **DeepDrftPublic**: ASP.NET Core host. Blazor Web App with Server + WASM render modes. Owns the SQL-backed `api/track/page` endpoint, MudBlazor theme prerender, and TypeScript→JS audio interop. Public-facing site for listeners.
 - **DeepDrftPublic.Client**: Blazor WebAssembly assembly. All interactive UI (pages, player stack, dark-mode plumbing, HTTP clients for both backends). Consumed by the public site.
-- **DeepDrftManager**: ASP.NET Core host. Blazor Web App with server-rendered `InteractiveServer` render mode. Hosts all CMS Razor components and pages under `Components/Pages/Cms/`, `Components/Pages/Tracks/`, `Components/Layout/CmsLayout.razor`, and `Components/Shared/` (all inlined from the former `DeepDrftCms` RCL). Gated by AuthBlocks login and hierarchical `Admin` role authorization. CMS mutations (track upload proxy, vault delete) are handled by `ICmsTrackService` / `CmsTrackService` injected directly into Blazor components; no in-process HTTP controllers.
+- **DeepDrftManager**: ASP.NET Core host. Blazor Web App with server-rendered `InteractiveServer` render mode. Hosts all CMS Razor components and pages under `Components/Pages/Cms/`, `Components/Pages/Tracks/`, `Components/Layout/CmsLayout.razor`, and `Components/Shared/` (all inlined from the former `DeepDrftCms` RCL). Gated by AuthBlocks login and hierarchical `Admin` role authorization. All track operations (upload, metadata read/write, delete) are HTTP proxies via `ICmsTrackService` / `CmsTrackService` injected directly into Blazor components; no in-process data layer.
 - **DeepDrftShared.Client**: Razor Class Library. Shared Blazor components consumed by both `DeepDrftPublic` and `DeepDrftManager` for consistency across public and admin surfaces.
-- **DeepDrftData**: Class library. EF Core domain logic: `DeepDrftContext`, `TrackConfiguration`, `Migrations`, `TrackRepository`, `TrackService`. Shared between hosts.
-- **DeepDrftContent**: ASP.NET Core host. Binary content API (`GET api/track/{id}` unauthenticated, `PUT api/track/{id}` ApiKey-protected). Returns audio bytes with optional WAV-aware offset streaming.
+- **DeepDrftData**: Class library. EF Core domain logic: `DeepDrftContext`, `TrackConfiguration`, `Migrations`, `TrackRepository`, `TrackService`, `TrackManager`. Consumed by `DeepDrftContent`, `DeepDrftPublic`, and `DeepDrftCli`.
+- **DeepDrftContent**: ASP.NET Core host. Dual-database authority (SQL metadata + FileDatabase binary). Seven endpoints: `GET api/track/{id}` unauthenticated streaming; `PUT api/track/{id}` vault write (ApiKey); `POST api/track/upload` upload + SQL persist (ApiKey); `DELETE api/track/{id:long}` SQL delete + vault remove (ApiKey); `GET api/track/page` paged metadata list (ApiKey); `GET api/track/meta/{id:long}` single metadata (ApiKey); `PUT api/track/meta/{id:long}` metadata update (ApiKey).
 - **DeepDrftContent.Services**: Class library. The FileDatabase implementation in full (Models, Services, Utils, Abstractions, Constants), `WavOffsetService`, `AudioProcessor`, content-side `TrackService`. Consumed by hosts and tests.
 - **DeepDrftModels**: Shared contracts. `TrackEntity`, `TrackDto`, `PagingParameters<T>`, `PagedResult<T>`. Every project references this.
 - **DeepDrftCli**: Console app. Two modes: classic CLI (`add` / `list` / `help`) and Terminal.Gui (`gui`). Direct access to both databases (local admin tool, not a network client).
@@ -57,7 +57,7 @@ The split between host projects (`DeepDrftPublic`, `DeepDrftManager`, `DeepDrftC
 `TrackEntity` holds *only* metadata. The link to binary content is `EntryKey` (string) — the entry id inside the `tracks` vault in FileDatabase. Dual-database add flow:
 
 1. `DeepDrftContent.Services.TrackService.AddTrackFromWavAsync` processes WAV, generates entry GUID, stores audio in vault, returns unpersisted `TrackEntity`.
-2. `DeepDrftData.TrackService.Create` saves to SQLite and returns the persisted entity with `Id`.
+2. `DeepDrftContent.Services.UnifiedTrackService.UploadAsync` persists the entity to SQL via `DeepDrftData.TrackManager` and returns the persisted entity with `Id`.
 
 If step 1 succeeds and step 2 fails, audio is orphaned in the vault (no rollback today).
 
@@ -129,8 +129,7 @@ All projects load secrets via `CredentialTools.ResolvePathOrThrow()` from gitign
 
 - `DeepDrftPublic/appsettings.json`: Logging and URL config. Secrets loaded from `environment/connections.json` (SQL connection string).
 - `DeepDrftManager/appsettings.json`: Logging and URL config. Secrets loaded from `environment/apikey.json` (DeepDrftContent API key), `environment/connections.json` (SQL and Auth connection strings), `environment/authblocks.json` (AuthBlocks settings).
-- `DeepDrftContent/environment/filedatabase.json`: FileDatabase vault path. Loaded via CredentialTools.
-- `DeepDrftContent/environment/apikey.json`: API key. Loaded via CredentialTools (not in repo).
+- `DeepDrftContent/appsettings.json`: Logging and hosting config. Secrets loaded from `environment/filedatabase.json` (FileDatabase vault path), `environment/apikey.json` (API key), `environment/connections.json` (SQL connection string).
 - `DeepDrftCli/environment/connections.json`: CLI config (`ConnectionString`, `VaultPath`). Loaded via CredentialTools.
 
 ## Folder-Level Guidance

@@ -1,33 +1,33 @@
-# CLAUDE.md - DeepDrftWeb.Services
+# CLAUDE.md - DeepDrftData
 
-Guidance for working in the DeepDrftWeb.Services project (the SQL-side domain logic).
+Guidance for working in the DeepDrftData project (the SQL-side domain logic).
 
 See the root `CLAUDE.md` for full architecture overview. This file covers what is specific to this project.
 
 ## One-line purpose
 
-SQL-side domain logic for tracks. EF Core context, configurations, migrations, repository, service, design-time factory. Consumed by both `DeepDrftWeb` (the host) and `DeepDrftCli` (the admin CLI).
+SQL-side domain logic for tracks. EF Core context, configurations, migrations, repository, manager, design-time factory. Consumed by `DeepDrftContent` (the dual-database authority), `DeepDrftPublic` (the public API), and `DeepDrftCli` (the admin CLI).
 
 ## Why this project exists
 
-Separating domain logic from the host so the CLI can reuse `TrackService` / `TrackRepository` / `DeepDrftContext` without referencing the ASP.NET host. The CLI is a local admin tool, not a network client — it needs direct DB access.
+Separating domain logic from hosts so multiple consumers (CLI, public API, content API) can reuse `TrackManager` / `TrackRepository` / `DeepDrftContext` without referencing the ASP.NET hosts directly. The CLI is a local admin tool; the APIs proxy these services over HTTP.
 
-**New SQL-side domain code goes here, not in `DeepDrftWeb`.**
+**New SQL-side domain code goes here, not in the host projects.**
 
 ## Layout
 
 ```
-DeepDrftWeb.Services/
+DeepDrftData/
 ├── Data/
 │   ├── DeepDrftContext.cs              # EF DbContext
 │   ├── DeepDrftContextFactory.cs       # Design-time factory (hard-codes ../Database/deepdrft.db)
 │   └── Configurations/
 │       └── TrackConfiguration.cs       # EF fluent configuration for TrackEntity
-├── Migrations/                         # EF-generated migrations (namespace DeepDrftWeb.Migrations)
+├── Migrations/                         # EF-generated migrations (namespace DeepDrftData.Migrations)
 ├── Repositories/
 │   └── TrackRepository.cs              # Data access layer
-├── TrackService.cs                     # Service orchestrator
-└── DeepDrftWeb.Services.csproj
+├── TrackManager.cs                     # Service orchestrator (public interface: ITrackService)
+└── DeepDrftData.csproj
 ```
 
 ## EF DbContext and configuration
@@ -43,21 +43,22 @@ DeepDrftWeb.Services/
 - `ReleaseDate`: optional `DateOnly`
 - `ImagePath`: optional, max 500 (currently a free-form URL string; points to images vault in future)
 
-## Controller → Service → Repository → DbContext shape
+## Service → Repository → DbContext shape
 
-- **Service** (public contract): Takes `TrackRepository`, catches exceptions at service boundary, returns `Result` / `ResultContainer<T>`.
-- **Repository** (internal): Queries the DbContext. Throws on error (service catches).
-- **DbContext** (EF): Directly accessed by repository, never by service (pattern isolation).
+- **Service** (`TrackManager`, implements `ITrackService`): Public contract. Takes `TrackRepository`, catches exceptions at service boundary, returns `ResultContainer<T>`.
+- **Repository** (`TrackRepository`): Internal data access. Queries the DbContext. Throws on error (service catches).
+- **DbContext** (`DeepDrftContext`): EF Core. Directly accessed by repository, never by service (pattern isolation).
 
 Example:
 
 ```csharp
-// TrackService.GetPaged (public)
+// TrackManager.GetPaged (public via ITrackService)
 public async Task<ResultContainer<PagedResult<TrackEntity>>> GetPaged(
     int pageNumber = 1,
     int pageSize = 20,
     string? sortColumn = null,
-    bool sortDescending = false)
+    bool sortDescending = false,
+    CancellationToken cancellationToken = default)
 {
     try
     {
@@ -68,7 +69,7 @@ public async Task<ResultContainer<PagedResult<TrackEntity>>> GetPaged(
             OrderBy = GetOrderExpression(sortColumn),  // Maps string to LINQ expression
             IsDescending = sortDescending
         };
-        var result = await _repository.GetPagedAsync(parameters);
+        var result = await _repository.GetPagedAsync(parameters, cancellationToken);
         return ResultContainer<PagedResult<TrackEntity>>.CreatePassResult(result);
     }
     catch (Exception e)
@@ -86,7 +87,7 @@ public async Task<ResultContainer<PagedResult<TrackEntity>>> GetPaged(
 - `OrderBy: Expression<Func<T, object>>?` (LINQ expression for sorting)
 - `IsDescending`
 
-`TrackService.GetPaged` maps a string `sortColumn` (from the API query) to an expression via a switch:
+`TrackManager.GetPaged` (the public service method) maps a string `sortColumn` (from the API query) to an expression via a switch:
 
 ```csharp
 private static Expression<Func<TrackEntity, object>> GetOrderExpression(string? sortColumn)
@@ -109,36 +110,40 @@ Run from the solution root:
 
 ```bash
 # Add a migration
-dotnet ef migrations add MigrationName --project DeepDrftWeb.Services --startup-project DeepDrftWeb
+dotnet ef migrations add MigrationName --project DeepDrftData --startup-project DeepDrftPublic
 
 # Apply to database
-dotnet ef database update --project DeepDrftWeb.Services --startup-project DeepDrftWeb
+dotnet ef database update --project DeepDrftData --startup-project DeepDrftPublic
 ```
 
-The design-time factory means you can also run `dotnet ef ... --project DeepDrftWeb.Services` standalone for local development (it doesn't need the startup project).
+The design-time factory means you can also run `dotnet ef ... --project DeepDrftData` standalone for local development (it doesn't need the startup project).
 
 ## Migrations namespace
 
-Migrations live in the `DeepDrftWeb.Migrations` namespace (a legacy name retained for history continuity). Migration files are auto-generated and rarely edited by hand.
+Migrations live in the `DeepDrftData.Migrations` namespace. Migration files are auto-generated and rarely edited by hand.
 
 ## Connection string
 
-- **Web side**: `appsettings.json` → `ConnectionStrings:DefaultConnection`
-- **CLI side**: `environment/connections.json` → `CliSettings:ConnectionString`
-- Both point at `../Database/deepdrft.db`
+- **DeepDrftPublic**: `appsettings.json` → `ConnectionStrings:DefaultConnection`
+- **DeepDrftContent**: `environment/connections.json` → `ConnectionStrings:DefaultConnection`
+- **DeepDrftCli**: `environment/connections.json` → `CliSettings:ConnectionString`
+- All point at the same database (PostgreSQL in production, SQLite for local development).
 
-The design-time factory hard-codes the path for `dotnet ef` commands.
+The design-time factory hard-codes the local path for `dotnet ef` commands.
 
 ## Service registration
 
-In `DeepDrftWeb/Program.cs` and `DeepDrftCli/Program.cs`:
+In `DeepDrftContent/Program.cs`, `DeepDrftPublic/Program.cs`, and `DeepDrftCli/Program.cs`:
 
 ```csharp
 services.AddDbContext<DeepDrftContext>(options =>
-    options.UseSqlite(configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));  // or UseSqlite for dev
 services.AddScoped<TrackRepository>();
-services.AddScoped<TrackService>();
+services.AddScoped<TrackManager>();
+services.AddScoped<ITrackService>(sp => sp.GetRequiredService<TrackManager>());
 ```
+
+This pattern allows callers to depend on `ITrackService` (the public interface) without knowing about `TrackManager` (the implementation). `DeepDrftContent` also registers `UnifiedTrackService` for dual-database orchestration.
 
 ## Important patterns
 
@@ -151,23 +156,27 @@ services.AddScoped<TrackService>();
 
 ```bash
 # Build
-dotnet build DeepDrftWeb.Services
+dotnet build DeepDrftData
 
 # Add migration (from solution root)
-dotnet ef migrations add MigrationName --project DeepDrftWeb.Services --startup-project DeepDrftWeb
+dotnet ef migrations add MigrationName --project DeepDrftData --startup-project DeepDrftPublic
 
 # Apply migration
-dotnet ef database update --project DeepDrftWeb.Services --startup-project DeepDrftWeb
+dotnet ef database update --project DeepDrftData --startup-project DeepDrftPublic
 
 # Run from CLI (which consumes this service)
 dotnet run --project DeepDrftCli -- list
+
+# Run from Content API (dual-database host)
+dotnet run --project DeepDrftContent
 ```
 
 ## What does NOT live here
 
-- HTTP controllers or middleware
-- Blazor components or rendering logic
-- FileDatabase or binary content code (that's in `DeepDrftContent.Services`)
-- Configuration for the web host (`appsettings.json` stays in `DeepDrftWeb`)
+- HTTP controllers or middleware (in host projects)
+- Blazor components or rendering logic (in host projects)
+- FileDatabase or binary content code (in `DeepDrftContent.Services`)
+- Host-specific wiring or configuration (in host `Program.cs` / `appsettings.json`)
+- Host-internal services like `UnifiedTrackService` (in host `Services/` folders)
 
-When working with this project, focus on the data layer (repository, service, EF configuration) and ensure all new SQL logic is testable and reusable by both the web host and the CLI.
+When working with this project, focus on the data layer (repository, manager, EF configuration) and ensure all new SQL logic is testable and reusable by multiple consumers (Content API, Public API, CLI) without host-specific dependencies.
