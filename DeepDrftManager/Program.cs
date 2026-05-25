@@ -14,12 +14,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Required credential files — must exist before the app will start.
 // Production secrets stay gitignored; the *.example.json templates at the project root show the shape.
-//   - environment/apikey.json:      { "DeepDrftContent": { "ApiKey": "..." } }
+//   - environment/api.json: { "Api": { "ContentApiUrl": "...", "ContentApiKey": "..."  } }
 //   - environment/connections.json: { "ConnectionStrings": { "DefaultConnection": "...", "Auth": "..." } }
 //   - environment/authblocks.json:  { "AuthBlocks": { "Jwt": {...}, "Email": {...}, "Admin": {...} } }
 // Content API key — consumed by CmsTrackService for the upload proxy and the vault-delete client.
-var apiKeyPath = CredentialTools.ResolvePathOrThrow("apikey", "environment/apikey.json");
-builder.Configuration.AddJsonFile(apiKeyPath, optional: false, reloadOnChange: false);
+var apiPath = CredentialTools.ResolvePathOrThrow("api", "environment/api.json");
+builder.Configuration.AddJsonFile(apiPath, optional: false, reloadOnChange: false);
 
 var connectionsPath = CredentialTools.ResolvePathOrThrow("connections", "environment/connections.json");
 builder.Configuration.AddJsonFile(connectionsPath, optional: false, reloadOnChange: false);
@@ -84,8 +84,8 @@ AuthBlocksWeb.Startup.ConfigureAuthServices(builder.Services, baseUrl);
 
 // Named HttpClient for unauthenticated Content API calls (CmsTrackService proxying WAV data
 // to DeepDrftContent's POST api/track/upload). API key added per-request by the service.
-var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"]
-    ?? throw new InvalidOperationException("ApiUrls:ContentApi is required");
+var contentApiUrl = builder.Configuration["Api:ContentApiUrl"]
+    ?? throw new InvalidOperationException("Api:ContentApiUrl is required");
 builder.Services.AddHttpClient("DeepDrft.Content", client =>
 {
     client.BaseAddress = new Uri(contentApiUrl);
@@ -93,8 +93,8 @@ builder.Services.AddHttpClient("DeepDrft.Content", client =>
 
 // Named HttpClient for ApiKey-protected Content API calls (CmsTrackService's vault delete).
 // API key baked into the default request headers so callers need not add it manually.
-var contentApiKey = builder.Configuration["DeepDrftContent:ApiKey"]
-    ?? throw new InvalidOperationException("DeepDrftContent:ApiKey is required");
+var contentApiKey = builder.Configuration["Api:ContentApiKey"]
+    ?? throw new InvalidOperationException("Api:ContentApiKey is required");
 builder.Services.AddHttpClient("DeepDrft.Content.Cms", client =>
 {
     client.BaseAddress = new Uri(contentApiUrl);

@@ -1,6 +1,6 @@
 @page "/cms/tracks/{Id:long}"
 @using DeepDrftManager.Services
-@attribute [HierarchicalRoleAuthorize([SystemRoleConstants.Admin])]
+@attribute [Authorize]
 @inject ITrackService TrackService
 @inject ICmsTrackService CmsTrackService
 @inject ISnackbar Snackbar

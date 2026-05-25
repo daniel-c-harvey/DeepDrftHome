@@ -19,7 +19,6 @@ public class CmsTrackService : ICmsTrackService
     private const string UploadPath = "api/track/upload";
 
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ITrackService _trackService;
     private readonly IConfiguration _configuration;
     private readonly ILogger<CmsTrackService> _logger;
 
@@ -47,13 +46,6 @@ public class CmsTrackService : ICmsTrackService
         long createdByUserId,
         CancellationToken ct = default)
     {
-        var apiKey = _configuration["DeepDrftContent:ApiKey"];
-        if (string.IsNullOrWhiteSpace(apiKey))
-        {
-            _logger.LogError("DeepDrftContent:ApiKey is not configured");
-            return ResultContainer<TrackEntity>.CreateFailResult("Content API key is not configured.");
-        }
-
         // Rebuild the multipart container so the boundary is owned by HttpClient and the
         // caller-supplied stream (already buffered by the SignalR upload) is the source.
         using var multipart = new MultipartFormDataContent();
@@ -67,10 +59,9 @@ public class CmsTrackService : ICmsTrackService
         if (!string.IsNullOrWhiteSpace(genre)) multipart.Add(new StringContent(genre), "genre");
         if (!string.IsNullOrWhiteSpace(releaseDate)) multipart.Add(new StringContent(releaseDate), "releaseDate");
 
-        var client = _httpClientFactory.CreateClient(ContentClientName);
+        var client = _httpClientFactory.CreateClient(ContentCmsClientName);
         using var request = new HttpRequestMessage(HttpMethod.Post, UploadPath) { Content = multipart };
-        request.Headers.Add("ApiKey", apiKey);
-
+        
         HttpResponseMessage response;
         try
         {

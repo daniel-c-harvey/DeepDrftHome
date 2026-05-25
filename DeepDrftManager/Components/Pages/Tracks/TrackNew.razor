@@ -1,7 +1,7 @@
 @page "/cms/tracks/new"
 @using System.Security.Claims
 @using DeepDrftManager.Services
-@attribute [HierarchicalRoleAuthorize([SystemRoleConstants.Admin])]
+@attribute [Authorize]
 
 @inject ICmsTrackService CmsTrackService
 @inject AuthenticationStateProvider AuthStateProvider
