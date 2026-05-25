@@ -1,4 +1,4 @@
-using DeepDrftModels.Entities;
+using DeepDrftModels.DTOs;
 using DeepDrftPublic.Client.Services;
 using Models.Common;
 
@@ -15,7 +15,7 @@ public class TracksViewModel
         get => Page?.PageSize ?? 15;
         set
         {
-            if (Page == null) throw new Exception();
+            if (Page == null) return;
             if (value != Page.PageSize)
             {
                 Page.PageSize = value;
@@ -24,7 +24,7 @@ public class TracksViewModel
     }
     public string SortBy { get; set; } = string.Empty;
     public bool IsDescending { get; set; } = false;
-    public PagedResult<TrackEntity>? Page { get; set; } = null;
+    public PagedResult<TrackDto>? Page { get; set; } = null;
 
     public TracksViewModel(ITrackDataService trackData)
     {

@@ -1,4 +1,4 @@
-using DeepDrftModels.Entities;
+using DeepDrftModels.DTOs;
 using Models.Common;
 using NetBlocks.Models;
 
@@ -17,7 +17,7 @@ namespace DeepDrftPublic.Client.Services;
 /// </summary>
 public interface ITrackDataService
 {
-    Task<ApiResult<PagedResult<TrackEntity>>> GetPage(
+    Task<ApiResult<PagedResult<TrackDto>>> GetPage(
         int pageNumber,
         int pageSize,
         string? sortColumn = null,

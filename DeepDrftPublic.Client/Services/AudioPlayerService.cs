@@ -1,4 +1,4 @@
-using DeepDrftModels.Entities;
+using DeepDrftModels.DTOs;
 using DeepDrftPublic.Client.Clients;
 using Microsoft.AspNetCore.Components;
 using NetBlocks.Models;
@@ -32,7 +32,7 @@ public abstract class AudioPlayerService : IPlayerService, IAsyncDisposable
     /// <see cref="SelectTrack"/>/<see cref="Unload"/> path are responsible for managing
     /// it themselves.
     /// </summary>
-    public TrackEntity? CurrentTrack { get; protected set; }
+    public TrackDto? CurrentTrack { get; protected set; }
 
     // Events
     public EventCallback? OnStateChanged { get; set; }
@@ -74,7 +74,7 @@ public abstract class AudioPlayerService : IPlayerService, IAsyncDisposable
         }
     }
 
-    public virtual async Task SelectTrack(TrackEntity track)
+    public virtual async Task SelectTrack(TrackDto track)
     {
         await EnsureInitializedAsync();
 
@@ -87,7 +87,7 @@ public abstract class AudioPlayerService : IPlayerService, IAsyncDisposable
         await NotifyStateChanged();
     }
 
-    private async Task LoadTrack(TrackEntity track)
+    private async Task LoadTrack(TrackDto track)
     {
         try
         {

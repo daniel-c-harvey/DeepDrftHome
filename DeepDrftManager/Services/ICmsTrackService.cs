@@ -1,4 +1,4 @@
-using DeepDrftModels.Entities;
+using DeepDrftModels.DTOs;
 using Models.Common;
 using NetBlocks.Models;
 
@@ -13,10 +13,10 @@ public interface ICmsTrackService
 {
     /// <summary>
     /// Proxy a WAV upload to DeepDrftAPI. The Content API owns the dual-database write and
-    /// returns the persisted entity carrying the SQL-assigned <c>Id</c>. A vault-without-SQL
+    /// returns the persisted track carrying the SQL-assigned <c>Id</c>. A vault-without-SQL
     /// orphan is handled and logged server-side; here it surfaces as a failed result.
     /// </summary>
-    Task<ResultContainer<TrackEntity>> UploadTrackAsync(
+    Task<ResultContainer<TrackDto>> UploadTrackAsync(
         Stream wavStream,
         string fileName,
         string contentType,
@@ -37,7 +37,7 @@ public interface ICmsTrackService
     /// <summary>
     /// Fetch a page of track metadata from the Content API's <c>GET api/track/page</c>.
     /// </summary>
-    Task<ResultContainer<PagedResult<TrackEntity>>> GetPagedAsync(
+    Task<ResultContainer<PagedResult<TrackDto>>> GetPagedAsync(
         int page, int pageSize, string? sortColumn, bool sortDescending,
         CancellationToken ct = default);
 
@@ -45,7 +45,7 @@ public interface ICmsTrackService
     /// Fetch a single track's metadata from <c>GET api/track/meta/{id}</c>. A 404 returns a
     /// passing result with a null value.
     /// </summary>
-    Task<ResultContainer<TrackEntity?>> GetByIdAsync(long id, CancellationToken ct = default);
+    Task<ResultContainer<TrackDto?>> GetByIdAsync(long id, CancellationToken ct = default);
 
     /// <summary>
     /// Update a track's metadata via <c>PUT api/track/meta/{id}</c>. EntryKey is immutable and

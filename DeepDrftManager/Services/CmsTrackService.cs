@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using DeepDrftModels.Entities;
+using DeepDrftModels.DTOs;
 using Models.Common;
 using NetBlocks.Models;
 
@@ -30,7 +30,7 @@ public class CmsTrackService : ICmsTrackService
         _logger = logger;
     }
 
-    public async Task<ResultContainer<TrackEntity>> UploadTrackAsync(
+    public async Task<ResultContainer<TrackDto>> UploadTrackAsync(
         Stream wavStream,
         string fileName,
         string contentType,
@@ -67,7 +67,7 @@ public class CmsTrackService : ICmsTrackService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Content API call failed for upload of {TrackName}", trackName);
-            return ResultContainer<TrackEntity>.CreateFailResult("Content API is unreachable.");
+            return ResultContainer<TrackDto>.CreateFailResult("Content API is unreachable.");
         }
 
         using (response)
@@ -79,35 +79,35 @@ public class CmsTrackService : ICmsTrackService
                 if (statusCode >= 500)
                 {
                     _logger.LogError("Content API returned {Status} for upload of {TrackName}: {Body}", statusCode, trackName, body);
-                    return ResultContainer<TrackEntity>.CreateFailResult("Upload failed on the content server. Please try again.");
+                    return ResultContainer<TrackDto>.CreateFailResult("Upload failed on the content server. Please try again.");
                 }
 
                 // 4xx: body is user-friendly validation text from DeepDrftAPI — relay as-is.
                 _logger.LogWarning("Content API rejected upload: {Status} {Body}", statusCode, body);
-                return ResultContainer<TrackEntity>.CreateFailResult(
+                return ResultContainer<TrackDto>.CreateFailResult(
                     string.IsNullOrWhiteSpace(body) ? $"Upload rejected ({statusCode})." : body);
             }
 
             // The Content API now owns the dual-database write, so the response is the persisted
-            // entity (Id > 0) — no SQL roundtrip here.
-            TrackEntity? persisted;
+            // track DTO (Id > 0) — no SQL roundtrip here.
+            TrackDto? persisted;
             try
             {
-                persisted = await response.Content.ReadFromJsonAsync<TrackEntity>(ct);
+                persisted = await response.Content.ReadFromJsonAsync<TrackDto>(ct);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to deserialize TrackEntity from Content API response");
-                return ResultContainer<TrackEntity>.CreateFailResult("Content API returned an unexpected response.");
+                _logger.LogError(ex, "Failed to deserialize TrackDto from Content API response");
+                return ResultContainer<TrackDto>.CreateFailResult("Content API returned an unexpected response.");
             }
 
             if (persisted is null)
             {
-                _logger.LogError("Content API returned a null TrackEntity");
-                return ResultContainer<TrackEntity>.CreateFailResult("Content API returned an empty response.");
+                _logger.LogError("Content API returned a null TrackDto");
+                return ResultContainer<TrackDto>.CreateFailResult("Content API returned an empty response.");
             }
 
-            return ResultContainer<TrackEntity>.CreatePassResult(persisted);
+            return ResultContainer<TrackDto>.CreatePassResult(persisted);
         }
     }
 
@@ -144,7 +144,7 @@ public class CmsTrackService : ICmsTrackService
         }
     }
 
-    public async Task<ResultContainer<PagedResult<TrackEntity>>> GetPagedAsync(
+    public async Task<ResultContainer<PagedResult<TrackDto>>> GetPagedAsync(
         int page, int pageSize, string? sortColumn, bool sortDescending,
         CancellationToken ct = default)
     {
@@ -163,7 +163,7 @@ public class CmsTrackService : ICmsTrackService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Content API call failed for track page");
-            return ResultContainer<PagedResult<TrackEntity>>.CreateFailResult("Content API is unreachable.");
+            return ResultContainer<PagedResult<TrackDto>>.CreateFailResult("Content API is unreachable.");
         }
 
         using (response)
@@ -171,31 +171,31 @@ public class CmsTrackService : ICmsTrackService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogError("Content API track page failed: {Status}", (int)response.StatusCode);
-                return ResultContainer<PagedResult<TrackEntity>>.CreateFailResult("Failed to load tracks.");
+                return ResultContainer<PagedResult<TrackDto>>.CreateFailResult("Failed to load tracks.");
             }
 
-            PagedResult<TrackEntity>? paged;
+            PagedResult<TrackDto>? paged;
             try
             {
-                paged = await response.Content.ReadFromJsonAsync<PagedResult<TrackEntity>>(ct);
+                paged = await response.Content.ReadFromJsonAsync<PagedResult<TrackDto>>(ct);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to deserialize PagedResult from Content API response");
-                return ResultContainer<PagedResult<TrackEntity>>.CreateFailResult("Content API returned an unexpected response.");
+                return ResultContainer<PagedResult<TrackDto>>.CreateFailResult("Content API returned an unexpected response.");
             }
 
             if (paged is null)
             {
                 _logger.LogError("Content API returned a null PagedResult");
-                return ResultContainer<PagedResult<TrackEntity>>.CreateFailResult("Content API returned an empty response.");
+                return ResultContainer<PagedResult<TrackDto>>.CreateFailResult("Content API returned an empty response.");
             }
 
-            return ResultContainer<PagedResult<TrackEntity>>.CreatePassResult(paged);
+            return ResultContainer<PagedResult<TrackDto>>.CreatePassResult(paged);
         }
     }
 
-    public async Task<ResultContainer<TrackEntity?>> GetByIdAsync(long id, CancellationToken ct = default)
+    public async Task<ResultContainer<TrackDto?>> GetByIdAsync(long id, CancellationToken ct = default)
     {
         var client = _httpClientFactory.CreateClient(ContentCmsClientName);
 
@@ -207,34 +207,34 @@ public class CmsTrackService : ICmsTrackService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Content API call failed for track {TrackId}", id);
-            return ResultContainer<TrackEntity?>.CreateFailResult("Content API is unreachable.");
+            return ResultContainer<TrackDto?>.CreateFailResult("Content API is unreachable.");
         }
 
         using (response)
         {
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return ResultContainer<TrackEntity?>.CreatePassResult(null);
+                return ResultContainer<TrackDto?>.CreatePassResult(null);
             }
 
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogError("Content API track lookup failed for {TrackId}: {Status}", id, (int)response.StatusCode);
-                return ResultContainer<TrackEntity?>.CreateFailResult("Failed to load track.");
+                return ResultContainer<TrackDto?>.CreateFailResult("Failed to load track.");
             }
 
-            TrackEntity? track;
+            TrackDto? track;
             try
             {
-                track = await response.Content.ReadFromJsonAsync<TrackEntity>(ct);
+                track = await response.Content.ReadFromJsonAsync<TrackDto>(ct);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to deserialize TrackEntity from Content API response");
-                return ResultContainer<TrackEntity?>.CreateFailResult("Content API returned an unexpected response.");
+                _logger.LogError(ex, "Failed to deserialize TrackDto from Content API response");
+                return ResultContainer<TrackDto?>.CreateFailResult("Content API returned an unexpected response.");
             }
 
-            return ResultContainer<TrackEntity?>.CreatePassResult(track);
+            return ResultContainer<TrackDto?>.CreatePassResult(track);
         }
     }
 

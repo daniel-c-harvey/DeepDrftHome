@@ -90,7 +90,7 @@
 @code {
     [Parameter] public long Id { get; set; }
 
-    private TrackEntity? _track;
+    private TrackDto? _track;
     private TrackEditForm _form = new();
     private bool _loading = true;
     private bool _busy;
@@ -199,7 +199,7 @@
         public string? Genre { get; set; }
         public DateTime? ReleaseDate { get; set; }
 
-        public static TrackEditForm From(TrackEntity track) => new()
+        public static TrackEditForm From(TrackDto track) => new()
         {
             TrackName = track.TrackName,
             Artist = track.Artist,

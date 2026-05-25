@@ -9,14 +9,15 @@ using NetBlocks.Models;
 namespace DeepDrftData;
 
 /// <summary>
-/// SQL-side track orchestrator built on the BlazorBlocks Manager base. Two surfaces coexist:
+/// SQL-side track service built on the BlazorBlocks Manager base. The layer boundary:
+/// TrackRepository outputs entities; this service outputs DTOs via TrackConverter — the
+/// single authoritative entity↔DTO conversion path. The ITrackService surface is DTO-typed
+/// throughout; the entity never escapes the service layer.
 ///
-///   - The DTO-shaped IManager surface (GetById → TrackDto, etc.) inherited from Manager&lt;&gt;.
-///   - The entity-shaped ITrackService surface retained for backward compatibility with the
-///     web host, CMS, and CLI — all existing controllers and pages inject ITrackService and
-///     expect TrackEntity-typed results. The two GetById overloads conflict on signature, so
-///     ITrackService.GetById is implemented explicitly; the base Manager.Delete satisfies
-///     both interfaces because the signatures align.
+/// The base Manager&lt;&gt; surface does not line up with ITrackService by signature (base
+/// Add vs Create, base Update→Result vs Update→DTO, base Get/GetPage vs GetAll/GetPaged,
+/// base GetById→TDto vs GetById→TDto?), so the query and mutation methods are implemented
+/// here over Repository + TrackConverter. Only Delete(long)→Result is inherited unchanged.
 /// </summary>
 public class TrackManager
     : Manager<TrackEntity, TrackDto, TrackRepository, TrackConverter>, ITrackService
@@ -28,39 +29,38 @@ public class TrackManager
     {
     }
 
-    // --- ITrackService implementation (entity-space; calls Repository directly) ---
-
-    // Explicit interface implementation — IManager.GetById returns ResultContainer<TrackDto>
-    // (inherited from Manager<>), so this entity-typed overload cannot coexist as a public
-    // member with the same name. Callers always inject ITrackService, so the explicit impl
-    // resolves correctly at the call site.
-    async Task<ResultContainer<TrackEntity?>> ITrackService.GetById(long id)
+    // Explicit impl: base GetById returns ResultContainer<TrackDto> (fails on miss); the
+    // service contract is ResultContainer<TrackDto?> (pass with null on miss). Return types
+    // differ, so this cannot be a public overload of the inherited member.
+    async Task<ResultContainer<TrackDto?>> ITrackService.GetById(long id)
     {
         try
         {
             var entity = await Repository.GetByIdAsync(id);
-            return ResultContainer<TrackEntity?>.CreatePassResult(entity);
+            return ResultContainer<TrackDto?>.CreatePassResult(
+                entity is null ? null : TrackConverter.Convert(entity));
         }
         catch (Exception e)
         {
-            return ResultContainer<TrackEntity?>.CreateFailResult(e.Message);
+            return ResultContainer<TrackDto?>.CreateFailResult(e.Message);
         }
     }
 
-    public async Task<ResultContainer<List<TrackEntity>>> GetAll()
+    public async Task<ResultContainer<List<TrackDto>>> GetAll()
     {
         try
         {
             var entities = await Repository.GetAllAsync();
-            return ResultContainer<List<TrackEntity>>.CreatePassResult(entities.ToList());
+            return ResultContainer<List<TrackDto>>.CreatePassResult(
+                entities.Select(TrackConverter.Convert).ToList());
         }
         catch (Exception e)
         {
-            return ResultContainer<List<TrackEntity>>.CreateFailResult(e.Message);
+            return ResultContainer<List<TrackDto>>.CreateFailResult(e.Message);
         }
     }
 
-    public async Task<ResultContainer<PagedResult<TrackEntity>>> GetPaged(
+    public async Task<ResultContainer<PagedResult<TrackDto>>> GetPaged(
         int pageNumber,
         int pageSize,
         string? sortColumn,
@@ -86,52 +86,46 @@ public class TrackManager
             };
 
             var page = await Repository.GetPagedAsync(parameters);
-            return ResultContainer<PagedResult<TrackEntity>>.CreatePassResult(page);
+            var dtoPage = PagedResult<TrackDto>.From(page, page.Items.Select(TrackConverter.Convert));
+            return ResultContainer<PagedResult<TrackDto>>.CreatePassResult(dtoPage);
         }
         catch (Exception e)
         {
-            return ResultContainer<PagedResult<TrackEntity>>.CreateFailResult(e.Message);
+            return ResultContainer<PagedResult<TrackDto>>.CreateFailResult(e.Message);
         }
     }
 
-    public async Task<ResultContainer<TrackEntity>> Create(TrackEntity newTrack)
+    public async Task<ResultContainer<TrackDto>> Create(TrackDto newTrack)
     {
         try
         {
-            var added = await Repository.AddAsync(newTrack);
-            return ResultContainer<TrackEntity>.CreatePassResult(added);
+            var added = await Repository.AddAsync(TrackConverter.Convert(newTrack));
+            return ResultContainer<TrackDto>.CreatePassResult(TrackConverter.Convert(added));
         }
         catch (Exception e)
         {
-            return ResultContainer<TrackEntity>.CreateFailResult(e.Message);
+            return ResultContainer<TrackDto>.CreateFailResult(e.Message);
         }
     }
 
-    // Manager<>.Update takes TrackDto and returns Result; this Update keeps the
-    // entity-typed contract callers expect and returns the post-update entity for the
-    // existing CMS edit flow that reads back the persisted values.
-    /// <summary>
-    /// Updates the track's metadata fields and returns the DB-authoritative entity.
-    /// The caller's <paramref name="track"/> object has its <c>UpdatedAt</c> field
-    /// mutated in place by <see cref="TrackRepository.UpdateAsync"/>; do not reuse it.
-    /// </summary>
-    public async Task<ResultContainer<TrackEntity>> Update(TrackEntity track)
+    // Explicit impl: base Update returns Result; the service contract returns the persisted
+    // DTO so the CMS edit flow reads back DB-authoritative values.
+    async Task<ResultContainer<TrackDto>> ITrackService.Update(TrackDto track)
     {
         try
         {
-            await Repository.UpdateAsync(track);
+            await Repository.UpdateAsync(TrackConverter.Convert(track));
             var updated = await Repository.GetByIdAsync(track.Id);
             return updated is not null
-                ? ResultContainer<TrackEntity>.CreatePassResult(updated)
-                : ResultContainer<TrackEntity>.CreateFailResult("Track not found after update.");
+                ? ResultContainer<TrackDto>.CreatePassResult(TrackConverter.Convert(updated))
+                : ResultContainer<TrackDto>.CreateFailResult("Track not found after update.");
         }
         catch (Exception e)
         {
-            return ResultContainer<TrackEntity>.CreateFailResult(e.Message);
+            return ResultContainer<TrackDto>.CreateFailResult(e.Message);
         }
     }
 
-    // Delete(long) is inherited from Manager<> — its Task<Result> signature already
-    // satisfies ITrackService.Delete, and the base implementation performs the soft delete
-    // via Repository.DeleteAsync. No override needed.
+    // Delete(long) → Result is inherited from Manager<> and satisfies ITrackService.Delete
+    // by signature. No override.
 }

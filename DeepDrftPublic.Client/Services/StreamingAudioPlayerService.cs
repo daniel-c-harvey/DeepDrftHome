@@ -1,4 +1,4 @@
-using DeepDrftModels.Entities;
+using DeepDrftModels.DTOs;
 using DeepDrftPublic.Client.Clients;
 using System.Buffers;
 using Microsoft.Extensions.Logging;
@@ -41,12 +41,12 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
         _logger = logger;
     }
 
-    public override async Task SelectTrack(TrackEntity track)
+    public override async Task SelectTrack(TrackDto track)
     {
         await SelectTrackStreaming(track);
     }
 
-    public async Task SelectTrackStreaming(TrackEntity track)
+    public async Task SelectTrackStreaming(TrackDto track)
     {
         await EnsureInitializedAsync();
 
@@ -59,7 +59,7 @@ public class StreamingAudioPlayerService : AudioPlayerService, IStreamingPlayerS
         await NotifyStateChanged();
     }
 
-    private async Task LoadTrackStreaming(TrackEntity track)
+    private async Task LoadTrackStreaming(TrackDto track)
     {
         // Always reset to clean state before loading new track. ResetToIdle
         // both cancels and awaits any in-flight streaming loop, so by the time

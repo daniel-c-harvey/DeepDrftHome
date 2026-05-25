@@ -1,4 +1,4 @@
-using DeepDrftModels.Entities;
+using DeepDrftModels.DTOs;
 using Microsoft.AspNetCore.Components;
 using NetBlocks.Models;
 
@@ -17,7 +17,7 @@ public interface IPlayerService
     double Volume { get; }
     double LoadProgress { get; }
     string? ErrorMessage { get; }
-    TrackEntity? CurrentTrack { get; }
+    TrackDto? CurrentTrack { get; }
 
     // Events for UI updates
     EventCallback? OnStateChanged { get; set; }
@@ -25,7 +25,7 @@ public interface IPlayerService
     
     // Control methods
     Task InitializeAsync();
-    Task SelectTrack(TrackEntity track);
+    Task SelectTrack(TrackDto track);
     Task Stop();
     Task Unload();
     Task TogglePlayPause();
@@ -43,5 +43,5 @@ public interface IStreamingPlayerService : IPlayerService
     int BufferedChunks { get; }
     
     // Streaming control methods
-    Task SelectTrackStreaming(TrackEntity track);
+    Task SelectTrackStreaming(TrackDto track);
 }

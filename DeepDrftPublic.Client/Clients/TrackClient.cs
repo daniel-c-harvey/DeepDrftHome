@@ -1,4 +1,4 @@
-using DeepDrftModels.Entities;
+using DeepDrftModels.DTOs;
 using Models.Common;
 using NetBlocks.Models;
 using System.Text.Json;
@@ -16,7 +16,7 @@ public class TrackClient
         _http = httpClientFactory.CreateClient("DeepDrft.API");
     }
 
-    public async Task<ApiResult<PagedResult<TrackEntity>>> GetPage(
+    public async Task<ApiResult<PagedResult<TrackDto>>> GetPage(
         int pageNumber, 
         int pageSize, 
         string? sortColumn = null, 
@@ -38,11 +38,11 @@ public class TrackClient
         var response = await _http.GetAsync($"api/track/page{query}");
         var json = await response.Content.ReadAsStringAsync();
         
-        var dto = JsonSerializer.Deserialize<ApiResultDto<PagedResult<TrackEntity>>>(json, new JsonSerializerOptions
+        var dto = JsonSerializer.Deserialize<ApiResultDto<PagedResult<TrackDto>>>(json, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
         });
         
-        return dto?.From() ?? ApiResult<PagedResult<TrackEntity>>.CreateFailResult("Failed to deserialize response");
+        return dto?.From() ?? ApiResult<PagedResult<TrackDto>>.CreateFailResult("Failed to deserialize response");
     }
 }

@@ -20,7 +20,7 @@
         </MudButton>
     </MudStack>
 
-    <MudTable T="TrackEntity"
+    <MudTable T="TrackDto"
               @ref="_table"
               ServerData="LoadServerData"
               Hover="true"
@@ -37,11 +37,11 @@
             <MudText Typo="Typo.body1">Loading tracks…</MudText>
         </LoadingContent>
         <HeaderContent>
-            <MudTh><MudTableSortLabel SortLabel="TrackName" T="TrackEntity" InitialDirection="SortDirection.Ascending">Track Name</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortLabel="Artist" T="TrackEntity">Artist</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortLabel="Album" T="TrackEntity">Album</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortLabel="Genre" T="TrackEntity">Genre</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortLabel="ReleaseDate" T="TrackEntity">Release Date</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="TrackName" T="TrackDto" InitialDirection="SortDirection.Ascending">Track Name</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Artist" T="TrackDto">Artist</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Album" T="TrackDto">Album</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Genre" T="TrackDto">Genre</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="ReleaseDate" T="TrackDto">Release Date</MudTableSortLabel></MudTh>
             <MudTh>Entry Key</MudTh>
             <MudTh Style="width: 1%; white-space: nowrap;">Actions</MudTh>
         </HeaderContent>
@@ -74,9 +74,9 @@
 </MudContainer>
 
 @code {
-    private MudTable<TrackEntity>? _table;
+    private MudTable<TrackDto>? _table;
 
-    private async Task<TableData<TrackEntity>> LoadServerData(TableState state, CancellationToken cancellationToken)
+    private async Task<TableData<TrackDto>> LoadServerData(TableState state, CancellationToken cancellationToken)
     {
         var pageNumber = state.Page + 1; // MudTable is 0-based, service is 1-based.
         var sortColumn = string.IsNullOrEmpty(state.SortLabel) ? "TrackName" : state.SortLabel;
@@ -88,18 +88,18 @@
         {
             var errorText = result.Messages.FirstOrDefault()?.Message ?? "Unknown error";
             Snackbar.Add($"Failed to load tracks: {errorText}", Severity.Error);
-            return new TableData<TrackEntity> { Items = Array.Empty<TrackEntity>(), TotalItems = 0 };
+            return new TableData<TrackDto> { Items = Array.Empty<TrackDto>(), TotalItems = 0 };
         }
 
         var page = result.Value;
-        return new TableData<TrackEntity>
+        return new TableData<TrackDto>
         {
             Items = page.Items,
             TotalItems = page.TotalCount
         };
     }
 
-    private async Task ConfirmAndDelete(TrackEntity track)
+    private async Task ConfirmAndDelete(TrackDto track)
     {
         var confirmed = await DialogService.ShowMessageBox(
             title: "Delete track",

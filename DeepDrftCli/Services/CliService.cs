@@ -164,8 +164,8 @@ public class CliService
                 return;
             }
 
-            // Add track to SQL database
-            var result = await _webTrackService.Create(trackEntity);
+            // Add track to SQL database (service layer is DTO-typed)
+            var result = await _webTrackService.Create(DeepDrftData.TrackConverter.Convert(trackEntity));
             if (result.Success && result.Value != null)
             {
                 Console.WriteLine($"✓ Track added successfully!");
