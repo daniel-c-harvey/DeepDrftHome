@@ -6,13 +6,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftPublic.Client", "De
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftModels", "DeepDrftModels\DeepDrftModels.csproj", "{10CE5160-16C3-4CB1-9E2E-52467BA80B4B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftContent", "DeepDrftContent\DeepDrftContent.csproj", "{C79AFD08-02C0-45D2-A98A-FCDDFBEAE155}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftAPI", "DeepDrftAPI\DeepDrftAPI.csproj", "{C79AFD08-02C0-45D2-A98A-FCDDFBEAE155}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftTests", "DeepDrftTests\DeepDrftTests.csproj", "{47E99024-491B-47A6-BAF8-9E5814366DB2}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftData", "DeepDrftData\DeepDrftData.csproj", "{1D1CE905-DAD0-4E93-9B09-326E8EC05877}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftContent.Data", "DeepDrftContent.Data\DeepDrftContent.Data.csproj", "{4D025326-7F27-4C42-BE0F-92C1E64E0696}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftContent", "DeepDrftContent\DeepDrftContent.csproj", "{4D025326-7F27-4C42-BE0F-92C1E64E0696}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepDrftManager", "DeepDrftManager\DeepDrftManager.csproj", "{E50071B2-A59F-4FB7-A435-5D966C538DDD}"
 EndProject

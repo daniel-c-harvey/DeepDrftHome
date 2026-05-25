@@ -1,7 +1,7 @@
-using DeepDrftContent.Data.FileDatabase.Abstractions;
-using DeepDrftContent.Data.FileDatabase.Models;
-using DeepDrftContent.Data.FileDatabase.Services;
-using DeepDrftContent.Data.FileDatabase.Utils;
+using DeepDrftContent.FileDatabase.Abstractions;
+using DeepDrftContent.FileDatabase.Models;
+using DeepDrftContent.FileDatabase.Services;
+using DeepDrftContent.FileDatabase.Utils;
 
 namespace DeepDrftTests;
 

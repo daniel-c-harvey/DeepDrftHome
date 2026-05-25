@@ -27,7 +27,7 @@ builder.Configuration.AddJsonFile(authBlocksPath, optional: false, reloadOnChang
 builder.Services.AddMudServices();
 
 // CMS track operations (read + mutate). Every track read and write goes over HTTP to the
-// DeepDrftContent API via the named clients below — the Manager holds no in-process data layer.
+// DeepDrftAPI API via the named clients below — the Manager holds no in-process data layer.
 builder.Services.AddScoped<ICmsTrackService, CmsTrackService>();
 
 // AuthBlocks: JWT Bearer auth, Identity, EF schema, admin seeding.
@@ -68,7 +68,7 @@ var baseUrl = GetKestrelUrl(builder);
 AuthBlocksWeb.Startup.ConfigureAuthServices(builder.Services, baseUrl);
 
 // Named HttpClient for unauthenticated Content API calls (CmsTrackService proxying WAV data
-// to DeepDrftContent's POST api/track/upload). API key added per-request by the service.
+// to DeepDrftAPI's POST api/track/upload). API key added per-request by the service.
 var contentApiUrl = builder.Configuration["Api:ContentApiUrl"]
     ?? throw new InvalidOperationException("Api:ContentApiUrl is required");
 builder.Services.AddHttpClient("DeepDrft.Content", client =>

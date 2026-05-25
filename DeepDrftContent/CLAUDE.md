@@ -1,221 +1,168 @@
-# CLAUDE.md - DeepDrftContent
+# CLAUDE.md - DeepDrftContent.Services
 
-Guidance for working in the DeepDrftContent project (the binary content API host).
+Guidance for working in the DeepDrftContent.Services project (the binary-content domain logic).
 
 See the root `CLAUDE.md` for full architecture overview. This file covers what is specific to this project.
 
 ## One-line purpose
 
-The dual-database authority for tracks: SQL metadata and FileDatabase binary. Seven endpoints expose track CRUD with upload+persist, delete+cleanup, paged listing, and metadata operations. ApiKey middleware, CORS, forwarded headers. **FileDatabase implementation lives in `DeepDrftContent.Services`; SQL services in `DeepDrftData`.**
+Binary-content domain logic. The FileDatabase implementation in full (Models, Services, Utils, Abstractions, Constants), WAV stream-with-offset, audio processing, and the content-side track service. Consumed by `DeepDrftContent` (the host) and `DeepDrftCli` (the admin CLI).
 
-## What lives here now (only)
+## Layout
 
-- `Program.cs`, `Startup.cs`: HTTP host config, DI wiring, middleware setup, port binding.
-- `Services/UnifiedTrackService.cs`: Host-internal orchestrator. Coordinates vault write + SQL persist for upload (`UploadAsync`), and SQL delete + vault remove for delete (`DeleteAsync`).
-- `Controllers/TrackController.cs`: Seven endpoints (see below).
-- `Middleware/ApiKeyAuthenticationMiddleware.cs`, `Middleware/ApiKeyAuthorizeAttribute.cs`: ApiKey validation logic.
-- `Models/`: Settings POCOs only (`ApiKeySettings`, `CorsSettings`, `FileDatabaseSettings`). No domain code.
-- `environment/filedatabase.json`: FileDatabase vault path config (loaded via CredentialTools, not in repo).
-- `environment/apikey.json`: API key (loaded via CredentialTools, not in repo, must be created locally or at deployment).
-- `environment/connections.json`: SQL connection string (loaded via CredentialTools, not in repo, format: `{ "ConnectionStrings": { "DefaultConnection": "..." } }`).
+```
+DeepDrftContent.Services/
+├── FileDatabase/                       # The subsystem (port of TypeScript system)
+│   ├── Abstractions/                   # Interfaces
+│   ├── Models/                         # Data models, DTOs, enums
+│   ├── Services/                       # FileDatabase, MediaVault, IndexSystem, IndexWatcher
+│   └── Utils/                          # StructuralMap, StructuralSet, FileUtils
+├── Audio/
+│   └── WavOffsetService.cs             # Byte offset → valid WAV stream
+├── Processors/
+│   └── AudioProcessor.cs               # WAV file parsing, metadata extraction
+├── Constants/
+│   └── VaultConstants.cs               # Vault name definitions
+├── TrackService.cs                     # Content-side orchestrator
+└── DeepDrftContent.Services.csproj
+```
 
-## What does NOT live here anymore
+## FileDatabase model (high-level)
 
-- `FileDatabase/`, `Processors/`, media models (`AudioBinary`, `ImageBinary`, etc.), `WavOffsetService` — all in `DeepDrftContent.Services`.
-- EF Core context and repository — in `DeepDrftData`.
-- **Hosts only own HTTP surface and wiring.** New domain code goes in `*.Services` (shared libraries) or host-internal `Services/` folders (e.g., `UnifiedTrackService` here for dual-database orchestration).
+See `FileDatabase/README.md` for the long-form design discussion — it's a port of a TypeScript system and has deep rationale. This section covers the essentials for an agent walking in cold.
 
-## The endpoint surface (seven endpoints)
+### Core structure
 
-### GET api/track/{trackId}?offset=0 (unauthenticated)
+- **FileDatabase**: Root object. Created via `FileDatabase.FromAsync(rootPath)`. Holds a collection of `MediaVault` instances and an `IndexWatcher`. Implements `IDisposable`. Singleton in the host.
+- **MediaVault**: A subdirectory under the FileDatabase root. Each vault has its own JSON `index` file listing entries and per-entry metadata. Typed via `MediaVaultType` enum (`Media | Image | Audio`).
+  - Concrete implementations: `ImageVault` (for images), `AudioVault` (for audio). Do not use `ImageDirectoryVault` (that's stale docs) — the type is `ImageVault`.
+- **Entry filenames**: `{sanitized-key}{extension}`, where sanitisation is `Regex.Replace(entryKey, @"[^a-zA-Z0-9]", "-")`. So entry id `"my-song"` with extension `.wav` → filename `my-song.wav`.
 
-Returns the WAV bytes from the `tracks` vault with optional offset support.
+### Binary hierarchy
 
-- **Route parameter `trackId`** (string): the entry id inside the `tracks` vault (i.e. `TrackEntity.EntryKey`).
-- **Query parameter `offset`** (optional, default 0): byte position to start streaming from.
-- If `offset == 0`: streams the entire file directly from disk without buffering (so 100 MB WAVs do not force 100 MB LOH allocations per request).
-- If `offset > 0`: `WavOffsetService.CreateOffsetStream` block-aligns the offset and synthesises a fresh 44-byte WAV header so the response is a valid standalone WAV starting from that byte position. This is load-bearing for seek-beyond-buffer — the player asks for a new stream at the offset it wants to seek to, gets back a valid WAV that starts there, and tears down/re-initialises the decoder.
-- Returns 404 if track not found. Returns 500 if vault operations fail (with error swallowing — the vault returns `null`).
+```
+FileBinary (base: byte buffer)
+  └── MediaBinary (+ Extension: string, MIME type inferred via MimeTypeExtensions)
+      ├── AudioBinary (+ Duration: double, Bitrate: int)
+      └── ImageBinary (+ AspectRatio: double)
+```
 
-### PUT api/track/{trackId} ([ApiKeyAuthorize])
+Each has a matching `*Dto` variant for base64 JSON transport (e.g., `AudioBinaryDto` with buffer encoded as base64).
 
-**Authenticated endpoint.** Writes pre-processed audio bytes to the `tracks` vault.
+### Index lifecycle
 
-- **Header `ApiKey`**: required. Validated by `ApiKeyAuthenticationMiddleware`.
-- **Route parameter `trackId`** (string): the entry id to store under.
-- **Body**: `AudioBinaryDto` (base64 buffer + size + mime + duration + bitrate). This endpoint receives an already-processed audio DTO, not a raw WAV file.
-- Validates MIME type (rejects unsupported types with `.bin` sentinel). Delegates to `FileDatabase.RegisterResourceAsync`.
-- Rarely used in production (the CLI calls `FileDatabase.RegisterResourceAsync` directly). Exists for potential future web-side intake paths.
-- Returns 200 on success, 401 if ApiKey invalid, 400 if MIME invalid.
+- **DirectoryIndex**: Root index file (at `{rootPath}/index`). Tracks which vaults exist.
+- **VaultIndex**: Per-vault index (at `{vaultPath}/index`). Records `MediaVaultType` and lists all entries in that vault.
+- Both are JSON files. Created/loaded via `IndexFactoryService`.
+- When a file is written externally (e.g., the CLI calls `FileDatabase.RegisterResourceAsync` directly), the **IndexWatcher** detects the write to the vault's `index` file and triggers `MediaVault.ReloadIndexAsync`, so a long-running web host stays consistent without restart.
 
-### POST api/track/upload ([ApiKeyAuthorize])
+## Error-handling philosophy (load-bearing)
 
-**Authenticated endpoint.** Accepts a raw WAV upload + metadata as `multipart/form-data`, processes the WAV, stores it in the vault, and persists metadata to SQL. Returns the fully persisted `TrackEntity` with `Id` populated.
+Public `Load*` / `Register*` operations **swallow exceptions and return `null` / `false`** to match the TypeScript original.
 
-- **Header `ApiKey`**: required. Validated by `ApiKeyAuthenticationMiddleware`.
-- **Form fields**:
-  - `wav` (`IFormFile`, required): the WAV bytes. File name must end in `.wav`.
-  - `trackName` (string, required)
-  - `artist` (string, required)
-  - `album` (string, optional)
-  - `genre` (string, optional)
-  - `releaseDate` (string, optional, format `YYYY-MM-DD`)
-  - `createdByUserId` (long, required): audit trail — who uploaded this track.
-- The upload stream is copied to a `.wav`-suffixed temp file under `Path.GetTempPath()` (the audio processor requires that extension and reads from disk). The temp file is always deleted in a `finally` block — success or failure.
-- `[RequestSizeLimit(1 GB)]` + `[RequestFormLimits(MultipartBodyLengthLimit = 1 GB)]` lift the per-request ceiling above the framework default (~28 MB) so production-sized WAVs are accepted. The body is streamed to the temp file, not buffered in memory.
-- Calls `UnifiedTrackService.UploadAsync`, which orchestrates: `TrackService.AddTrackFromWavAsync` (vault write) → `TrackManager` (SQL persist with `createdByUserId`).
-- Returns 200 with the **persisted** `TrackEntity` JSON (Id populated) on success. Returns 400 for missing/invalid form fields. Returns 500 if processing fails.
+```csharp
+public async Task<T?> LoadResourceAsync<T>(string vaultId, string entryId) where T : FileBinary
+{
+    try { /* load and deserialize */ }
+    catch { return null; }  // Swallow, return null
+}
 
-### DELETE api/track/{id:long} ([ApiKeyAuthorize])
+public async Task<bool> RegisterResourceAsync(string vaultId, string entryId, FileBinary media)
+{
+    try { /* store and update index */ }
+    catch { return false; }  // Swallow, return false
+}
+```
 
-**Authenticated endpoint.** Removes a track: SQL row first, then vault entry. `UnifiedTrackService` owns the ordering.
+**Callers must check return values.** Do not change this without a deliberate design pass — it's embedded in all FileDatabase tests and client code.
 
-- **Header `ApiKey`**: required. Validated by `ApiKeyAuthenticationMiddleware`.
-- **Route parameter `id`** (long): the SQL track ID (not EntryKey).
-- Calls `UnifiedTrackService.DeleteAsync`, which: looks up SQL row → deletes SQL row → deletes vault entry via EntryKey.
-- Returns 200 on success, 404 if track not found, 500 if deletion fails.
+## WAV offset service
 
-### GET api/track/page ([ApiKeyAuthorize])
+`WavOffsetService.CreateOffsetStream(buffer, byteOffset)`:
 
-**Authenticated endpoint.** Paged metadata list from SQL. Used by CMS track browser.
+1. Parses the WAV header from the buffer.
+2. Block-aligns the byte offset to the nearest block boundary (required for clean audio — misalignment causes clicks).
+3. Synthesises a new 44-byte WAV header sized for the remaining data (from offset to EOF).
+4. Returns a `MemoryStream` containing `[new header][data from offset]`.
 
-- **Header `ApiKey`**: required. Validated by `ApiKeyAuthenticationMiddleware`.
-- **Query parameters**:
-  - `page` (int, optional, default 1): 1-based page number.
-  - `pageSize` (int, optional, default 20): tracks per page.
-  - `sortColumn` (string, optional): sort field. Supported: `"TrackName"`, `"Artist"`, `"Album"`, `"Genre"`, `"ReleaseDate"`. Defaults to `Id`.
-  - `sortDescending` (bool, optional, default false): sort direction.
-- Calls `ITrackService.GetPaged` (via DI), which is actually `TrackManager` from `DeepDrftData`.
-- Returns 200 with `PagedResult<TrackEntity>` JSON (`Items`, `TotalCount`, `PageNumber`, `PageSize`). Returns 500 on query error.
+Used by the content API to serve seek-beyond-buffer requests. The player asks for a new stream at the byte offset it wants to seek to; the server returns a valid WAV that starts there.
 
-### GET api/track/meta/{id:long} ([ApiKeyAuthorize])
+**Block alignment is critical.** Do not bypass it. The WAV fmt chunk tells you the block size; use it.
 
-**Authenticated endpoint.** Single track metadata from SQL by ID.
+## Audio processor
 
-- **Header `ApiKey`**: required. Validated by `ApiKeyAuthenticationMiddleware`.
-- **Route parameter `id`** (long): the SQL track ID.
-- Calls `ITrackService.GetById`, which returns the track or null.
-- Returns 200 with `TrackEntity` JSON on success. Returns 404 if not found. Returns 500 on query error.
+`AudioProcessor.ProcessWavFileAsync(filePath)`:
 
-### PUT api/track/meta/{id:long} ([ApiKeyAuthorize])
+1. Validates the RIFF/WAVE/PCM structure.
+2. Parses the fmt and data chunks.
+3. Extracts duration (sample count / sample rate) and bitrate (file size / duration).
+4. Returns `AudioBinary` with all metadata.
+5. **Fallback**: If parsing fails, logs a warning and returns defaults (180s / 1411 kbps / 44.1 kHz / 16-bit stereo).
 
-**Authenticated endpoint.** Updates track metadata in SQL. EntryKey (the vault link) is immutable.
+PCM-only today. Other formats (mp3, flac, aac, ogg, m4a) are listed in `MimeTypeExtensions` but not implemented. The processor validates RIFF/WAVE/PCM format — anything else is rejected.
 
-- **Header `ApiKey`**: required. Validated by `ApiKeyAuthenticationMiddleware`.
-- **Route parameter `id`** (long): the SQL track ID.
-- **Body**: `UpdateTrackMetadataRequest` with fields: `TrackName`, `Artist`, `Album?`, `Genre?`, `ReleaseDate?`.
-- Looks up SQL row by ID, updates the provided fields (nulls in the request clear optional fields), and persists via `ITrackService.Update`.
-- Returns 200 on success. Returns 404 if track not found. Returns 500 on update error.
+## Content-side TrackService (orchestrator)
 
-## ApiKey middleware behaviour
+### AddTrackFromWavAsync(filePath)
 
-`ApiKeyAuthenticationMiddleware` runs on every request but only enforces on endpoints with `[ApiKeyAuthorize]` metadata.
+1. Reads a WAV file from disk.
+2. Calls `AudioProcessor.ProcessWavFileAsync` → `AudioBinary`.
+3. Generates a GUID entry key (via `Guid.NewGuid().ToString()`).
+4. Ensures the `tracks` vault exists (creates if missing).
+5. Calls `FileDatabase.RegisterResourceAsync("tracks", entryKey, audioBinary)`.
+6. Returns a populated `TrackEntity` (with `Id = 0` since it's not yet in SQL).
 
-- Reads header `ApiKey`.
-- Compares against `ApiKeySettings.ApiKey` from `environment/apikey.json`.
-- Returns 401 with body `"API Key was not provided"` or `"Unauthorized client"` if validation fails.
-- Endpoints without `[ApiKeyAuthorize]` skip the check entirely (e.g., `GET api/track/{id}` is unauthenticated).
+**Note**: The caller (CLI or web) is responsible for then saving this entity to SQL via `DeepDrftWeb.Services.TrackService.Create`. If the vault write succeeds and SQL write fails, audio is orphaned (no compensating rollback).
 
-## CORS configuration
+### GetAudioBinaryAsync(entryKey)
 
-`CorsSettings.AllowedOrigins` is **required** — the app throws on startup if missing. Policy is named `ContentApiPolicy`:
+Reads audio from the `tracks` vault via `FileDatabase.LoadResourceAsync<AudioBinary>("tracks", entryKey)`. Returns `null` if not found or read fails.
 
-- `AllowCredentials()`
-- `AllowAnyMethod()`
-- `AllowAnyHeader()`
+### InitializeTracksVaultAsync()
 
-Configured in `Startup.ConfigureDomainServices()`, applied to all endpoints via `UseCors()`.
+Safety call to ensure the `tracks` vault exists (creates if missing). Called on host startup.
 
-## Forwarded headers
+## Vault constants
 
-**Enabled only in `Production` mode** (via `if (app.Environment.IsProduction())`). This differs from `DeepDrftWeb`, which enables them always. Be aware when debugging proxy issues.
+`VaultConstants.Tracks = "tracks"` — the one vault name in production use. New vault names go here when adding new vault types (e.g., `VaultConstants.Images = "images"` if image uploads are added).
 
-`UseForwardedHeaders()` processes `X-Forwarded-For`, `X-Forwarded-Proto`, `X-Forwarded-Host` so the app knows its real client IP and scheme when sitting behind nginx.
+## Service registration
 
-## Startup wiring (Startup.ConfigureDomainServices + Program.cs)
+In `DeepDrftContent/Startup.ConfigureDomainServices()` and `DeepDrftCli/Program.cs`:
 
-**In `Startup.ConfigureDomainServices`** (FileDatabase + binary services):
-
-1. Load `environment/filedatabase.json` via `CredentialTools.ResolvePathOrThrow("filedatabase", ...)` and bind `FileDatabaseSettings`.
-2. Await `FileDatabase.FromAsync(VaultPath)` to load or create the database.
-3. Register `FileDatabase` as singleton.
-4. Ensure the `tracks` vault exists (type `MediaVaultType.Audio`, created on first boot if missing).
-5. Register singletons: `WavOffsetService`, `AudioProcessor`, `TrackService` (the `DeepDrftContent.Data` version for vault operations).
-
-**In `Program.cs`** (SQL + wiring):
-
-6. Load `environment/connections.json` via `CredentialTools.ResolvePathOrThrow("connections", ...)`.
-7. Register `DbContext<DeepDrftContext>` (scoped) with connection string from config.
-8. Register scoped: `TrackRepository`, `TrackManager`, `ITrackService` (factory resolves to `TrackManager`), `UnifiedTrackService`.
-9. Configure forwarded headers (production-only) for reverse proxy support.
-10. Load `environment/apikey.json` and register API key middleware.
-11. Configure CORS policy (`ContentApiPolicy`): AllowAnyMethod, AllowAnyHeader, AllowCredentials, specific origins from config.
-
-The singleton `FileDatabase` is thread-safe for reads. Writes are atomic at the vault level (index updates are serialised). The `IndexWatcher` reloads the vault index if an external process (e.g., CLI) writes to it, so a long-running web host stays consistent. SQL services are scoped (DbContext not thread-safe).
-
-## OpenAPI
-
-Mapped in `Development` only. Swagger UI at `/swagger` for testing endpoints locally.
-
-## Configuration files
-
-- `appsettings.json`: Logging, hosting, and CORS config. **Does not contain secrets.**
-  - `Logging`: standard ASP.NET structure.
-  - `CorsSettings.AllowedOrigins`: array of origin URLs allowed to call the API (required; throws on startup if missing).
-- `environment/filedatabase.json` (required, loaded via CredentialTools, not in repo):
-  ```json
-  {
-    "FileDatabaseSettings": {
-      "VaultPath": "../Database/Vaults"
-    }
-  }
-  ```
-- `environment/apikey.json` (required at runtime, loaded via CredentialTools, not in repo):
-  ```json
-  {
-    "ApiKeySettings": {
-      "ApiKey": "your-secret-key"
-    }
-  }
-  ```
-- `environment/connections.json` (required, loaded via CredentialTools, not in repo):
-  ```json
-  {
-    "ConnectionStrings": {
-      "DefaultConnection": "Host=localhost;Database=deepdrft;Username=postgres;Password=..."
-    }
-  }
-  ```
+```csharp
+services.AddSingleton<WavOffsetService>();
+services.AddSingleton<FileDatabase>(/* from FileDatabase.FromAsync */);
+services.AddScoped<AudioProcessor>();
+services.AddScoped<TrackService>();  // DeepDrftContent.Services.TrackService
+```
 
 ## Development commands
 
 ```bash
-# Run the content API (default https://localhost:5002)
-dotnet run --project DeepDrftContent
-
-# Watch during development
-dotnet watch run --project DeepDrftContent
-
 # Build
-dotnet build DeepDrftContent
+dotnet build DeepDrftContent.Services
 
-# Test endpoints (requires API key in environment/apikey.json)
-curl -H "ApiKey: your-secret-key" -X PUT https://localhost:5002/api/track/test-id \
-  -H "Content-Type: application/json" \
-  -d '{"buffer":"base64-encoded-audio","size":1000,"mime":"audio/wav"}'
+# Run tests (FileDatabase tests cover vault/index/factory/utilities thoroughly)
+dotnet test DeepDrftTests/
 
-curl https://localhost:5002/api/track/test-id?offset=0
+# Run CLI (which consumes this service)
+dotnet run --project DeepDrftCli -- add myfile.wav "Track Name" "Artist"
 ```
 
 ## Important patterns
 
-- **Result types**: Controllers return `ActionResult<T>`. Service calls return `Result` or `ResultContainer<T>` from NetBlocks. The controller checks `Success` and returns 200/4xx/5xx accordingly.
-- **Error swallowing**: FileDatabase operations return `null` or `false` on failure. The controller surfaces this as 500. Never throw — check return values.
-- **Async/await**: All operations are async.
-- **Vault operations**: Always use the injected `FileDatabase` singleton. Never construct a new one — it has the `IndexWatcher` and is the source of truth.
+- **Async/await**: All FileDatabase operations are async. No sync methods.
+- **Type safety**: Generic `LoadResourceAsync<T>` ensures callers know what they're loading.
+- **Vault lifecycle**: Vaults are created on first boot, then reused. The `FileDatabase` singleton holds them in memory with live `IndexWatcher`es.
+- **Entry sanitisation**: Keys are sanitised client-side (in the CLI and web host) *and* by `MediaVault` (defensive). Always sanitise before registering — it's the only way to ensure safe filenames.
+- **Metadata hierarchy**: Use the appropriate media type (`AudioBinary`, `ImageBinary`) so downstream code can rely on the metadata. Don't store an audio file as a generic `MediaBinary` — use `AudioBinary` with duration/bitrate.
 
-## The FileDatabase import
+## What does NOT live here
 
-See `DeepDrftContent.Services/CLAUDE.md` for the FileDatabase API and semantics. This host only provides the HTTP surface over it.
+- HTTP controllers or middleware — that's `DeepDrftContent`.
+- SQL database code — that's `DeepDrftWeb.Services`.
+- Blazor components or UI logic — that's `DeepDrftWeb.Client`.
+- Configuration files (`appsettings.json`, `filedatabase.json`) — those are in the host project.
 
-When working with this project, focus on the HTTP surface (controllers, middleware, CORS, forwarded headers) and the wiring that connects the host to the FileDatabase. New domain logic goes in `DeepDrftContent.Services`.
+When working with this project, focus on the FileDatabase subsystem (the most complex piece of the codebase), audio processing, and the orchestration logic that bridges binary and SQL databases. The tests (in `DeepDrftTests/`) are the load-bearing documentation of FileDatabase behaviour — consult them when FileDatabase semantics are unclear.

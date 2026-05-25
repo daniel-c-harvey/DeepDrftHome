@@ -1,0 +1,7 @@
+namespace DeepDrftAPI.Middleware
+{
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
+    public class ApiKeyAuthorizeAttribute : Attribute
+    {
+    }
+}

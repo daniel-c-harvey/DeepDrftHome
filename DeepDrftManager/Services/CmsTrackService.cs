@@ -8,9 +8,9 @@ using NetBlocks.Models;
 namespace DeepDrftManager.Services;
 
 /// <summary>
-/// HTTP client over the DeepDrftContent API for all CMS track operations. The Manager is
+/// HTTP client over the DeepDrftAPI API for all CMS track operations. The Manager is
 /// InteractiveServer-only and holds no in-process data layer: every track read and write is a
-/// network call to DeepDrftContent, which is the single authority over both the SQL metadata
+/// network call to DeepDrftAPI, which is the single authority over both the SQL metadata
 /// store and the binary audio vault. The ApiKey is baked into the <c>DeepDrft.Content.Cms</c>
 /// named client's default headers.
 /// </summary>
@@ -82,7 +82,7 @@ public class CmsTrackService : ICmsTrackService
                     return ResultContainer<TrackEntity>.CreateFailResult("Upload failed on the content server. Please try again.");
                 }
 
-                // 4xx: body is user-friendly validation text from DeepDrftContent — relay as-is.
+                // 4xx: body is user-friendly validation text from DeepDrftAPI — relay as-is.
                 _logger.LogWarning("Content API rejected upload: {Status} {Body}", statusCode, body);
                 return ResultContainer<TrackEntity>.CreateFailResult(
                     string.IsNullOrWhiteSpace(body) ? $"Upload rejected ({statusCode})." : body);

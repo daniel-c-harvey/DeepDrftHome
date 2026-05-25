@@ -13,7 +13,7 @@ builder.Services.AddMudServices();
 // In dev: create the files under DeepDrftPublic/environment/ (gitignored).
 // In prod: systemd CREDENTIALS_DIRECTORY points to encrypted credential blobs.
 //   - environment/connections.json: { "ConnectionStrings": { "DefaultConnection": "..." } }
-// AuthBlocks and the DeepDrftContent API key now live on DeepDrftManager;
+// AuthBlocks and the DeepDrftAPI API key now live on DeepDrftManager;
 // the public host has no auth surface and no CMS upload proxy.
 var connectionsPath = CredentialTools.ResolvePathOrThrow("connections", "environment/connections.json");
 builder.Configuration.AddJsonFile(connectionsPath, optional: false, reloadOnChange: false);

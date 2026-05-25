@@ -6,13 +6,13 @@ namespace DeepDrftManager.Services;
 
 /// <summary>
 /// CMS-side track operations for the Manager host. Every read and write goes over HTTP to the
-/// DeepDrftContent API, which is the single authority over both the SQL metadata store and the
+/// DeepDrftAPI API, which is the single authority over both the SQL metadata store and the
 /// binary audio vault. DeepDrftManager holds no in-process data layer.
 /// </summary>
 public interface ICmsTrackService
 {
     /// <summary>
-    /// Proxy a WAV upload to DeepDrftContent. The Content API owns the dual-database write and
+    /// Proxy a WAV upload to DeepDrftAPI. The Content API owns the dual-database write and
     /// returns the persisted entity carrying the SQL-assigned <c>Id</c>. A vault-without-SQL
     /// orphan is handled and logged server-side; here it surfaces as a failed result.
     /// </summary>

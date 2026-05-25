@@ -1,4 +1,4 @@
-using DeepDrftContent.Data.FileDatabase.Models;
+using DeepDrftContent.FileDatabase.Models;
 
 namespace DeepDrftTests;
 

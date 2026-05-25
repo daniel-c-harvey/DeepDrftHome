@@ -62,7 +62,7 @@
 </MudContainer>
 
 @code {
-    // 1 GB ceiling matches DeepDrftContent's per-request limit on api/track/upload; the
+    // 1 GB ceiling matches DeepDrftAPI's per-request limit on api/track/upload; the
     // streaming path means the limit caps the request, not in-memory buffering.
     private const long MaxUploadBytes = 1_073_741_824L;
 
@@ -132,7 +132,7 @@
         {
             // OpenReadStream streams chunks from the browser via the SignalR circuit; the
             // service wraps it in StreamContent so the whole file is never materialised in
-            // memory before DeepDrftContent receives it.
+            // memory before DeepDrftAPI receives it.
             await using var fileStream = _selectedFile.OpenReadStream(MaxUploadBytes);
 
             var result = await CmsTrackService.UploadTrackAsync(
