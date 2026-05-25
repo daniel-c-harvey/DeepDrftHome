@@ -14,6 +14,7 @@ namespace DeepDrftContent.Services;
 /// </summary>
 public class UnifiedTrackService
 {
+    internal const string TrackNotFoundMessage = "Track not found.";
     private readonly ContentTrackService _contentTrackService;
     private readonly ITrackService _sqlTrackService;
     private readonly FileDb _fileDatabase;
@@ -89,7 +90,7 @@ public class UnifiedTrackService
 
         if (lookup.Value is null)
         {
-            return Result.CreateFailResult("Track not found.");
+            return Result.CreateFailResult(TrackNotFoundMessage);
         }
 
         var entryKey = lookup.Value.EntryKey;
@@ -97,7 +98,7 @@ public class UnifiedTrackService
         var sqlDelete = await _sqlTrackService.Delete(id);
         if (!sqlDelete.Success)
         {
-            var error = sqlDelete.Messages.FirstOrDefault()?.Message;
+            var error = sqlDelete.Messages.FirstOrDefault()?.Message ?? "unknown error";
             _logger.LogError("DeleteAsync: SQL delete failed for track {TrackId}: {Error}", id, error);
             return Result.CreateFailResult("Failed to delete track.");
         }

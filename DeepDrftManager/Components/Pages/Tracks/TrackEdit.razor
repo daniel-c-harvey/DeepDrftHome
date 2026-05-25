@@ -178,13 +178,15 @@
             {
                 var error = result.Messages.FirstOrDefault()?.Message ?? "Unknown error";
                 Snackbar.Add($"Delete failed: {error}", Severity.Error);
-                _busy = false;
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Delete failed for track {TrackId}", Id);
             Snackbar.Add("Delete failed — please try again.", Severity.Error);
+        }
+        finally
+        {
             _busy = false;
         }
     }

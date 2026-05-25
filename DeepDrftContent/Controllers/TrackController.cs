@@ -251,7 +251,7 @@ public class TrackController : ControllerBase
         }
 
         var error = result.Messages.FirstOrDefault()?.Message ?? "Unknown error";
-        if (string.Equals(error, "Track not found.", StringComparison.Ordinal))
+        if (string.Equals(error, UnifiedTrackService.TrackNotFoundMessage, StringComparison.Ordinal))
         {
             return NotFound();
         }
