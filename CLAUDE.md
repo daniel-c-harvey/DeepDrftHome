@@ -10,7 +10,7 @@ DeepDrftHome is a **net10.0** solution consisting of ten projects implementing a
 
 - **DeepDrftPublic**: ASP.NET Core host. Blazor Web App with Server + WASM render modes. Owns the SQL-backed `api/track/page` endpoint, MudBlazor theme prerender, and TypeScript→JS audio interop. Public-facing site for listeners.
 - **DeepDrftPublic.Client**: Blazor WebAssembly assembly. All interactive UI (pages, player stack, dark-mode plumbing, HTTP clients for both backends). Consumed by the public site.
-- **DeepDrftManager**: ASP.NET Core host. Blazor Web App with server-rendered `InteractiveServer` render mode. Hosts all CMS Razor components and pages under `Components/Pages/Cms/`, `Components/Pages/Tracks/`, `Components/Layout/CmsLayout.razor`, and `Components/Shared/` (all inlined from the former `DeepDrftCms` RCL). Gated by AuthBlocks login and hierarchical `Admin` role authorization.
+- **DeepDrftManager**: ASP.NET Core host. Blazor Web App with server-rendered `InteractiveServer` render mode. Hosts all CMS Razor components and pages under `Components/Pages/Cms/`, `Components/Pages/Tracks/`, `Components/Layout/CmsLayout.razor`, and `Components/Shared/` (all inlined from the former `DeepDrftCms` RCL). Gated by AuthBlocks login and hierarchical `Admin` role authorization. CMS mutations (track upload proxy, vault delete) are handled by `ICmsTrackService` / `CmsTrackService` injected directly into Blazor components; no in-process HTTP controllers.
 - **DeepDrftShared.Client**: Razor Class Library. Shared Blazor components consumed by both `DeepDrftPublic` and `DeepDrftManager` for consistency across public and admin surfaces.
 - **DeepDrftData**: Class library. EF Core domain logic: `DeepDrftContext`, `TrackConfiguration`, `Migrations`, `TrackRepository`, `TrackService`. Shared between hosts.
 - **DeepDrftContent**: ASP.NET Core host. Binary content API (`GET api/track/{id}` unauthenticated, `PUT api/track/{id}` ApiKey-protected). Returns audio bytes with optional WAV-aware offset streaming.
@@ -48,9 +48,9 @@ DeepDrftPublic.Client (WASM)
 
 ### Service projects vs. host projects
 
-The split between host projects (`DeepDrftPublic`, `DeepDrftManager`, `DeepDrftContent`) and `*.Services` class libraries (e.g., `DeepDrftData`, `DeepDrftContent.Services`) is deliberate: hosts own HTTP surface, config, DI wiring, and UI components; `*.Services` are plain class libraries holding domain logic. This separation allows multiple hosts to consume the same service implementations.
+The split between host projects (`DeepDrftPublic`, `DeepDrftManager`, `DeepDrftContent`) and `*.Services` class libraries (e.g., `DeepDrftData`, `DeepDrftContent.Services`) is deliberate: hosts own HTTP surface (endpoints/controllers exposed to network), config, DI wiring, and UI components; `*.Services` are plain class libraries holding domain logic. This separation allows multiple hosts to consume the same service implementations. Within a host, domain logic like CMS mutations lives in host-internal service classes (e.g., `CmsTrackService` in `DeepDrftManager/Services/`), injected directly into Blazor components with no in-process HTTP roundtrip.
 
-**New domain logic goes in `*.Services` unless genuinely host-specific** (controllers, middleware, Razor pages, render-mode config, DI setup).
+**New domain logic goes in `*.Services` (shared class libraries) for logic consumed by multiple hosts, or in host-internal service classes (e.g., `Services/`) for host-specific logic** — not in controllers, which should be thin HTTP boundaries.
 
 ### TrackEntity is a join, not a content blob
 
