@@ -1,10 +1,8 @@
-@page "/cms/tracks/{Id:int}"
-@using System.Net.Http.Headers
-@using System.Net.Http.Json
+@page "/cms/tracks/{Id:long}"
+@using DeepDrftManager.Services
 @attribute [HierarchicalRoleAuthorize([SystemRoleConstants.Admin])]
 @inject ITrackService TrackService
-@inject IHttpClientFactory HttpClientFactory
-@inject IAuthSession AuthSession
+@inject ICmsTrackService CmsTrackService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject NavigationManager Nav
@@ -91,7 +89,7 @@
 </MudContainer>
 
 @code {
-    [Parameter] public int Id { get; set; }
+    [Parameter] public long Id { get; set; }
 
     private TrackEntity? _track;
     private TrackEditForm _form = new();
@@ -126,27 +124,32 @@
         _busy = true;
         try
         {
-            var http = HttpClientFactory.CreateClient("DeepDrft.API");
-            await AttachBearerAsync(http);
-
-            var payload = new
+            // Re-fetch under the current scope so we mutate the DB-authoritative entity, not
+            // the copy loaded at OnInitialized. Metadata-only update — EntryKey is immutable.
+            var lookup = await TrackService.GetById(Id);
+            if (!lookup.Success || lookup.Value is null)
             {
-                TrackName = _form.TrackName,
-                Artist = _form.Artist,
-                Album = string.IsNullOrWhiteSpace(_form.Album) ? null : _form.Album,
-                Genre = string.IsNullOrWhiteSpace(_form.Genre) ? null : _form.Genre,
-                ReleaseDate = _form.ReleaseDate is { } d ? DateOnly.FromDateTime(d) : (DateOnly?)null
-            };
+                Snackbar.Add("Save failed — track could not be loaded.", Severity.Error);
+                return;
+            }
 
-            var response = await http.PutAsJsonAsync($"api/cms/track/{Id}", payload);
-            if (response.IsSuccessStatusCode)
+            var track = lookup.Value;
+            track.TrackName = _form.TrackName;
+            track.Artist = _form.Artist;
+            track.Album = string.IsNullOrWhiteSpace(_form.Album) ? null : _form.Album;
+            track.Genre = string.IsNullOrWhiteSpace(_form.Genre) ? null : _form.Genre;
+            track.ReleaseDate = _form.ReleaseDate is { } d ? DateOnly.FromDateTime(d) : null;
+
+            var updated = await TrackService.Update(track);
+            if (updated.Success)
             {
                 Snackbar.Add("Track updated.", Severity.Success);
                 await LoadAsync();
             }
             else
             {
-                Snackbar.Add($"Save failed: {(int)response.StatusCode} {response.ReasonPhrase}", Severity.Error);
+                var error = updated.Messages.FirstOrDefault()?.Message ?? "Unknown error";
+                Snackbar.Add($"Save failed: {error}", Severity.Error);
             }
         }
         catch (Exception ex)
@@ -160,7 +163,6 @@
         }
     }
 
-    // DELETE api/cms/track/{Id} is handled by CmsDeleteController (T3 branch).
     private async Task ConfirmDelete()
     {
         if (_track is null) return;
@@ -176,18 +178,16 @@
         _busy = true;
         try
         {
-            var http = HttpClientFactory.CreateClient("DeepDrft.API");
-            await AttachBearerAsync(http);
-
-            var response = await http.DeleteAsync($"api/cms/track/{Id}");
-            if (response.IsSuccessStatusCode)
+            var result = await CmsTrackService.DeleteTrackAsync(Id);
+            if (result.Success)
             {
                 Snackbar.Add("Track deleted.", Severity.Success);
                 Nav.NavigateTo("/cms/tracks");
             }
             else
             {
-                Snackbar.Add($"Delete failed: {(int)response.StatusCode} {response.ReasonPhrase}", Severity.Error);
+                var error = result.Messages.FirstOrDefault()?.Message ?? "Unknown error";
+                Snackbar.Add($"Delete failed: {error}", Severity.Error);
                 _busy = false;
             }
         }
@@ -196,15 +196,6 @@
             Logger.LogError(ex, "Delete failed for track {TrackId}", Id);
             Snackbar.Add("Delete failed — please try again.", Severity.Error);
             _busy = false;
-        }
-    }
-
-    private async Task AttachBearerAsync(HttpClient http)
-    {
-        var token = await AuthSession.GetValidTokenAsync();
-        if (!string.IsNullOrEmpty(token))
-        {
-            http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         }
     }
 

@@ -4,6 +4,7 @@ using DeepDrftData;
 using DeepDrftData.Data;
 using DeepDrftData.Repositories;
 using DeepDrftManager.Components;
+using DeepDrftManager.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
@@ -16,8 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 //   - environment/apikey.json:      { "DeepDrftContent": { "ApiKey": "..." } }
 //   - environment/connections.json: { "ConnectionStrings": { "DefaultConnection": "...", "Auth": "..." } }
 //   - environment/authblocks.json:  { "AuthBlocks": { "Jwt": {...}, "Email": {...}, "Admin": {...} } }
-// Content API key — not consumed by this host in Phase 1. Required by the CredentialTools
-// pattern (the file must exist); will be used by CmsUploadController when it migrates here.
+// Content API key — consumed by CmsTrackService for the upload proxy and the vault-delete client.
 var apiKeyPath = CredentialTools.ResolvePathOrThrow("apikey", "environment/apikey.json");
 builder.Configuration.AddJsonFile(apiKeyPath, optional: false, reloadOnChange: false);
 
@@ -39,6 +39,11 @@ builder.Services
     .AddScoped<TrackRepository>()
     .AddScoped<TrackManager>()
     .AddScoped<ITrackService>(sp => sp.GetRequiredService<TrackManager>());
+
+// CMS track mutations (upload proxy + delete). Called directly by the InteractiveServer
+// Blazor components — no in-process HTTP roundtrip. Vault access still goes over HTTP to
+// DeepDrftContent via the named clients below.
+builder.Services.AddScoped<ICmsTrackService, CmsTrackService>();
 
 // AuthBlocks: JWT Bearer auth, Identity, EF schema, admin seeding.
 // Auth schema runs in its own database (separate from DefaultConnection by design).
@@ -77,17 +82,8 @@ builder.Services.AddAuthBlocks(options =>
 var baseUrl = GetKestrelUrl(builder);
 AuthBlocksWeb.Startup.ConfigureAuthServices(builder.Services, baseUrl);
 
-// Named HttpClient used by CMS pages for in-process CMS endpoints (CmsUploadController,
-// CmsEditController, CmsDeleteController) and the AuthBlocks surface — both live on this host.
-// Base-addressed to the Manager's own Kestrel URL so callers using relative paths
-// (e.g. "api/cms/track") hit our own controllers, not the public host.
-builder.Services.AddHttpClient("DeepDrft.API", client =>
-{
-    client.BaseAddress = new Uri(baseUrl);
-});
-
-// Named HttpClient for unauthenticated Content API calls (e.g. CmsUploadController proxying WAV
-// data to DeepDrftContent's POST api/track/upload). API key added per-request by the controller.
+// Named HttpClient for unauthenticated Content API calls (CmsTrackService proxying WAV data
+// to DeepDrftContent's POST api/track/upload). API key added per-request by the service.
 var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"]
     ?? throw new InvalidOperationException("ApiUrls:ContentApi is required");
 builder.Services.AddHttpClient("DeepDrft.Content", client =>
@@ -95,8 +91,8 @@ builder.Services.AddHttpClient("DeepDrft.Content", client =>
     client.BaseAddress = new Uri(contentApiUrl);
 });
 
-// Named HttpClient for ApiKey-protected Content API calls (e.g. CmsDeleteController's vault
-// delete). API key baked into the default request headers so callers need not add it manually.
+// Named HttpClient for ApiKey-protected Content API calls (CmsTrackService's vault delete).
+// API key baked into the default request headers so callers need not add it manually.
 var contentApiKey = builder.Configuration["DeepDrftContent:ApiKey"]
     ?? throw new InvalidOperationException("DeepDrftContent:ApiKey is required");
 builder.Services.AddHttpClient("DeepDrft.Content.Cms", client =>
@@ -115,10 +111,6 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownNetworks.Clear();
     options.KnownProxies.Clear();
 });
-
-// Controllers: discovers CMS mutation controllers (CmsUploadController, CmsEditController,
-// CmsDeleteController) and the AuthBlocks surface. Matches DeepDrftPublic precedent.
-builder.Services.AddControllers();
 
 // InteractiveServer only — no WASM render mode on the CMS host.
 builder.Services.AddRazorComponents()
@@ -165,16 +157,13 @@ app.MapStaticAssets();
 // Razor pages (/account/login, /account/logout).
 app.MapAuthBlocks();
 
-// Mounts CMS mutation controllers (CmsUploadController, CmsEditController, CmsDeleteController).
-app.MapControllers();
-
 // Blazor page authorization is owned by AuthorizeRouteView in Routes.razor, not
 // ASP.NET Core endpoint authorization. AuthBlocks tokens live in browser localStorage
 // (read via JS interop by JwtAuthenticationStateProvider), so the JWT never reaches
 // the server on a navigation request. Without AllowAnonymous here, the JwtBearer
 // challenge for an unauthenticated nav returns 401 before the Blazor router runs,
 // short-circuiting the NotAuthorized -> RedirectToLogin path. JWT enforcement
-// remains in force for the API surfaces (MapAuthBlocks, MapControllers).
+// remains in force for the AuthBlocks API surface (MapAuthBlocks).
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddAdditionalAssemblies(typeof(AuthBlocksWeb._Imports).Assembly)

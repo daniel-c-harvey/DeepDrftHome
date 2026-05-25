@@ -1,10 +1,9 @@
 @page "/cms/tracks"
 @using System.Net
-@using System.Net.Http.Headers
+@using DeepDrftManager.Services
 @attribute [HierarchicalRoleAuthorize([SystemRoleConstants.Admin])]
 @inject ITrackService TrackService
-@inject IHttpClientFactory HttpClientFactory
-@inject IAuthSession AuthSession
+@inject ICmsTrackService CmsTrackService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject ILogger<TrackList> Logger
@@ -113,20 +112,16 @@
 
         try
         {
-            var client = HttpClientFactory.CreateClient("DeepDrft.API");
-            var token = await AuthSession.GetValidTokenAsync();
-            if (!string.IsNullOrEmpty(token))
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var response = await client.DeleteAsync($"api/cms/track/{track.Id}");
-
-            if (response.IsSuccessStatusCode)
+            var result = await CmsTrackService.DeleteTrackAsync(track.Id);
+            if (result.Success)
             {
                 Snackbar.Add($"Deleted '{track.TrackName}'.", Severity.Success);
                 if (_table is not null) await _table.ReloadServerData();
             }
             else
             {
-                Snackbar.Add($"Delete failed ({(int)response.StatusCode} {response.ReasonPhrase}).", Severity.Error);
+                var error = result.Messages.FirstOrDefault()?.Message ?? "Unknown error";
+                Snackbar.Add($"Delete failed: {error}", Severity.Error);
             }
         }
         catch (Exception ex)

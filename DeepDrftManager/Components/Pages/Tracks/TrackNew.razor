@@ -1,12 +1,13 @@
 @page "/cms/tracks/new"
-@using System.Net.Http.Headers
+@using System.Security.Claims
+@using DeepDrftManager.Services
 @attribute [HierarchicalRoleAuthorize([SystemRoleConstants.Admin])]
 
-@inject IHttpClientFactory HttpClientFactory
+@inject ICmsTrackService CmsTrackService
+@inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 @inject ILogger<TrackNew> Logger
-@inject IAuthSession AuthSession
 
 <PageTitle>Add Track — DeepDrft CMS</PageTitle>
 
@@ -61,8 +62,8 @@
 </MudContainer>
 
 @code {
-    // 1 GB ceiling matches the proxy controller's RequestSizeLimit; the actual streaming
-    // path means the limit caps the request, not in-memory buffering.
+    // 1 GB ceiling matches DeepDrftContent's per-request limit on api/track/upload; the
+    // streaming path means the limit caps the request, not in-memory buffering.
     private const long MaxUploadBytes = 1_073_741_824L;
 
     private IBrowserFile? _selectedFile;
@@ -115,41 +116,46 @@
             return;
         }
 
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userIdValue = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!long.TryParse(userIdValue, out var createdByUserId))
+        {
+            // The page is gated by [HierarchicalRoleAuthorize(Admin)], so a missing or
+            // unparseable id here is a configuration bug, not normal client state.
+            Logger.LogError("Authenticated user has no parseable NameIdentifier claim: {Value}", userIdValue);
+            _errorMessage = "Your session is missing a valid identifier. Please sign in again.";
+            return;
+        }
+
         _isUploading = true;
         try
         {
-            using var multipart = new MultipartFormDataContent();
-
-            // OpenReadStream streams chunks from the browser via the SignalR circuit;
-            // wrapping in StreamContent avoids materialising the whole file in memory
-            // before the proxy controller receives it.
+            // OpenReadStream streams chunks from the browser via the SignalR circuit; the
+            // service wraps it in StreamContent so the whole file is never materialised in
+            // memory before DeepDrftContent receives it.
             await using var fileStream = _selectedFile.OpenReadStream(MaxUploadBytes);
-            var fileContent = new StreamContent(fileStream);
-            fileContent.Headers.ContentType = new MediaTypeHeaderValue(
-                string.IsNullOrWhiteSpace(_selectedFile.ContentType) ? "audio/wav" : _selectedFile.ContentType);
-            multipart.Add(fileContent, "wav", _selectedFile.Name);
-            multipart.Add(new StringContent(_trackName), "trackName");
-            multipart.Add(new StringContent(_artist), "artist");
-            if (!string.IsNullOrWhiteSpace(_album)) multipart.Add(new StringContent(_album), "album");
-            if (!string.IsNullOrWhiteSpace(_genre)) multipart.Add(new StringContent(_genre), "genre");
-            if (!string.IsNullOrWhiteSpace(_releaseDate)) multipart.Add(new StringContent(_releaseDate), "releaseDate");
 
-            var client = HttpClientFactory.CreateClient("DeepDrft.API");
-            await AttachBearerAsync(client);
-            using var response = await client.PostAsync("api/cms/track", multipart);
+            var result = await CmsTrackService.UploadTrackAsync(
+                fileStream,
+                _selectedFile.Name,
+                _selectedFile.ContentType,
+                _trackName,
+                _artist,
+                string.IsNullOrWhiteSpace(_album) ? null : _album,
+                string.IsNullOrWhiteSpace(_genre) ? null : _genre,
+                string.IsNullOrWhiteSpace(_releaseDate) ? null : _releaseDate,
+                createdByUserId);
 
-            if (response.IsSuccessStatusCode)
+            if (result.Success)
             {
                 Snackbar.Add($"Uploaded '{_trackName}'.", Severity.Success);
                 Navigation.NavigateTo("/cms/tracks");
                 return;
             }
 
-            var body = await response.Content.ReadAsStringAsync();
-            _errorMessage = string.IsNullOrWhiteSpace(body)
-                ? $"Upload failed ({(int)response.StatusCode})."
-                : $"Upload failed ({(int)response.StatusCode}): {body}";
-            Logger.LogWarning("CMS upload rejected: {Status} {Body}", (int)response.StatusCode, body);
+            var error = result.Messages.FirstOrDefault()?.Message ?? "Unknown error";
+            _errorMessage = $"Upload failed: {error}";
+            Logger.LogWarning("CMS upload rejected: {Error}", error);
         }
         catch (Exception ex)
         {
@@ -165,15 +171,6 @@
     private void Cancel()
     {
         Navigation.NavigateTo("/cms/tracks");
-    }
-
-    private async Task AttachBearerAsync(HttpClient http)
-    {
-        var token = await AuthSession.GetValidTokenAsync();
-        if (!string.IsNullOrEmpty(token))
-        {
-            http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        }
     }
 
     private static string FormatBytes(long bytes)
