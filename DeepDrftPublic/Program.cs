@@ -2,11 +2,15 @@ using DeepDrftPublic;
 using MudBlazor.Services;
 using DeepDrftPublic.Components;
 using Microsoft.AspNetCore.HttpOverrides;
+using NetBlocks.Utilities.Environment;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add MudBlazor services
 builder.Services.AddMudServices();
+
+var apiPath = CredentialTools.ResolvePathOrThrow("api", "environment/api.json");
+builder.Configuration.AddJsonFile(apiPath, optional: false, reloadOnChange: false);
 
 var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"] ?? throw new Exception("Content API URL is not configured");
 var sqlApiUrl = builder.Configuration["ApiUrls:SqlApi"] ?? throw new Exception("ApiUrls:SqlApi is not configured");

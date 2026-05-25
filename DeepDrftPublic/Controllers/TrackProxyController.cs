@@ -10,13 +10,13 @@ namespace DeepDrftPublic.Controllers;
 /// named clients — no proxy hop needed on the server side.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
-public class TrackController : ControllerBase
+[Route("api/track")]
+public class TrackProxyController : ControllerBase
 {
     private readonly HttpClient _upstream;
-    private readonly ILogger<TrackController> _logger;
+    private readonly ILogger<TrackProxyController> _logger;
 
-    public TrackController(IHttpClientFactory httpClientFactory, ILogger<TrackController> logger)
+    public TrackProxyController(IHttpClientFactory httpClientFactory, ILogger<TrackProxyController> logger)
     {
         _upstream = httpClientFactory.CreateClient("DeepDrft.API");
         _logger = logger;
@@ -103,6 +103,7 @@ public class TrackController : ControllerBase
             Response.ContentLength = contentLength.Value;
 
         var stream = await upstream.Content.ReadAsStreamAsync(ct);
+        HttpContext.Response.RegisterForDispose(upstream);
         return File(stream, contentType, enableRangeProcessing: false);
     }
 }
