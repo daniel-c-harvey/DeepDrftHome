@@ -2,31 +2,20 @@ using DeepDrftPublic;
 using MudBlazor.Services;
 using DeepDrftPublic.Components;
 using Microsoft.AspNetCore.HttpOverrides;
-using NetBlocks.Utilities.Environment;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add MudBlazor services
 builder.Services.AddMudServices();
 
-// Required credential files — must exist before the app will start.
-// In dev: create the files under DeepDrftPublic/environment/ (gitignored).
-// In prod: systemd CREDENTIALS_DIRECTORY points to encrypted credential blobs.
-//   - environment/connections.json: { "ConnectionStrings": { "DefaultConnection": "..." } }
-// AuthBlocks and the DeepDrftAPI API key now live on DeepDrftManager;
-// the public host has no auth surface and no CMS upload proxy.
-var connectionsPath = CredentialTools.ResolvePathOrThrow("connections", "environment/connections.json");
-builder.Configuration.AddJsonFile(connectionsPath, optional: false, reloadOnChange: false);
-
 var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"] ?? throw new Exception("Content API URL is not configured");
+var sqlApiUrl = builder.Configuration["ApiUrls:SqlApi"] ?? throw new Exception("ApiUrls:SqlApi is not configured");
 
-DeepDrftPublic.Client.Startup.ConfigureApiHttpClient(builder.Services, builder.GetKestrelUrl());
+DeepDrftPublic.Client.Startup.ConfigureApiHttpClient(builder.Services, sqlApiUrl);
 DeepDrftPublic.Client.Startup.ConfigureDomainServices(builder.Services);
 DeepDrftPublic.Client.Startup.ConfigureContentServices(builder.Services, contentApiUrl);
 
 Startup.ConfigureDomainServices(builder);
-
-builder.Services.AddControllers();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -110,7 +99,6 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.MapControllers();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()
