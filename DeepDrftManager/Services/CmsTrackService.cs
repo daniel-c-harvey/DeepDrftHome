@@ -142,16 +142,17 @@ public class CmsTrackService : ICmsTrackService
         var lookup = await _trackService.GetById(id);
         if (!lookup.Success)
         {
-            var error = lookup.Messages.FirstOrDefault()?.Message;
-            _logger.LogError("CMS delete: lookup failed for track {TrackId}: {Error}", id, error);
+            var error = lookup.Messages.FirstOrDefault()?.Message ?? "unknown error";
+            _logger.LogError("CMS delete: GetById threw for track {TrackId}: {Error}", id, error);
             return Result.CreateFailResult("Failed to load track.");
         }
 
-        var track = lookup.Value;
-        if (track is null)
+        if (lookup.Value is null)
         {
             return Result.CreateFailResult("Track not found.");
         }
+
+        var track = lookup.Value;
 
         var entryKey = track.EntryKey;
 
