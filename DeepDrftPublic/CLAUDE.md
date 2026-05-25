@@ -6,11 +6,12 @@ See the root `CLAUDE.md` for full architecture overview. This file covers what i
 
 ## One-line purpose
 
-The Blazor Web App host. Pure HTTP render surface (render-mode wiring, no controllers), MudBlazor theme prerender, TypeScript→JS audio interop. Fetches track metadata from DeepDrftAPI via HTTP.
+The Blazor Web App host. Owns a browser-facing proxy controller for `api/track/*` (metadata and audio streaming), MudBlazor theme prerender, and TypeScript→JS audio interop.
 
 ## What lives here now (only)
 
 - `Program.cs`, `Startup.cs`: HTTP host config, DI wiring, port binding.
+- `Controllers/TrackProxyController.cs`: Thin proxy controller at `[Route("api/track")]`. Two actions: `GET api/track/page` (proxies paged track metadata) and `GET api/track/{trackId}` (proxies audio streaming without buffering, forwards `offset` query param for seek-beyond-buffer). Uses `RegisterForDispose` for clean connection cleanup.
 - `Services/DarkModeService.cs`: Server-side dark-mode prerender (reads `darkMode` cookie, seeds `DarkModeSettings.IsDarkMode` via `IHttpContextAccessor`, carries to WASM via `PersistentComponentState`).
 - `Components/App.razor`: Root component with `@rendermode="InteractiveAuto"`. Calls `DarkModeService.InitializeAsync()` in `OnInitialized`.
 - `Components/Pages/Error.razor`: Error fallback.
@@ -19,12 +20,10 @@ The Blazor Web App host. Pure HTTP render surface (render-mode wiring, no contro
 
 ## What does NOT live here anymore
 
-- `TrackController` — deleted; track metadata now comes from DeepDrftAPI via HTTP.
 - `TrackDirectDataService` — deleted; no in-process data adapter.
 - `DeepDrftContext`, `TrackRepository`, `TrackService`, `Configurations/`, `Migrations/` — all in `DeepDrftData` (consumed only by DeepDrftAPI).
 - Any FileDatabase code — that lives in `DeepDrftContent`.
 - EF Core registration, SQL connection string — DeepDrftPublic has no data layer.
-- `environment/connections.json` dependency — removed.
 
 ## Blazor Web App render modes
 
@@ -56,15 +55,16 @@ Blazor calls TypeScript via `AudioInteropService.ts` (a JS interop wrapper in `D
 
 ## HTTP client wiring
 
-Configured in `DeepDrftPublic.Client.Startup`:
+Dual-mode wiring in `DeepDrftPublic.Client.Startup`:
 
 - Named clients `"DeepDrft.API"` (SQL metadata) and `"DeepDrft.Content"` (binary audio).
-- Both clients point to DeepDrftAPI. Base addresses passed in from `appsettings.json` (`ApiUrls:ContentApi`, `ApiUrls:SqlApi`).
-- `Startup.ConfigureApiHttpClient` and `Startup.ConfigureContentServices` are static methods called from **both** the server `Program.cs` and the WASM `Program.cs` so prerender and runtime see the same DI.
+- **Server-side** (SSR prerender): Both clients point directly at DeepDrftAPI via base addresses from `appsettings.json` (`ApiUrls:ContentApi`, `ApiUrls:SqlApi`). These are loaded from `environment/api.json` (via `CredentialTools.ResolvePathOrThrow`) in `Program.cs`.
+- **WASM runtime**: Both clients point to `HostEnvironment.BaseAddress` (the Blazor host), so browser requests proxy through `TrackProxyController` to DeepDrftAPI.
+- `Startup.ConfigureApiHttpClient` and `Startup.ConfigureContentServices` are static methods called from both the server `Program.cs` and the WASM `Program.cs`. At runtime, WASM overrides the base address to `HostEnvironment.BaseAddress`.
 
 Server-side `Program.cs` adds:
 - MudBlazor (`AddMudServices`)
-- Controllers
+- Controllers (`AddControllers()` and `MapControllers()`)
 - Render-mode components
 - SignalR tuning (if needed)
 - Forwarded headers
@@ -74,9 +74,15 @@ Server-side `Program.cs` adds:
 
 `UseForwardedHeaders()` runs first in the pipeline. HTTPS redirect is conditionally disabled via `ForwardedHeaders:DisableHttpsRedirection` so the app can sit behind nginx without forcing HTTPS at the host level.
 
-## No controllers
+## The proxy controller
 
-DeepDrftPublic has no HTTP controllers. It is a pure Blazor render host. Track metadata endpoints are served by DeepDrftAPI (see `DeepDrftAPI/CLAUDE.md` for endpoint details).
+`TrackProxyController` in `Controllers/` is the only HTTP controller. It is a thin proxy only — no domain logic, no data layer. The WASM client points both named HttpClients (`"DeepDrft.API"` and `"DeepDrft.Content"`) at the Blazor host's base address, so all browser requests route through this controller to DeepDrftAPI. Server-side SSR calls DeepDrftAPI directly (server-to-server) via the same named clients — no proxy hop on the server side.
+
+The proxy forwards two public, unauthenticated routes:
+- `GET api/track/page` — paged metadata listing
+- `GET api/track/{trackId}` — WAV audio streaming (handles `offset` param for seek-beyond-buffer)
+
+Both actions use `HttpCompletionOption.ResponseHeadersRead` for streaming efficiency. Audio streaming registers the upstream response with `HttpContext.Response.RegisterForDispose()` so the stream is properly cleaned up after the response body is sent.
 
 ## Development commands
 
@@ -93,11 +99,11 @@ dotnet build DeepDrftPublic
 
 ## Configuration
 
-- `appsettings.json`: `ApiUrls:*` (DeepDrftAPI base addresses), `Logging:*`, `AllowedHosts`, `ForwardedHeaders`. Port binding via `Kestrel:Endpoints` or `ASPNETCORE_URLS`.
-- No secrets files — DeepDrftPublic has no data layer or API credentials.
+- `appsettings.json`: Dev defaults for `ApiUrls:*` (DeepDrftAPI base addresses), `Logging:*`, `AllowedHosts`, `ForwardedHeaders`. Port binding via `Kestrel:Endpoints` or `ASPNETCORE_URLS`.
+- `environment/api.json`: Secrets file (via `CredentialTools.ResolvePathOrThrow`) with production DeepDrftAPI URLs (`ApiUrls:ContentApi`, `ApiUrls:SqlApi`).
 - MudBlazor theme (`MainLayout.razor` in client): bespoke light ("Charleston in the Day") and dark ("Lowcountry Summer Nights") palettes.
 - No `wwwroot/` changes during normal development — TS → JS compilation is automatic.
 
 ## Important patterns
 
-This project is a render host only. All data operations go through HTTP to DeepDrftAPI. When working with this project, focus on the render surface (components, middleware, config) and prerender coordination. New domain logic belongs in `DeepDrftData` / `DeepDrftAPI`.
+This project is a Blazor host with a proxy layer. The proxy controller is a thin HTTP boundary — no domain logic, no data layer. All domain operations happen in DeepDrftAPI; this controller only forwards public, unauthenticated track routes. When working here, focus on the render surface (components, middleware, config), prerender coordination, and keeping the proxy transparent. New domain logic belongs in `DeepDrftData` / `DeepDrftAPI`.

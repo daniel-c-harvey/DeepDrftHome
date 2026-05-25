@@ -8,7 +8,7 @@ DeepDrftHome is a **net10.0** solution consisting of ten projects implementing a
 
 ### Core Projects
 
-- **DeepDrftPublic**: ASP.NET Core host. Blazor Web App with Server + WASM render modes. Pure Blazor host with no data layer; fetches track metadata from DeepDrftAPI via HTTP. Owns MudBlazor theme prerender and TypeScript→JS audio interop. Public-facing site for listeners.
+- **DeepDrftPublic**: ASP.NET Core host. Blazor Web App with Server + WASM render modes. Owns browser-facing proxy controller for `api/track/*` (metadata listing and audio streaming), MudBlazor theme prerender, and TypeScript→JS audio interop. Public-facing site for listeners.
 - **DeepDrftPublic.Client**: Blazor WebAssembly assembly. All interactive UI (pages, player stack, dark-mode plumbing, HTTP clients for both backends). Consumed by the public site.
 - **DeepDrftManager**: ASP.NET Core host. Blazor Web App with server-rendered `InteractiveServer` render mode. Hosts all CMS Razor components and pages under `Components/Pages/Cms/`, `Components/Pages/Tracks/`, `Components/Layout/CmsLayout.razor`, and `Components/Shared/` (all inlined from the former `DeepDrftCms` RCL). Gated by AuthBlocks login and hierarchical `Admin` role authorization. All track operations (upload, metadata read/write, delete) are HTTP proxies via `ICmsTrackService` / `CmsTrackService` injected directly into Blazor components; no in-process data layer.
 - **DeepDrftShared.Client**: Razor Class Library. Shared Blazor components consumed by both `DeepDrftPublic` and `DeepDrftManager` for consistency across public and admin surfaces.
@@ -26,8 +26,10 @@ External: **NetBlocks** (absolute path `C:\lib\NetBlocks\`). Provides `Result`, 
 
 ```
 DeepDrftPublic.Client (WASM)
-    ├── HttpClient "DeepDrft.API"     ──►  DeepDrftAPI         ──►  EF Core / SQLite (metadata)
-    └── HttpClient "DeepDrft.Content" ──►  DeepDrftAPI         ──►  FileDatabase / disk (binary)
+    ├── HttpClient "DeepDrft.API"     ──►  DeepDrftPublic proxy  ──►  DeepDrftAPI  ──►  EF Core / SQLite (metadata)
+    └── HttpClient "DeepDrft.Content" ──►  DeepDrftPublic proxy  ──►  DeepDrftAPI  ──►  FileDatabase / disk (binary)
+
+Server-side (SSR): Both clients point directly at DeepDrftAPI (server-to-server, no proxy hop).
 ```
 
 1. **SQL Database (SQLite)**: Metadata and track info via Entity Framework
@@ -120,7 +122,7 @@ dotnet ef database update --project DeepDrftData --startup-project DeepDrftPubli
 
 All projects load secrets via `CredentialTools.ResolvePathOrThrow()` from gitignored `environment/` files:
 
-- `DeepDrftPublic/appsettings.json`: Logging and URL config (DeepDrftAPI base URL). No secrets file dependency.
+- `DeepDrftPublic/appsettings.json`: Logging and URL config. Secrets loaded from `environment/api.json` (DeepDrftAPI base URLs for content and SQL metadata).
 - `DeepDrftManager/appsettings.json`: Logging and URL config. Secrets loaded from `environment/api.json` (DeepDrftAPI base URL and API key).
 - `DeepDrftAPI/appsettings.json`: Logging and hosting config. Secrets loaded from `environment/filedatabase.json` (FileDatabase vault path), `environment/apikey.json` (API key), `environment/connections.json` (SQL and Auth connection strings), `environment/authblocks.json` (AuthBlocks JWT/email/admin creds).
 
