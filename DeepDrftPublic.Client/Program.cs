@@ -4,17 +4,13 @@ using MudBlazor.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
-Console.WriteLine(builder.HostEnvironment.BaseAddress);
-
-var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"] ?? "https://localhost:7001";
-var sqlApiUrl = builder.Configuration["ApiUrls:SqlApi"] ?? "https://localhost:5002";
-
 builder.Services.AddMudServices();
 
-Startup.ConfigureApiHttpClient(builder.Services, sqlApiUrl);
-Startup.ConfigureContentServices(builder.Services, contentApiUrl);
+// Both named clients point at this host's own origin. DeepDrftPublic proxies the
+// public track routes to DeepDrftAPI internally so the browser never makes a
+// cross-origin request.
+Startup.ConfigureApiHttpClient(builder.Services, builder.HostEnvironment.BaseAddress);
+Startup.ConfigureContentServices(builder.Services, builder.HostEnvironment.BaseAddress);
 Startup.ConfigureDomainServices(builder.Services);
 
-var app = builder.Build();
-
-await app.RunAsync();
+await builder.Build().RunAsync();
