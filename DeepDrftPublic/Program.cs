@@ -11,15 +11,13 @@ builder.Services.AddMudServices();
 
 var apiPath = CredentialTools.ResolvePathOrThrow("api", "environment/api.json");
 builder.Configuration.AddJsonFile(apiPath, optional: false, reloadOnChange: false);
-
-var contentApiUrl = builder.Configuration["ApiUrls:ContentApi"] ?? throw new Exception("Content API URL is not configured");
-var sqlApiUrl = builder.Configuration["ApiUrls:SqlApi"] ?? throw new Exception("ApiUrls:SqlApi is not configured");
+string apiUrl = builder.Configuration["Api:ContentApiUrl"] ?? throw new NullReferenceException("Api url is missing");
 
 // Server-side, both named clients point straight at DeepDrftAPI (server-to-server,
 // no proxy hop). The TrackController below reuses the "DeepDrft.API" client to forward
 // the WASM client's public track calls upstream.
-DeepDrftPublic.Client.Startup.ConfigureApiHttpClient(builder.Services, sqlApiUrl);
-DeepDrftPublic.Client.Startup.ConfigureContentServices(builder.Services, contentApiUrl);
+DeepDrftPublic.Client.Startup.ConfigureApiHttpClient(builder.Services, apiUrl);
+DeepDrftPublic.Client.Startup.ConfigureContentServices(builder.Services, apiUrl);
 DeepDrftPublic.Client.Startup.ConfigureDomainServices(builder.Services);
 
 Startup.ConfigureDomainServices(builder);
