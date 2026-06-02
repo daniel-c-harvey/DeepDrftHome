@@ -296,7 +296,8 @@ __pycache__/
 .claude/worktrees/
 
 # Environment Secrets
-**/environment
+**/environment/*
+!**/environment/*.example.json
 **/appsettings.Development.json
 
 # local sqlite files
