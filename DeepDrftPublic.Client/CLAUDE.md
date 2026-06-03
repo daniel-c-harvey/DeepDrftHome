@@ -48,11 +48,11 @@ Both are configured with JSON serializer settings (case-insensitive property mat
 ## Audio player stack (deepest part of the codebase)
 
 ### Contracts
-- `IPlayerService`: Initialize, SelectTrack, Play, Pause, Stop, Seek, SetVolume. Sync interface.
+- `IPlayerService`: Initialize, SelectTrack, Play, Pause, Stop, Seek, SetVolume. Sync interface. Owns `EventCallback? OnStateChanged` (single, provider-owned) and `event Action? StateChanged` (multicast, for cascade consumers).
 - `IStreamingPlayerService`: Extends above. SelectTrackStreaming(track) starts the chunked stream flow.
 
 ### Implementation
-- `AudioPlayerService` (abstract base): Lifecycle. Stores current track, playback state, volume. Derived classes implement `SelectTrackStreaming` / `SelectTrackImmediate`.
+- `AudioPlayerService` (abstract base): Lifecycle. Stores current track, playback state, volume. `SelectTrack` throws `NotSupportedException` (buffered path is dead); derived classes override `SelectTrackStreaming`.
 - `StreamingAudioPlayerService` (production): Constructor takes `TrackMediaClient`, `AudioInteropService`, logger. `SelectTrackStreaming`:
   1. Calls `TrackMediaClient.GetAudioStreamAsync(trackId, offset: 0)`.
   2. `StreamingAudioPlayerService.StreamAudioAsync` reads chunks (16–64 KB adaptive), pushes each via `AudioInteropService.ProcessStreamingChunkAsync` (JS interop call).
@@ -62,14 +62,15 @@ Both are configured with JSON serializer settings (case-insensitive property mat
   6. **Seek beyond buffer**: if seek target is past the decoded range, `Seek(position)` calls `TrackMediaClient.GetAudioStreamAsync(trackId, offset: byteOffset)`. Server's `WavOffsetService` synthesises a new 44-byte WAV header and streams from the offset. Player tears down and re-initialises decoder for the new stream.
 
 ### Interop bridge
+- `AudioInteropService.CreatePlayerAsync` polls `DeepDrftAudio.isReady()` before proceeding; `index.ts` sets `ready = true` after attaching the API to `window`. This guards against slow WASM boot / cache misses.
 - `AudioInteropService.ProcessStreamingChunkAsync(chunk)` calls JS `window.DeepDrftAudio.processStreamingChunk(chunk)` and awaits the Promise.
 - `AudioInteropService` also manages callback registrations for progress (fired by `PlaybackScheduler`), end-of-playback (fired by `PlaybackScheduler`), and spectrum data (fired by `SpectrumAnalyzer`). Each callback is a `DotNetObjectReference` to a delegate.
 
 ### Component integration
-- `AudioPlayerProvider.razor` is the cascading host. It injects `IStreamingPlayerService` (resolved to `StreamingAudioPlayerService` in DI), stores it in a cascade, and keeps it alive across navigation.
-- `AudioPlayerBar.razor` is the dock UI. It cascades the player, binds buttons to `Play()` / `Pause()` / `Seek()` / `SetVolume()`, and displays current time / duration / progress bar.
+- `AudioPlayerProvider.razor` is the cascading host. It injects `IStreamingPlayerService` (resolved to `StreamingAudioPlayerService` in DI), stores it in a cascade with `IsFixed="true"`, and keeps it alive across navigation.
+- `AudioPlayerBar.razor` is the dock UI. It cascades the player, binds buttons to `Play()` / `Pause()` / `Seek()` / `SetVolume()`, and displays current time / duration / progress bar. Subscribes to `IPlayerService.StateChanged` in `OnParametersSet` (reference-guarded, idempotent) and unsubscribes on dispose to re-render itself when the cascade updates.
 - `SpectrumVisualizer.razor` calls `AudioInteropService.GetSpectrumData()` on a timer, receives bar heights, renders via MudBlazor `MudChart` or custom canvas.
-- `TracksView.razor` injects `TracksViewModel` + cascaded `IStreamingPlayerService`. `PlayTrack(track)` calls `PlayerService.SelectTrack(track)` (which resolves to `StreamingAudioPlayerService.SelectTrackStreaming(track)`).
+- `TracksView.razor` injects `TracksViewModel` + cascaded `IStreamingPlayerService`. `PlayTrack(track)` calls `PlayerService.SelectTrackStreaming(track)`. Subscribes to `IPlayerService.StateChanged` in `OnParametersSet` and clears `_selectedTrack` when `!PlayerService.IsLoaded` (covers Stop, Unload, and end-of-track).
 
 ## Dark-mode plumbing
 
