@@ -9,7 +9,7 @@ namespace DeepDrftPublic.Client.Pages;
 public partial class TracksView : ComponentBase
 {
     [Inject] public required TracksViewModel ViewModel { get; set; }
-    [CascadingParameter] public required IPlayerService PlayerService { get; set; }
+    [CascadingParameter] public required IStreamingPlayerService PlayerService { get; set; }
     
     private TrackDto? _selectedTrack = null;
     private int _clickCount = 0;
