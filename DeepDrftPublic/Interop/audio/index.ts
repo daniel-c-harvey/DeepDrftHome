@@ -7,6 +7,10 @@ import { AudioPlayer, AudioResult, StreamingResult, AudioState } from './AudioPl
 // Player instances by ID
 const audioPlayers = new Map<string, AudioPlayer>();
 
+// Readiness state, flipped true at the end of module execution once the API is
+// attached to window. Read via DeepDrftAudio.isReady().
+let ready = false;
+
 // .NET interop type
 interface DotNetObjectReference {
     invokeMethodAsync(methodName: string, ...args: unknown[]): Promise<unknown>;
@@ -204,18 +208,12 @@ const DeepDrftAudio = {
         return { success: false, error: 'Player not found' };
     },
 
-    // Legacy compatibility - these may not be needed but kept for safety
-    initializeBufferedPlayer: (_playerId: string): AudioResult => {
-        return { success: true }; // No-op for streaming mode
-    },
-
-    appendAudioBlock: (_playerId: string, _audioBlock: Uint8Array): AudioResult => {
-        return { success: true }; // No-op - use processStreamingChunk instead
-    },
-
-    finalizeAudioBuffer: async (_playerId: string): Promise<AudioResult & { duration?: number }> => {
-        return { success: true }; // No-op for streaming mode
-    }
+    // Readiness probe — true once this module has finished executing and the API
+    // is attached to window. Blazor polls this before the first interop call so a
+    // slow WASM boot / cache miss does not surface as a generic init failure.
+    // Exposed as a method because Blazor JS interop invokes functions, not bare
+    // properties.
+    isReady: (): boolean => ready
 };
 
 // Expose to window
@@ -226,5 +224,8 @@ declare global {
 }
 
 window.DeepDrftAudio = DeepDrftAudio;
+// Flip ready last so a poller that sees isReady() === true is guaranteed the
+// whole surface is attached and callable.
+ready = true;
 
 export { DeepDrftAudio };

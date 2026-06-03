@@ -22,6 +22,16 @@ public interface IPlayerService
     // Events for UI updates
     EventCallback? OnStateChanged { get; set; }
     EventCallback? OnTrackSelected { get; set; }
+
+    /// <summary>
+    /// Multicast side-channel for state changes. The provider owns the single
+    /// <see cref="OnStateChanged"/> EventCallback (it drives the provider re-render);
+    /// cascade consumers that read state directly off this service — and so are not
+    /// re-rendered by the provider's render when the cascade is <c>IsFixed</c> —
+    /// subscribe here to re-render themselves. Fires on the same cadence as
+    /// <see cref="OnStateChanged"/> (throttled to ~10/s during streaming).
+    /// </summary>
+    event Action? StateChanged;
     
     // Control methods
     Task InitializeAsync();
