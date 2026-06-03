@@ -301,6 +301,7 @@ __pycache__/
 **/appsettings.Development.json
 
 # local sqlite files
+**/database/*
 **/deepdrft.db*
 
 # NetBlocks symlink for tool-assisted library code search
