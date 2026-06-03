@@ -4,14 +4,6 @@ Pre-existing bugs and known issues not yet triaged into the roadmap. Items here 
 
 ---
 
-## Player controls do not activate — cascade type mismatch [CRITICAL]
-
-Full analysis in `PLAYER_ANALYSIS.md` (2026-06-03).
-
-- **Symptom:** Backend streaming works; player controls never respond. Clicking a track does nothing visible, the dock never expands, transport buttons render disabled.
-- **Root cause:** `AudioPlayerProvider.razor` publishes `<CascadingValue Value="@(_audioPlayerService)">` where `_audioPlayerService` is typed as the concrete `StreamingAudioPlayerService`. Blazor binds cascading values **by the declared `TValue` type**. Every consumer asks for an interface — `AudioPlayerBar` / `SpectrumVisualizer` want `IStreamingPlayerService`, `TracksView` / `Home` want `IPlayerService` — so **none match the cascade and all receive `null`.** Null-guarded controls render disabled and silent; `TracksView.PlayerService` is `required` and will throw on first click once the bar alone is fixed.
-- **Fix shape:** Type the provider field/cascade as a single interface (`IStreamingPlayerService`) and align all four consumers to it; or register the service in DI and use `AddCascadingValue<IStreamingPlayerService>`. Minimal correct move is the former. Detail in `PLAYER_ANALYSIS.md §2.3`.
-
 ## Player stack — adjacent correctness/hygiene issues
 
 Surfaced by the same 2026-06-03 analysis (`PLAYER_ANALYSIS.md §4`). Distinct from the cascade bug.

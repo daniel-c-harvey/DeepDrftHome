@@ -16,7 +16,7 @@ All interactive UI for the site. Blazor WebAssembly. Pages, controls, the stream
   - `TrackCard.razor`: Individual track display (image, name, artist, album, genre, release date).
   - `TracksGallery.razor`: Responsive grid of `TrackCard` items (MudBlazor `MudGrid` with breakpoints).
   - `AppNavLink.razor`: Nav link with active-page highlight.
-  - `AudioPlayerProvider.razor`: Cascading host for `IPlayerService`. Everything inside it gets the player via `[CascadingParameter]`.
+  - `AudioPlayerProvider.razor`: Cascading host for `IStreamingPlayerService`. Everything inside it gets the player via `[CascadingParameter]`.
   - `AudioPlayerBar.razor`: Dock UI at the bottom (play/pause/seek/volume).
   - `SpectrumVisualizer.razor`: Bar-graph spectrum display, driven by `getSpectrumData` JS callback.
 - `Services/`: Audio player + dark-mode services.
@@ -66,10 +66,10 @@ Both are configured with JSON serializer settings (case-insensitive property mat
 - `AudioInteropService` also manages callback registrations for progress (fired by `PlaybackScheduler`), end-of-playback (fired by `PlaybackScheduler`), and spectrum data (fired by `SpectrumAnalyzer`). Each callback is a `DotNetObjectReference` to a delegate.
 
 ### Component integration
-- `AudioPlayerProvider.razor` is the cascading host. It injects `IPlayerService` (resolved to `StreamingAudioPlayerService` in DI), stores it in a cascade, and keeps it alive across navigation.
+- `AudioPlayerProvider.razor` is the cascading host. It injects `IStreamingPlayerService` (resolved to `StreamingAudioPlayerService` in DI), stores it in a cascade, and keeps it alive across navigation.
 - `AudioPlayerBar.razor` is the dock UI. It cascades the player, binds buttons to `Play()` / `Pause()` / `Seek()` / `SetVolume()`, and displays current time / duration / progress bar.
 - `SpectrumVisualizer.razor` calls `AudioInteropService.GetSpectrumData()` on a timer, receives bar heights, renders via MudBlazor `MudChart` or custom canvas.
-- `TracksView.razor` injects `TracksViewModel` + cascaded `IPlayerService`. `PlayTrack(track)` calls `PlayerService.SelectTrack(track)` (which resolves to `StreamingAudioPlayerService.SelectTrackStreaming(track)`).
+- `TracksView.razor` injects `TracksViewModel` + cascaded `IStreamingPlayerService`. `PlayTrack(track)` calls `PlayerService.SelectTrack(track)` (which resolves to `StreamingAudioPlayerService.SelectTrackStreaming(track)`).
 
 ## Dark-mode plumbing
 
@@ -118,7 +118,7 @@ dotnet test DeepDrftTests/
 
 ## Important patterns
 
-- **Cascading parameters**: `AudioPlayerProvider` cascades `IPlayerService`. All children (including `MainLayout` and pages) access it via `[CascadingParameter] IPlayerService Player { get; set; }`.
+- **Cascading parameters**: `AudioPlayerProvider` cascades `IStreamingPlayerService`. All children (including `MainLayout` and pages) access it via `[CascadingParameter] IStreamingPlayerService Player { get; set; }`.
 - **Result types**: Clients return `ApiResult<T>` from NetBlocks. UI checks `Success` before using `Value`.
 - **Async/await**: All operations are async.
 - **Stream consumption**: `TrackMediaClient.GetAudioStreamAsync` returns a `Stream` (not fully buffered). `StreamingAudioPlayerService` reads it in chunks to avoid memory pressure on large files.
