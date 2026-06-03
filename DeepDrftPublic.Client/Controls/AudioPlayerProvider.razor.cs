@@ -11,7 +11,7 @@ public partial class AudioPlayerProvider : ComponentBase, IAsyncDisposable
     [Inject] public required TrackMediaClient TrackMediaClient { get; set; }
     [Inject] public required ILogger<StreamingAudioPlayerService> Logger { get; set; }
 
-    private StreamingAudioPlayerService? _audioPlayerService;
+    private IStreamingPlayerService? _audioPlayerService;
 
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -38,10 +38,10 @@ public partial class AudioPlayerProvider : ComponentBase, IAsyncDisposable
     /// </summary>
     public async ValueTask DisposeAsync()
     {
-        if (_audioPlayerService != null)
+        if (_audioPlayerService is IAsyncDisposable disposable)
         {
-            await _audioPlayerService.DisposeAsync();
-            _audioPlayerService = null;
+            await disposable.DisposeAsync();
         }
+        _audioPlayerService = null;
     }
 }
