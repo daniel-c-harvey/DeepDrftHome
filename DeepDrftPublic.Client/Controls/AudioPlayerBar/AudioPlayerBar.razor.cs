@@ -15,6 +15,7 @@ public partial class AudioPlayerBar : ComponentBase, IAsyncDisposable
     private double _seekPosition = 0;
     private bool _isDesktop = true;
     private Guid _viewportSubscriptionId;
+    private IStreamingPlayerService? _subscribedService;
 
     private bool IsLoaded => PlayerService?.IsLoaded ?? false;
     private bool IsLoading => PlayerService?.IsLoading ?? false;
@@ -42,13 +43,22 @@ public partial class AudioPlayerBar : ComponentBase, IAsyncDisposable
     {
         // PlayerService is cascaded by AudioPlayerProvider; once it arrives,
         // wire our track-selection handler. The provider owns OnStateChanged —
-        // we intentionally do NOT wrap or replace it. Re-renders propagate
-        // from the provider via the standard Blazor child render path.
-        if (PlayerService != null)
+        // we intentionally do NOT wrap or replace it. Because the cascade is
+        // IsFixed, the provider's re-render does NOT reliably re-render this bar
+        // (it has no incoming parameters that change), so we subscribe to the
+        // multicast StateChanged side-channel to re-render ourselves.
+        if (PlayerService != null && !ReferenceEquals(PlayerService, _subscribedService))
         {
+            if (_subscribedService != null)
+                _subscribedService.StateChanged -= OnPlayerStateChanged;
+
             PlayerService.OnTrackSelected = new EventCallback(this, Expand);
+            PlayerService.StateChanged += OnPlayerStateChanged;
+            _subscribedService = PlayerService;
         }
     }
+
+    private void OnPlayerStateChanged() => InvokeAsync(StateHasChanged);
 
     private async Task Expand()
     {
@@ -57,11 +67,6 @@ public partial class AudioPlayerBar : ComponentBase, IAsyncDisposable
             _isMinimized = false;
             StateHasChanged();
         }
-    }
-    private static string FormatTime(double seconds)
-    {
-        var timeSpan = TimeSpan.FromSeconds(seconds);
-        return timeSpan.ToString(timeSpan.TotalHours >= 1 ? @"h\:mm\:ss" : @"m\:ss");
     }
 
     private async Task TogglePlayPause()
@@ -127,11 +132,6 @@ public partial class AudioPlayerBar : ComponentBase, IAsyncDisposable
         }
     }
     
-    private string GetPlayIcon()
-    {
-        return IsPlaying ? Icons.Material.Filled.Pause : Icons.Material.Filled.PlayArrow;
-    }
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -156,6 +156,11 @@ public partial class AudioPlayerBar : ComponentBase, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        if (_subscribedService != null)
+        {
+            _subscribedService.StateChanged -= OnPlayerStateChanged;
+            _subscribedService = null;
+        }
         await BrowserViewportService.UnsubscribeAsync(_viewportSubscriptionId);
     }
 }

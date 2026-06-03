@@ -16,6 +16,15 @@ public class AudioInteropService : IAsyncDisposable
     {
         try
         {
+            if (!await WaitForModuleReadyAsync())
+            {
+                return new AudioOperationResult
+                {
+                    Success = false,
+                    Error = "Audio engine failed to load (timed out waiting for DeepDrftAudio module)."
+                };
+            }
+
             var result = await _jsRuntime.InvokeAsync<AudioOperationResult>("DeepDrftAudio.createPlayer", playerId);
             return result;
         }
@@ -25,19 +34,34 @@ public class AudioInteropService : IAsyncDisposable
         }
     }
 
-    public async Task<AudioOperationResult> InitializeBufferedPlayerAsync(string playerId)
+    // The audio engine is loaded as an ES module via a deferred `import(...)` in
+    // App.razor, so on a slow WASM boot or cache miss it may not have executed by
+    // the time the first track is selected. Poll its readiness probe (tolerating
+    // the window before `window.DeepDrftAudio` even exists, when the call throws)
+    // up to a short timeout before the first interop call.
+    private async Task<bool> WaitForModuleReadyAsync()
     {
-        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.initializeBufferedPlayer", playerId);
-    }
+        const int timeoutMs = 5000;
+        const int pollIntervalMs = 50;
+        var elapsed = 0;
 
-    public async Task<AudioOperationResult> AppendAudioBlockAsync(string playerId, byte[] audioBlock)
-    {
-        return await InvokeJsAsync<AudioOperationResult>("DeepDrftAudio.appendAudioBlock", playerId, audioBlock);
-    }
+        while (elapsed < timeoutMs)
+        {
+            try
+            {
+                if (await _jsRuntime.InvokeAsync<bool>("DeepDrftAudio.isReady"))
+                    return true;
+            }
+            catch
+            {
+                // window.DeepDrftAudio not attached yet — keep polling until timeout.
+            }
 
-    public async Task<AudioLoadResult> FinalizeAudioBufferAsync(string playerId)
-    {
-        return await InvokeJsAsync<AudioLoadResult>("DeepDrftAudio.finalizeAudioBuffer", playerId);
+            await Task.Delay(pollIntervalMs);
+            elapsed += pollIntervalMs;
+        }
+
+        return false;
     }
 
     // Streaming methods
@@ -238,8 +262,6 @@ public class AudioInteropService : IAsyncDisposable
         {
             if (typeof(T) == typeof(AudioOperationResult))
                 return (T)(object)new AudioOperationResult { Success = false, Error = ex.Message };
-            if (typeof(T) == typeof(AudioLoadResult))
-                return (T)(object)new AudioLoadResult { Success = false, Error = ex.Message };
             if (typeof(T) == typeof(StreamingResult))
                 return (T)(object)new StreamingResult { Success = false, Error = ex.Message };
             if (typeof(T) == typeof(SeekResult))
@@ -329,14 +351,6 @@ public class SeekResult : AudioOperationResult
 {
     public bool SeekBeyondBuffer { get; set; }
     public long ByteOffset { get; set; }
-}
-
-public class AudioLoadResult : AudioOperationResult
-{
-    public double Duration { get; set; }
-    public int SampleRate { get; set; }
-    public int NumberOfChannels { get; set; }
-    public double LoadProgress { get; set; }
 }
 
 public class StreamingResult : AudioOperationResult

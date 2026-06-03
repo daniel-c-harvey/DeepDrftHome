@@ -2,7 +2,6 @@ using DeepDrftModels.DTOs;
 using DeepDrftPublic.Client.Clients;
 using Microsoft.AspNetCore.Components;
 using NetBlocks.Models;
-using System.Buffers;
 
 namespace DeepDrftPublic.Client.Services;
 
@@ -37,6 +36,9 @@ public abstract class AudioPlayerService : IPlayerService, IAsyncDisposable
     // Events
     public EventCallback? OnStateChanged { get; set; }
     public EventCallback? OnTrackSelected { get; set; }
+
+    /// <inheritdoc />
+    public event Action? StateChanged;
 
     protected AudioPlayerService(AudioInteropService audioInterop, TrackMediaClient trackMediaClient)
     {
@@ -74,134 +76,16 @@ public abstract class AudioPlayerService : IPlayerService, IAsyncDisposable
         }
     }
 
-    public virtual async Task SelectTrack(TrackDto track)
-    {
-        await EnsureInitializedAsync();
-
-        await NotifyStateChanged();
-
-        if (OnTrackSelected.HasValue)
-            await OnTrackSelected.Value.InvokeAsync();
-
-        await LoadTrack(track);
-        await NotifyStateChanged();
-    }
-
-    private async Task LoadTrack(TrackDto track)
-    {
-        try
-        {
-            if (IsLoading) return;
-            
-            if (IsPlaying || IsPaused)
-            {
-                await Unload();
-            }
-            
-            // Reset state to indicate loading has started
-            ErrorMessage = null;
-            LoadProgress = 0;
-            IsLoaded = false;
-            IsLoading = true;
-            Duration = null;
-            CurrentTime = 0;
-            await NotifyStateChanged();
-
-            var loadResult = await _audioInterop.InitializeBufferedPlayerAsync(PlayerId);
-            if (loadResult?.Success != true)
-            {
-                ErrorMessage = $"Failed to initialize audio buffer: {loadResult?.Error ?? "Unknown error"}";
-                return;
-            }
-
-            var mediaResult = await _trackMediaClient.GetTrackMedia(track.EntryKey);
-            if (!mediaResult.Success)
-            {
-                ErrorMessage = mediaResult.GetMessage();
-                return;
-            }
-
-            if (mediaResult.Value == null)
-            {
-                ErrorMessage = "No audio returned from server";
-                return;
-            }
-            
-            TrackMediaResponse audio = mediaResult.Value;
-            await StreamAudio(audio);
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error loading audio: {ex.Message}";
-            LoadProgress = 0;
-            IsLoaded = false;
-        }
-        finally
-        {
-            IsLoading = false;
-            await NotifyStateChanged();
-        }
-    }
-
-    private async Task StreamAudio(TrackMediaResponse audio)
-    {
-        const int bufferSize = 32 * 1024;
-        var rentedBuffer = ArrayPool<byte>.Shared.Rent(bufferSize);
-        try
-        {
-            long totalBytesRead = 0;
-            int currentBytes;
-
-            do
-            {
-                currentBytes = await audio.Stream.ReadAsync(rentedBuffer, 0, bufferSize);
-
-                if (currentBytes > 0)
-                {
-                    totalBytesRead += currentBytes;
-
-                    // Slice to actual bytes read before sending to interop
-                    var chunk = rentedBuffer[..currentBytes];
-
-                    var appendResult = await _audioInterop.AppendAudioBlockAsync(PlayerId, chunk);
-                    if (!appendResult.Success)
-                    {
-                        throw new Exception($"Failed to append audio block: {appendResult.Error}");
-                    }
-
-                    if (audio.ContentLength > 0)
-                    {
-                        LoadProgress = Math.Min(1.0, (double)totalBytesRead / audio.ContentLength);
-                        await NotifyStateChanged();
-                    }
-                }
-            } while (currentBytes > 0);
-
-            var finalizeResult = await _audioInterop.FinalizeAudioBufferAsync(PlayerId);
-            if (!finalizeResult.Success)
-            {
-                throw new Exception($"Failed to finalize audio buffer: {finalizeResult.Error}");
-            }
-
-            Duration = finalizeResult.Duration;
-            LoadProgress = 1.0;
-            IsLoaded = true;
-            ErrorMessage = null;
-            await NotifyStateChanged();
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error streaming audio: {ex.Message}";
-            LoadProgress = 0;
-            IsLoaded = false;
-            await NotifyStateChanged();
-            throw;
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(rentedBuffer);
-        }
-    }
+    /// <summary>
+    /// Selecting a track is only supported through the streaming path. The former
+    /// base buffered implementation drove JS no-ops (<c>initializeBufferedPlayer</c> /
+    /// <c>appendAudioBlock</c> / <c>finalizeAudioBuffer</c>) and silently played
+    /// silence. Subclasses must override with a real load path (see
+    /// <see cref="StreamingAudioPlayerService.SelectTrack"/>).
+    /// </summary>
+    public virtual Task SelectTrack(TrackDto track) =>
+        throw new NotSupportedException(
+            "The base buffered player path is not implemented. Use a streaming player (SelectTrackStreaming).");
 
     public async Task TogglePlayPause()
     {
@@ -377,7 +261,9 @@ public abstract class AudioPlayerService : IPlayerService, IAsyncDisposable
     {
         IsPlaying = false;
         IsPaused = false;
+        IsLoaded = false;
         CurrentTime = 0;
+        Duration = null;
         await NotifyStateChanged();
     }
 
@@ -394,6 +280,7 @@ public abstract class AudioPlayerService : IPlayerService, IAsyncDisposable
     {
         if (OnStateChanged.HasValue)
             await OnStateChanged.Value.InvokeAsync();
+        StateChanged?.Invoke();
     }
 
     protected async Task NotifyTrackSelected()
