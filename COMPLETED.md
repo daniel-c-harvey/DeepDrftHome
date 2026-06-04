@@ -6,6 +6,18 @@ Newest entries at the top. Group by phase/wave header (mirroring `PLAN.md` / `CM
 
 ---
 
+## Deployment Infrastructure
+
+**Status:** CD pipeline infrastructure landed on 2026-06-04.
+
+### CD pipeline infrastructure (Gitea workflows + remote host installer)
+
+**Landed 2026-06-04.**
+
+Continuous deployment infrastructure for DeepDrftHome dual-app deployment. Consists of four Gitea workflows (`.gitea/workflows/`) — `deploy-public.yml`, `deploy-manager.yml`, `deploy-api.yml`, `package-install.yml` — all triggered by `dev` branch (beta) and `master` branch (prod) pushes, path-filtered to deploy only on changes to the affected service and its dependencies. Five installer scripts (`deploy/`) — `install.sh` (one-shot host provisioner), `bootstrap.sh` (curl-and-run entry point), `ssh-wrapper.sh` (forced-command dispatcher), three `deploy-*.sh` per-service deployment scripts — plus systemd service templates (`deploy/systemd/`) and nginx vhost templates (`deploy/nginx/`), and credential template files (`deploy/credentials/`). One auxiliary setup script `setup-step10-creds.sh` for interactive credential entry on the host. The installer creates users, directories, systemd services, PostgreSQL databases, nginx vhosts, and loads credential files via systemd `LoadCredential=` into the credential sandbox. The deploy scripts swap binaries in-place, run the EF migrations bundle for the API metadata database, and restart services without touching persistent vault data. Enables hands-off pushes to beta and prod with full CI/CD orchestration.
+
+---
+
 ## Two-app split Wave 2 — Phase 4
 
 **Status:** Phase 4 (project rename) landed on 2026-05-19.

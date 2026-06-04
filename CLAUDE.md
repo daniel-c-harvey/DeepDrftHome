@@ -26,14 +26,14 @@ External: **NetBlocks** (absolute path `C:\lib\NetBlocks\`). Provides `Result`, 
 
 ```
 DeepDrftPublic.Client (WASM)
-    ├── HttpClient "DeepDrft.API"     ──►  DeepDrftPublic proxy  ──►  DeepDrftAPI  ──►  EF Core / SQLite (metadata)
+    ├── HttpClient "DeepDrft.API"     ──►  DeepDrftPublic proxy  ──►  DeepDrftAPI  ──►  EF Core / PostgreSQL (metadata)
     └── HttpClient "DeepDrft.Content" ──►  DeepDrftPublic proxy  ──►  DeepDrftAPI  ──►  FileDatabase / disk (binary)
 
 Server-side (SSR): Both clients point directly at DeepDrftAPI (server-to-server, no proxy hop).
 ```
 
-1. **SQL Database (SQLite)**: Metadata and track info via Entity Framework
-   - Location: `../Database/deepdrft.db`
+1. **SQL Database (PostgreSQL)**: Metadata and track info via Entity Framework
+   - Connection string: Read from `environment/connections.json` via `CredentialTools.ResolvePathOrThrow("connections")` with key `ConnectionStrings:DefaultConnection`.
    - Entity: `TrackEntity` with `Id`, `EntryKey`, `TrackName`, `Artist`, `Album?`, `Genre?`, `ReleaseDate?`, `ImagePath?`
    - Context: `DeepDrftContext` in `DeepDrftData`
 
@@ -122,8 +122,8 @@ dotnet ef database update --project DeepDrftData --startup-project DeepDrftPubli
 
 All projects load secrets via `CredentialTools.ResolvePathOrThrow()` from gitignored `environment/` files:
 
-- `DeepDrftPublic/appsettings.json`: Logging and URL config. Secrets loaded from `environment/api.json` (DeepDrftAPI base URLs for content and SQL metadata).
-- `DeepDrftManager/appsettings.json`: Logging and URL config. Secrets loaded from `environment/api.json` (DeepDrftAPI base URL and API key).
+- `DeepDrftPublic/appsettings.json`: Logging and URL config. Secrets loaded from `environment/api.json` (DeepDrftAPI base URL via `Api:ContentApiUrl`).
+- `DeepDrftManager/appsettings.json`: Logging and URL config. Secrets loaded from `environment/api.json` (DeepDrftAPI base URL via `Api:ContentApiUrl` and API key via `Api:ContentApiKey`).
 - `DeepDrftAPI/appsettings.json`: Logging and hosting config. Secrets loaded from `environment/filedatabase.json` (FileDatabase vault path), `environment/apikey.json` (API key), `environment/connections.json` (SQL and Auth connection strings), `environment/authblocks.json` (AuthBlocks JWT/email/admin creds).
 
 ## Folder-Level Guidance
@@ -146,7 +146,7 @@ Services build `PagingParameters<T>` with an `OrderBy` expression. Switch in the
 
 ## External Dependencies
 
-- Entity Framework Core 10.0.1 (SQLite)
+- Entity Framework Core 10.0.1 (PostgreSQL / Npgsql)
 - MudBlazor 8.15.0
 - NUnit 4.4.0
 - NetBlocks (Result patterns)
