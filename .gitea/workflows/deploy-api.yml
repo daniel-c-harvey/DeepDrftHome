@@ -1,0 +1,127 @@
+name: Deploy DeepDrftAPI
+
+on:
+  push:
+    branches: [master, dev]
+    paths:
+      - 'DeepDrftAPI/**'
+      - 'DeepDrftData/**'
+      - 'DeepDrftContent/**'
+      - 'DeepDrftModels/**'
+      - '.gitea/workflows/deploy-api.yml'
+      - 'deploy/systemd/deepdrftapi.service'
+
+jobs:
+  build:
+    name: Build, Publish & Bundle
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install dotnet-ef tool
+        run: |
+          dotnet tool install --global dotnet-ef
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+
+      - name: Restore
+        run: dotnet restore DeepDrftAPI/DeepDrftAPI.csproj -r linux-x64
+
+      # Build with RID so --no-build is valid for the Publish step below.
+      - name: Build
+        run: dotnet build DeepDrftAPI/DeepDrftAPI.csproj -c Release -r linux-x64 --self-contained --no-restore
+
+      # Add: dotnet test DeepDrftTests/DeepDrftTests.csproj when API integration tests exist.
+
+      - name: Publish (self-contained linux-x64)
+        run: |
+          dotnet publish DeepDrftAPI/DeepDrftAPI.csproj \
+            -c Release \
+            -r linux-x64 \
+            --self-contained \
+            --no-build \
+            -o DeepDrftAPI/publish
+
+      # DeepDrftContextFactory reads environment/connections.json at design time.
+      # Write a parseable dummy so the factory does not throw during bundle construction.
+      # The bundle only needs the provider type, not a live database connection.
+      - name: Write dummy connections file for EF bundle
+        run: |
+          mkdir -p DeepDrftAPI/environment
+          echo '{"ConnectionStrings":{"DefaultConnection":"Host=localhost;Database=dummy;Username=dummy","Auth":"Host=localhost;Database=dummy;Username=dummy"}}' > DeepDrftAPI/environment/connections.json
+
+      # EF bundle: self-contained binary that applies DeepDrftContext migrations on the host
+      # without the .NET SDK. AuthBlocks' Identity DB is NOT covered here — it self-migrates
+      # via UseAuthBlocksStartupAsync() on first boot.
+      - name: Bundle EF migrations
+        run: |
+          dotnet ef migrations bundle \
+            --project DeepDrftData/DeepDrftData.csproj \
+            --startup-project DeepDrftAPI/DeepDrftAPI.csproj \
+            --context DeepDrftContext \
+            --configuration Release \
+            --output deepdrft-migrations-bundle \
+            --self-contained \
+            -r linux-x64
+
+      - name: Package
+        run: tar -czf deepdrft-api.tar.gz -C DeepDrftAPI/publish .
+
+      - name: Upload artifacts (archive + bundle)
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepdrft-api
+          path: |
+            deepdrft-api.tar.gz
+            deepdrft-migrations-bundle
+          retention-days: 1
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev')
+    env:
+      DEPLOY_HOST: ${{ github.ref == 'refs/heads/master' && 'prod.cerebellumsoftworks.com' || 'dch7.cerebellumsoftworks.com' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: deepdrft-api
+          path: staging/
+
+      - name: Install SSH tooling
+        run: apt-get update && apt-get install -y --no-install-recommends openssh-client rsync
+
+      - name: Configure SSH
+        env:
+          PROD_KEY: ${{ secrets.DEEPDRFT_PROD_SSH_DEPLOY }}
+          BETA_KEY: ${{ secrets.DEEPDRFT_DCH7_SSH_DEPLOY }}
+        run: |
+          mkdir -p ~/.ssh
+          if [ "$DEPLOY_HOST" = "prod.cerebellumsoftworks.com" ]; then
+            echo "$PROD_KEY" > ~/.ssh/deepdrft_ed25519
+          else
+            echo "$BETA_KEY" > ~/.ssh/deepdrft_ed25519
+          fi
+          chmod 600 ~/.ssh/deepdrft_ed25519
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts || { echo "ssh-keyscan failed for $DEPLOY_HOST"; exit 1; }
+
+      - name: Rsync archive, bundle, and unit file to staging
+        run: |
+          chmod +x staging/deepdrft-migrations-bundle
+          rsync -e "ssh -i ~/.ssh/deepdrft_ed25519 -o StrictHostKeyChecking=yes" \
+            staging/deepdrft-api.tar.gz \
+            staging/deepdrft-migrations-bundle \
+            deploy/systemd/deepdrftapi.service \
+            deepdrft@$DEPLOY_HOST:
+
+      - name: Trigger deploy on host
+        run: |
+          ssh -i ~/.ssh/deepdrft_ed25519 -o StrictHostKeyChecking=yes \
+            deepdrft@$DEPLOY_HOST deploy-api
