@@ -1,0 +1,30 @@
+[Unit]
+Description=DeepDrft Public Site — Blazor SSR + WASM public listener site
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+
+WorkingDirectory=%h/public/bin
+ExecStart=%h/public/bin/DeepDrftPublic
+
+# Non-secret config — hardcoded; no plaintext file needed.
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://localhost:5000
+
+# Secrets — loaded at startup into $CREDENTIALS_DIRECTORY/.
+# File lives at %h/.config/credentials/ (deepdrft:deepdrft 600).
+# LoadCredential id 'api' must match CredentialTools.ResolvePathOrThrow("api", ...) key.
+LoadCredential=api:%h/.config/credentials/api-public.json
+
+# Forward headers are configured in Program.cs for the nginx proxy topology.
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=deepdrftpublic
+
+[Install]
+WantedBy=default.target

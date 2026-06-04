@@ -1,0 +1,65 @@
+name: Package install tarball
+
+# Authentication: uses the built-in gitea.token (auto-injected per run).
+# No manual secret required.
+
+on:
+  push:
+    branches: [master, dev]
+    paths:
+      - 'deploy/**'
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build install tarball
+        run: |
+          tar -czf deepdrft-install.tar.gz \
+            --exclude=deploy/bootstrap.sh \
+            --transform 's|^deploy/||' \
+            deploy/
+
+      - name: Create Gitea release
+        env:
+          GITEA_TOKEN: ${{ gitea.token }}
+          GITEA_SERVER_URL: ${{ gitea.server_url }}
+          GITEA_REPO: ${{ gitea.repository }}
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          if [ "$GITHUB_REF" = "refs/heads/master" ]; then
+            TAG="install-$(date +%Y%m%d)-${SHORT_SHA}"
+            PRERELEASE="false"
+          else
+            TAG="beta-$(date +%Y%m%d)-${SHORT_SHA}"
+            PRERELEASE="true"
+          fi
+
+          # Create the release via Gitea API
+          RELEASE_URL=$(curl -s -X POST \
+            -H "Authorization: token ${GITEA_TOKEN}" \
+            -H "Content-Type: application/json" \
+            "${GITEA_SERVER_URL}/api/v1/repos/${GITEA_REPO}/releases" \
+            -d "{
+              \"tag_name\": \"${TAG}\",
+              \"name\": \"Install package ${TAG}\",
+              \"body\": \"Self-contained install tarball. Commit: ${GITHUB_SHA}\",
+              \"draft\": false,
+              \"prerelease\": ${PRERELEASE}
+            }" | jq -r '.upload_url')
+
+          # upload_url from Gitea includes {?name,label} template — strip it
+          UPLOAD_BASE="${RELEASE_URL%\{*\}}"
+
+          curl -s -X POST \
+            -H "Authorization: token ${GITEA_TOKEN}" \
+            -H "Content-Type: application/octet-stream" \
+            "${UPLOAD_BASE}?name=deepdrft-install.tar.gz" \
+            --data-binary @deepdrft-install.tar.gz
+
+          echo "Released as tag: ${TAG}"
+          echo "Asset URL: ${GITEA_SERVER_URL}/${GITEA_REPO}/releases/download/${TAG}/deepdrft-install.tar.gz"

@@ -1,0 +1,37 @@
+[Unit]
+Description=DeepDrft API — dual-database authority (track metadata + FileDatabase + AuthBlocks)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+
+WorkingDirectory=%h/api/deepdrft/bin
+ExecStart=%h/api/deepdrft/bin/DeepDrftAPI
+
+# Non-secret config — hardcoded; no plaintext file needed.
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://localhost:5002
+
+# Secrets — loaded at startup into $CREDENTIALS_DIRECTORY/.
+# Files live at %h/.config/credentials/ (deepdrft:deepdrft 600).
+#
+# LoadCredential ids (left of colon) MUST exactly match CredentialTools.ResolvePathOrThrow
+# keys in the application code. Wrong id -> service throws on startup.
+#   filedatabase  -> FileDatabaseSettings.VaultPath
+#   apikey        -> ApiKeySettings.ApiKey
+#   connections   -> ConnectionStrings.DefaultConnection + .Auth (two PG databases)
+#   authblocks    -> AuthBlocks JWT / Email / Admin config
+LoadCredential=filedatabase:%h/.config/credentials/filedatabase.json
+LoadCredential=apikey:%h/.config/credentials/apikey.json
+LoadCredential=connections:%h/.config/credentials/connections.json
+LoadCredential=authblocks:%h/.config/credentials/authblocks.json
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=deepdrftapi
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,82 @@
+name: Deploy DeepDrftManager
+
+on:
+  push:
+    branches: [master, dev]
+    paths:
+      - 'DeepDrftManager/**'
+      - 'DeepDrftShared.Client/**'
+      - 'DeepDrftModels/**'
+      - '.gitea/workflows/deploy-manager.yml'
+
+jobs:
+  build:
+    name: Build & Publish
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # No test project scoped to DeepDrftManager — add one and wire it here when ready.
+
+      - name: Publish (self-contained linux-x64)
+        run: |
+          dotnet publish DeepDrftManager/DeepDrftManager.csproj \
+            -c Release \
+            -r linux-x64 \
+            --self-contained \
+            -o DeepDrftManager/publish
+
+      - name: Package
+        run: tar -czf deepdrft-manager.tar.gz -C DeepDrftManager/publish .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: deepdrft-manager
+          path: deepdrft-manager.tar.gz
+          retention-days: 1
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev')
+    env:
+      DEPLOY_HOST: ${{ github.ref == 'refs/heads/master' && 'prod.cerebellumsoftworks.com' || 'dch7.cerebellumsoftworks.com' }}
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: deepdrft-manager
+
+      - name: Install SSH tooling
+        run: apt-get update && apt-get install -y --no-install-recommends openssh-client rsync
+
+      - name: Configure SSH
+        env:
+          PROD_KEY: ${{ secrets.DEEPDRFT_PROD_SSH_DEPLOY }}
+          BETA_KEY: ${{ secrets.DEEPDRFT_DCH7_SSH_DEPLOY }}
+        run: |
+          mkdir -p ~/.ssh
+          if [ "$DEPLOY_HOST" = "prod.cerebellumsoftworks.com" ]; then
+            echo "$PROD_KEY" > ~/.ssh/deepdrft_ed25519
+          else
+            echo "$BETA_KEY" > ~/.ssh/deepdrft_ed25519
+          fi
+          chmod 600 ~/.ssh/deepdrft_ed25519
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts || { echo "ssh-keyscan failed for $DEPLOY_HOST"; exit 1; }
+
+      - name: Rsync archive to staging
+        run: |
+          rsync -e "ssh -i ~/.ssh/deepdrft_ed25519 -o StrictHostKeyChecking=yes" \
+            deepdrft-manager.tar.gz \
+            deepdrft@$DEPLOY_HOST:
+
+      - name: Trigger deploy on host
+        run: |
+          ssh -i ~/.ssh/deepdrft_ed25519 -o StrictHostKeyChecking=yes \
+            deepdrft@$DEPLOY_HOST deploy-manager
